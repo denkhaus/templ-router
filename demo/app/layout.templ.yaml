@@ -1,0 +1,22 @@
+i18n:
+  en:
+    site_title: "Multi-Language Demo"
+    nav_home: "Home"
+    nav_dashboard: "Dashboard"
+    nav_admin: "Admin"
+    footer_copyright: "© 2024 Multi-Language Demo. Powered by File-Based Router + i18n"
+  de:
+    site_title: "Mehrsprachige Demo"
+    nav_home: "Startseite"
+    nav_dashboard: "Dashboard"
+    nav_admin: "Administration"
+    footer_copyright: "© 2024 Mehrsprachige Demo. Powered by File-Based Router + i18n"
+
+auth:
+  type: "Public"
+
+metadata:
+  title: "Multi-Language Demo - File-Based Router"
+  theme: "modern"
+  app_version: "2.1.0"
+  description: "Demonstration of file-based routing with i18n support"

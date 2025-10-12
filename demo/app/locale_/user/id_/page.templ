@@ -1,0 +1,138 @@
+package id_
+
+import "github.com/denkhaus/templ-router/pkg/router"
+
+templ Page(id string) {
+	<div class="max-w-4xl mx-auto">
+		<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+			<!-- Profile Header -->
+			<div class="bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-12">
+				<div class="flex items-center space-x-6">
+					<div class="w-24 h-24 bg-white rounded-full flex items-center justify-center">
+						<svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+						</svg>
+					</div>
+					<div class="text-white">
+						<h1 class="text-3xl font-bold">{ router.T(ctx, "profile_title") }</h1>
+						<p class="text-blue-100 mt-2">{ router.T(ctx, "user_id_label") }: { id }</p>
+						<p class="text-blue-100">{ router.T(ctx, "viewing_profile_for") } { id }</p>
+					</div>
+				</div>
+			</div>
+			<!-- Profile Content -->
+			<div class="p-8">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+					<!-- User Information -->
+					<div>
+						<h2 class="text-2xl font-semibold text-gray-800 mb-6">{ router.T(ctx, "user_information") }</h2>
+						<div class="space-y-4">
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">{ router.T(ctx, "full_name") }</span>
+								<span class="text-gray-800">
+									if router.GetCurrentLocale(ctx) == "de" {
+										Max Mustermann { id }
+									} else {
+										John Doe { id }
+									}
+								</span>
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">{ router.T(ctx, "email") }</span>
+								<span class="text-gray-800">
+									user{ id }.example.com
+								</span>
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">{ router.T(ctx, "role") }</span>
+								<span class="px-2 py-1 bg-blue-100 text-blue-800 rounded text-sm">{ router.T(ctx, "user_role") }</span>
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">{ router.T(ctx, "status") }</span>
+								<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">{ router.T(ctx, "active") }</span>
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">{ router.T(ctx, "member_since") }</span>
+								<span class="text-gray-800">
+									if router.GetCurrentLocale(ctx) == "de" {
+										Januar 2024
+									} else {
+										January 2024
+									}
+								</span>
+							</div>
+							<div class="flex justify-between items-center py-3">
+								<span class="text-gray-600 font-medium">{ router.T(ctx, "last_login") }</span>
+								<span class="text-gray-800">{ router.T(ctx, "2_hours_ago") }</span>
+							</div>
+						</div>
+					</div>
+					<!-- Activity & Stats -->
+					<div>
+						<h2 class="text-2xl font-semibold text-gray-800 mb-6">{ router.T(ctx, "activity_stats") }</h2>
+						<div class="space-y-6">
+							<!-- Stats Cards -->
+							<div class="grid grid-cols-2 gap-4">
+								<div class="bg-blue-50 p-4 rounded-lg text-center">
+									<div class="text-2xl font-bold text-blue-600">42</div>
+									<div class="text-sm text-blue-800">{ router.T(ctx, "projects") }</div>
+								</div>
+								<div class="bg-green-50 p-4 rounded-lg text-center">
+									<div class="text-2xl font-bold text-green-600">128</div>
+									<div class="text-sm text-green-800">{ router.T(ctx, "tasks") }</div>
+								</div>
+								<div class="bg-purple-50 p-4 rounded-lg text-center">
+									<div class="text-2xl font-bold text-purple-600">15</div>
+									<div class="text-sm text-purple-800">{ router.T(ctx, "teams") }</div>
+								</div>
+								<div class="bg-yellow-50 p-4 rounded-lg text-center">
+									<div class="text-2xl font-bold text-yellow-600">89%</div>
+									<div class="text-sm text-yellow-800">{ router.T(ctx, "completion") }</div>
+								</div>
+							</div>
+							<!-- Recent Activity -->
+							<div>
+								<h3 class="text-lg font-semibold text-gray-800 mb-3">{ router.T(ctx, "recent_activity") }</h3>
+								<div class="space-y-3">
+									<div class="flex items-center space-x-3 p-3 bg-gray-50 rounded">
+										<div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+										<div class="flex-1">
+											<p class="text-sm text-gray-800">{ router.T(ctx, "completed_task") }</p>
+											<p class="text-xs text-gray-500">{ router.T(ctx, "2_hours_ago") }</p>
+										</div>
+									</div>
+									<div class="flex items-center space-x-3 p-3 bg-gray-50 rounded">
+										<div class="w-2 h-2 bg-green-500 rounded-full"></div>
+										<div class="flex-1">
+											<p class="text-sm text-gray-800">{ router.T(ctx, "joined_team") }</p>
+											<p class="text-xs text-gray-500">{ router.T(ctx, "1_day_ago") }</p>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<!-- Dynamic Route Demo -->
+				<div class="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+					<h3 class="text-lg font-semibold text-yellow-800 mb-3">{ router.T(ctx, "dynamic_route_demo") }</h3>
+					<p class="text-yellow-700 mb-2">{ router.T(ctx, "dynamic_route_description") }</p>
+					<p class="text-yellow-700 mb-4">
+						<strong>{ router.T(ctx, "current_user_id") }:</strong> { id }
+					</p>
+					<div class="flex flex-wrap gap-2">
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/user/456") } class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm transition-colors">
+							{ router.T(ctx, "user") } 456
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/user/789") } class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm transition-colors">
+							{ router.T(ctx, "user") } 789
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/user/admin") } class="bg-yellow-100 hover:bg-yellow-200 text-yellow-800 px-3 py-1 rounded text-sm transition-colors">
+							{ router.T(ctx, "user") } admin
+						</a>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}

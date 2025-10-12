@@ -1,0 +1,74 @@
+i18n:
+  en:
+    profile_title: "User Profile"
+    user_id_label: "User ID"
+    viewing_profile_for: "Viewing profile for user"
+    user_information: "User Information"
+    full_name: "Full Name"
+    email: "Email"
+    role: "Role"
+    user_role: "User"
+    status: "Status"
+    active: "Active"
+    member_since: "Member Since"
+    last_login: "Last Login"
+    2_hours_ago: "2 hours ago"
+    activity_stats: "Activity & Statistics"
+    projects: "Projects"
+    tasks: "Tasks"
+    teams: "Teams"
+    completion: "Completion"
+    recent_activity: "Recent Activity"
+    completed_task: "Completed task 'Update documentation'"
+    joined_team: "Joined team 'Frontend Development'"
+    1_day_ago: "1 day ago"
+    dynamic_route_demo: "Dynamic Route Demo"
+    dynamic_route_description: "This page demonstrates dynamic routing with the $id parameter."
+    current_user_id: "Current User ID"
+    user: "User"
+    
+  de:
+    profile_title: "Benutzerprofil"
+    user_id_label: "Benutzer-ID"
+    viewing_profile_for: "Profil anzeigen für Benutzer"
+    user_information: "Benutzerinformationen"
+    full_name: "Vollständiger Name"
+    email: "E-Mail"
+    role: "Rolle"
+    user_role: "Benutzer"
+    status: "Status"
+    active: "Aktiv"
+    member_since: "Mitglied seit"
+    last_login: "Letzte Anmeldung"
+    2_hours_ago: "vor 2 Stunden"
+    activity_stats: "Aktivität & Statistiken"
+    projects: "Projekte"
+    tasks: "Aufgaben"
+    teams: "Teams"
+    completion: "Abschluss"
+    recent_activity: "Letzte Aktivität"
+    completed_task: "Aufgabe 'Dokumentation aktualisieren' abgeschlossen"
+    joined_team: "Team 'Frontend-Entwicklung' beigetreten"
+    1_day_ago: "vor 1 Tag"
+    dynamic_route_demo: "Dynamische Route Demo"
+    dynamic_route_description: "Diese Seite demonstriert dynamisches Routing mit dem $id Parameter."
+    current_user_id: "Aktuelle Benutzer-ID"
+    user: "Benutzer"
+
+auth:
+  type: "Public"
+
+metadata:
+  title: "User Profile - Multi-Language Demo"
+  theme: "profile"
+  description: "User profile page with dynamic routing"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]
+    id:
+      validation: "^[a-zA-Z0-9_-]+$"
+      description: "User identifier"

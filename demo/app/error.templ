@@ -1,0 +1,29 @@
+package app
+
+import (
+	"github.com/denkhaus/templ-router/pkg/router/middleware"
+	"strconv"
+)
+
+// ErrorPage - Simple error page without translations (hardcoded)
+templ Error(errCtx middleware.ErrorContext) {
+	<div class="max-w-2xl mx-auto text-center">
+		<div class="bg-red-50 border border-red-200 rounded-lg p-8">
+			<div class="text-6xl font-bold text-red-500 mb-4">{ strconv.Itoa(errCtx.StatusCode) }</div>
+			<h1 class="text-3xl font-bold text-gray-800 mb-4">Oops! Something went wrong</h1>
+			<p class="text-lg text-gray-600 mb-6">{ errCtx.Message }</p>
+			<div class="space-x-4">
+				<a href="/" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors">
+					Go Home
+				</a>
+				<button onclick="history.back()" class="bg-gray-500 text-white px-6 py-2 rounded hover:bg-gray-600 transition-colors">
+					Go Back
+				</button>
+			</div>
+			<div class="mt-8 text-sm text-gray-500">
+				<p>This error page uses hardcoded text (no translations)</p>
+				<p>For multi-language error pages, place them under /$locale/error.templ</p>
+			</div>
+		</div>
+	</div>
+}

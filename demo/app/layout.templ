@@ -1,0 +1,77 @@
+package app
+
+import "github.com/denkhaus/templ-router/pkg/router"
+
+templ Layout(content templ.Component) {
+	<!DOCTYPE html>
+	<html lang={ router.GetCurrentLocale(ctx) }>
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			if router.M(ctx, "title") != "" {
+				<title>{ router.M(ctx, "title") }</title>
+			} else {
+				<title>{ router.T(ctx, "site_title") }</title>
+			}
+			<link href="/assets/css/output.css" rel="stylesheet"/>
+			<script src="/assets/js/htmx.min.js"></script>
+		</head>
+		<body class="bg-gray-50 min-h-screen" data-theme={ router.M(ctx, "theme") }>
+			@Navbar()
+			<main class="container mx-auto p-6">
+				@content
+			</main>
+			@Footer()
+			if router.M(ctx, "app_version") != "" {
+				<div class="fixed bottom-2 right-2 text-xs text-gray-400">
+					v{ router.M(ctx, "app_version") }
+				</div>
+			}
+		</body>
+	</html>
+}
+
+templ Navbar() {
+	<nav class="bg-blue-600 text-white p-4">
+		<div class="container mx-auto flex justify-between items-center">
+			<h1 class="text-xl font-bold">{ router.T(ctx, "site_title") }</h1>
+			<div class="flex items-center space-x-6">
+				<div class="space-x-4">
+					<a href={ templ.URL("/" + router.GetCurrentLocale(ctx)) } class="hover:underline">
+						{ router.T(ctx, "nav_home") }
+					</a>
+					<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/dashboard") } class="hover:underline">
+						{ router.T(ctx, "nav_dashboard") }
+					</a>
+					<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/admin") } class="hover:underline">
+						{ router.T(ctx, "nav_admin") }
+					</a>
+				</div>
+				@LanguageSwitcher()
+			</div>
+		</div>
+	</nav>
+}
+
+templ LanguageSwitcher() {
+	<div class="flex items-center space-x-2 bg-blue-700 rounded px-3 py-1">
+		<span class="text-sm">🌐</span>
+		<div class="flex space-x-1">
+			if router.GetCurrentLocale(ctx) == "en" {
+				<span class="bg-white text-blue-600 px-2 py-1 rounded text-sm font-semibold">EN</span>
+				<a href="/de" class="text-blue-200 hover:text-white px-2 py-1 rounded text-sm">DE</a>
+			} else {
+				<a href="/en" class="text-blue-200 hover:text-white px-2 py-1 rounded text-sm">EN</a>
+				<span class="bg-white text-blue-600 px-2 py-1 rounded text-sm font-semibold">DE</span>
+			}
+		</div>
+	</div>
+}
+
+templ Footer() {
+	<footer class="bg-gray-800 text-white p-4 mt-8">
+		<div class="container mx-auto text-center">
+			<p>{ router.T(ctx, "footer_copyright") }</p>
+		</div>
+	</footer>
+}

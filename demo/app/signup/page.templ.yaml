@@ -1,0 +1,26 @@
+i18n:
+  en:
+    signup_title: "Create your account"
+    signup_subtitle: "Sign up to get started with the system"
+    username: "Username"
+    username_placeholder: "Choose a username"
+    email: "Email"
+    email_placeholder: "Enter your email address"
+    password: "Password"
+    password_placeholder: "Choose a password"
+    create_account: "Create Account"
+    have_account: "Already have an account? Sign in"
+  de:
+    signup_title: "Konto erstellen"
+    signup_subtitle: "Registrieren Sie sich, um mit dem System zu beginnen"
+    username: "Benutzername"
+    username_placeholder: "Benutzername wählen"
+    email: "E-Mail"
+    email_placeholder: "E-Mail-Adresse eingeben"
+    password: "Passwort"
+    password_placeholder: "Passwort wählen"
+    create_account: "Konto erstellen"
+    have_account: "Bereits ein Konto? Anmelden"
+
+auth:
+  type: "Public"

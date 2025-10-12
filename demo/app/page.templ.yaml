@@ -1,0 +1,12 @@
+i18n:
+  en:
+    welcome_title: "Welcome to Multi-Language Demo"
+    welcome_subtitle: "Choose your language to continue"
+    language_selection: "Language Selection"
+  de:
+    welcome_title: "Willkommen zur Mehrsprachigen Demo"
+    welcome_subtitle: "Wählen Sie Ihre Sprache um fortzufahren"
+    language_selection: "Sprachauswahl"
+
+auth:
+  type: "Public"

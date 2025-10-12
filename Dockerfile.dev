@@ -1,0 +1,30 @@
+FROM golang:1.25-alpine AS dev
+
+# Install development tools
+RUN apk add --no-cache \
+    git \
+    curl \
+    bash \
+    make
+
+# Install development tools
+RUN go install github.com/a-h/templ/cmd/templ@latest
+RUN go install github.com/cosmtrek/air@v1.40.4
+
+# Set working directory
+WORKDIR /app
+
+# Copy go mod files first for better caching
+COPY go.mod go.sum ./
+
+# Download dependencies
+RUN go mod download
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 8084
+
+# Default command
+CMD ["./feedback-router"]

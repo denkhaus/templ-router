@@ -1,0 +1,50 @@
+i18n:
+  en:
+    welcome_title: "Welcome to Multi-Language Demo"
+    welcome_subtitle: "Experience seamless language switching with our file-based router"
+    features_title: "Features Demonstrated"
+    feature_multilang: "Multi-language routing with $locale parameter"
+    feature_decentralized: "Decentralized i18n in YAML metadata files"
+    feature_context_based: "Context-based translation helpers"
+    feature_url_switching: "URL-based language switching"
+    navigation_title: "Explore Demo Pages"
+    nav_dashboard: "Dashboard"
+    nav_dashboard_desc: "Multi-language dashboard with statistics"
+    nav_admin: "Administration"
+    nav_admin_desc: "Admin panel with authentication"
+    nav_user_profile: "User Profile"
+    nav_user_profile_desc: "Dynamic user profile with $id parameter"
+    debug_info_title: "Debug Information"
+    current_locale: "Current Locale"
+    current_template: "Current Template"
+    available_keys: "Available Translation Keys"
+    
+  de:
+    welcome_title: "Willkommen zur Mehrsprachigen Demo"
+    welcome_subtitle: "Erleben Sie nahtloses Sprachwechseln mit unserem dateibasierten Router"
+    features_title: "Demonstrierte Features"
+    feature_multilang: "Mehrsprachiges Routing mit $locale Parameter"
+    feature_decentralized: "Dezentrale i18n in YAML-Metadaten-Dateien"
+    feature_context_based: "Kontextbasierte Übersetzungs-Helfer"
+    feature_url_switching: "URL-basiertes Sprachwechseln"
+    navigation_title: "Demo-Seiten Erkunden"
+    nav_dashboard: "Dashboard"
+    nav_dashboard_desc: "Mehrsprachiges Dashboard mit Statistiken"
+    nav_admin: "Administration"
+    nav_admin_desc: "Admin-Panel mit Authentifizierung"
+    nav_user_profile: "Benutzerprofil"
+    nav_user_profile_desc: "Dynamisches Benutzerprofil mit $id Parameter"
+    debug_info_title: "Debug-Informationen"
+    current_locale: "Aktuelle Sprache"
+    current_template: "Aktuelles Template"
+    available_keys: "Verfügbare Übersetzungsschlüssel"
+
+auth:
+  type: "Public"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]

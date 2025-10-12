@@ -1,0 +1,42 @@
+# Docker Compose for feedback-router development
+
+services:
+  feedback-router-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8084:8084"
+    volumes:
+      - .:/app
+      - go-mod-cache:/go/pkg/mod
+    environment:
+      - CGO_ENABLED=0
+      - GOOS=linux
+      - GOARCH=amd64
+      - GOCACHE=/tmp/go-build
+      - GOMODCACHE=/go/pkg/mod
+    working_dir: /app
+    user: "1000:1000"
+    command: >
+      sh -c "
+        echo '📦 Installing missing dependencies...' &&
+        go mod download github.com/google/uuid &&
+        go mod download golang.org/x/tools &&
+        cd demo &&
+        rm -f generated/templates/registry.go &&
+        echo '📦 Generating templates...' && templ generate &&
+        echo '🔧 Running template generator...' && GOCACHE=/tmp TEMPLATE_SCAN_PATH=app TEMPLATE_MODULE_NAME=github.com/denkhaus/templ-router/demo go run ../cmd/template-generator/*.go &&
+        echo '📋 Checking generated registry...' && ls -la generated/templates/ &&
+        cd .. &&
+        echo '🔥 Starting Air for hot-reload development...' && air
+      "
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  go-mod-cache:

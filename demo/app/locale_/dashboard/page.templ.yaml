@@ -1,0 +1,64 @@
+i18n:
+  en:
+    page_title: "Dashboard"
+    page_subtitle: "Overview of your application metrics and recent activity"
+    stats_users: "Total Users"
+    stats_projects: "Active Projects"
+    stats_revenue: "Revenue"
+    stats_uptime: "Uptime"
+    recent_activity_title: "Recent Activity"
+    activity_user_registered: "New user registered: john.doe@example.com"
+    activity_project_completed: "Project 'Website Redesign' completed"
+    activity_backup_completed: "System backup completed successfully"
+    time_2_minutes_ago: "2 minutes ago"
+    time_1_hour_ago: "1 hour ago"
+    time_3_hours_ago: "3 hours ago"
+    quick_actions_title: "Quick Actions"
+    action_create_user: "Create New User"
+    action_admin_panel: "Admin Panel"
+    action_export_data: "Export Data"
+    language_demo_title: "Multi-Language Demo"
+    current_language: "Current Language"
+    switch_to: "Switch to"
+    total_translations: "Total Translations"
+    template_path: "Template Path"
+    
+  de:
+    page_title: "Dashboard"
+    page_subtitle: "Übersicht Ihrer Anwendungsmetriken und aktuellen Aktivitäten"
+    stats_users: "Gesamte Benutzer"
+    stats_projects: "Aktive Projekte"
+    stats_revenue: "Umsatz"
+    stats_uptime: "Betriebszeit"
+    recent_activity_title: "Letzte Aktivitäten"
+    activity_user_registered: "Neuer Benutzer registriert: john.doe@example.com"
+    activity_project_completed: "Projekt 'Website Redesign' abgeschlossen"
+    activity_backup_completed: "System-Backup erfolgreich abgeschlossen"
+    time_2_minutes_ago: "vor 2 Minuten"
+    time_1_hour_ago: "vor 1 Stunde"
+    time_3_hours_ago: "vor 3 Stunden"
+    quick_actions_title: "Schnellaktionen"
+    action_create_user: "Neuen Benutzer erstellen"
+    action_admin_panel: "Admin-Panel"
+    action_export_data: "Daten exportieren"
+    language_demo_title: "Mehrsprachen-Demo"
+    current_language: "Aktuelle Sprache"
+    switch_to: "Wechseln zu"
+    total_translations: "Gesamte Übersetzungen"
+    template_path: "Template-Pfad"
+
+auth:
+  type: "Public"
+
+metadata:
+  title: "Dashboard - Multi-Language Demo"
+  theme: "dashboard"
+  app_version: "1.2.3"
+  description: "Application dashboard with metrics"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]

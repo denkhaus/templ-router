@@ -1,0 +1,44 @@
+package templates
+
+type LayoutData struct {
+	Title   string
+	Content templ.Component
+}
+
+templ LayoutWrapper(data LayoutData) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>{ data.Title }</title>
+			<link href="/assets/css/output.css" rel="stylesheet"/>
+			<script src="/assets/js/htmx.min.js"></script>
+		</head>
+		<body class="bg-gray-50 min-h-screen" data-theme="default">
+			<nav class="bg-blue-600 text-white p-4">
+				<div class="container mx-auto flex justify-between items-center">
+					<h1 class="text-xl font-bold">Multi-Language Demo</h1>
+					<div class="flex items-center space-x-6">
+						<div class="space-x-4">
+							<a href="/en" class="hover:underline">Home</a>
+							<a href="/en/dashboard" class="hover:underline">Dashboard</a>
+							<a href="/en/admin" class="hover:underline">Admin</a>
+						</div>
+					</div>
+				</div>
+			</nav>
+			<main class="container mx-auto p-6">
+				@data.Content
+			</main>
+			<footer class="bg-gray-800 text-white p-4 mt-8">
+				<div class="container mx-auto text-center">
+					<p>Copyright 2024 Multi-Language Demo</p>
+				</div>
+			</footer>
+			<div class="fixed bottom-2 right-2 text-xs text-gray-400">
+				v1.0.0
+			</div>
+		</body>
+	</html>
+}

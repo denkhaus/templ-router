@@ -1,0 +1,93 @@
+package locale_
+
+import (
+	"fmt"
+	"github.com/denkhaus/templ-router/pkg/router"
+)
+
+templ Page() {
+	<div class="max-w-4xl mx-auto">
+		<div class="bg-white rounded-lg shadow-lg p-8">
+			<h1 class="text-4xl font-bold text-gray-800 mb-6">{ router.T(ctx, "welcome_title") }</h1>
+			<p class="text-xl text-gray-600 mb-8">{ router.T(ctx, "welcome_subtitle") }</p>
+			<div class="grid md:grid-cols-2 gap-6 mb-8">
+				<div class="bg-blue-50 p-6 rounded-lg">
+					<h2 class="text-2xl font-semibold text-blue-800 mb-4">{ router.T(ctx, "features_title") }</h2>
+					<ul class="space-y-2 text-gray-700">
+						<li class="flex items-center">
+							<span class="text-green-500 mr-2">✓</span>
+							{ router.T(ctx, "feature_multilang") }
+						</li>
+						<li class="flex items-center">
+							<span class="text-green-500 mr-2">✓</span>
+							{ router.T(ctx, "feature_decentralized") }
+						</li>
+						<li class="flex items-center">
+							<span class="text-green-500 mr-2">✓</span>
+							{ router.T(ctx, "feature_context_based") }
+						</li>
+						<li class="flex items-center">
+							<span class="text-green-500 mr-2">✓</span>
+							{ router.T(ctx, "feature_url_switching") }
+						</li>
+					</ul>
+				</div>
+				<div class="bg-green-50 p-6 rounded-lg">
+					<h2 class="text-2xl font-semibold text-green-800 mb-4">{ router.T(ctx, "navigation_title") }</h2>
+					<div class="space-y-3">
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/dashboard") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>{ router.T(ctx, "nav_dashboard") }</strong>
+							<div class="text-sm text-gray-600">{ router.T(ctx, "nav_dashboard_desc") }</div>
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/admin") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>{ router.T(ctx, "nav_admin") }</strong>
+							<div class="text-sm text-gray-600">{ router.T(ctx, "nav_admin_desc") }</div>
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/user/demo") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>{ router.T(ctx, "nav_user_profile") }</strong>
+							<div class="text-sm text-gray-600">{ router.T(ctx, "nav_user_profile_desc") }</div>
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/user/123") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>User Profile (ID: 123)</strong>
+							<div class="text-sm text-gray-600">Dynamic user profile with numeric ID</div>
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/user/alice") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>User Profile (Alice)</strong>
+							<div class="text-sm text-gray-600">Dynamic user profile with username</div>
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/user/bob-smith") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>User Profile (Bob Smith)</strong>
+							<div class="text-sm text-gray-600">Dynamic user profile with hyphenated name</div>
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/product/laptop-pro") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>Product: Laptop Pro</strong>
+							<div class="text-sm text-gray-600">Dynamic product page with text ID</div>
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/product/12345") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>Product: ID 12345</strong>
+							<div class="text-sm text-gray-600">Dynamic product page with numeric ID</div>
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/product/widget-v2") } class="block bg-white p-3 rounded border hover:bg-gray-50 transition-colors">
+							<strong>Product: Widget v2</strong>
+							<div class="text-sm text-gray-600">Dynamic product page with version number</div>
+						</a>
+					</div>
+				</div>
+			</div>
+			<div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+				<h3 class="text-lg font-semibold text-gray-800 mb-4">{ router.T(ctx, "debug_info_title") }</h3>
+				<div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+					<div>
+						<strong>{ router.T(ctx, "current_locale") }:</strong> { router.GetCurrentLocale(ctx) }
+					</div>
+					<div>
+						<strong>{ router.T(ctx, "current_template") }:</strong> { router.GetCurrentTemplate(ctx) }
+					</div>
+					<div>
+						<strong>{ router.T(ctx, "available_keys") }:</strong> { fmt.Sprint(len(router.GetAvailableKeys(ctx))) }
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}

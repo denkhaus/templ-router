@@ -1,0 +1,59 @@
+i18n:
+  en:
+    page_title: "Product Details"
+    product_id_label: "Product ID"
+    viewing_product_for: "Viewing details for product"
+    product_information: "Product Information"
+    product_name: "Product Name"
+    price: "Price"
+    category: "Category"
+    electronics: "Electronics"
+    status: "Status"
+    in_stock: "In Stock"
+    description: "Description"
+    high_quality_product: "High-quality product with excellent features and reliable performance."
+    specifications: "Specifications"
+    weight: "Weight"
+    dimensions: "Dimensions"
+    warranty: "Warranty"
+    2_years: "2 years"
+    dynamic_route_demo: "Dynamic Route Demo"
+    dynamic_route_description: "This page demonstrates dynamic routing with the $id parameter for products."
+    current_product_id: "Current Product ID"
+    product: "Product"
+    
+  de:
+    page_title: "Produktdetails"
+    product_id_label: "Produkt-ID"
+    viewing_product_for: "Details anzeigen für Produkt"
+    product_information: "Produktinformationen"
+    product_name: "Produktname"
+    price: "Preis"
+    category: "Kategorie"
+    electronics: "Elektronik"
+    status: "Status"
+    in_stock: "Auf Lager"
+    description: "Beschreibung"
+    high_quality_product: "Hochwertiges Produkt mit ausgezeichneten Funktionen und zuverlässiger Leistung."
+    specifications: "Spezifikationen"
+    weight: "Gewicht"
+    dimensions: "Abmessungen"
+    warranty: "Garantie"
+    2_years: "2 Jahre"
+    dynamic_route_demo: "Dynamische Route Demo"
+    dynamic_route_description: "Diese Seite demonstriert dynamisches Routing mit dem $id Parameter für Produkte."
+    current_product_id: "Aktuelle Produkt-ID"
+    product: "Produkt"
+
+auth:
+  type: "Public"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]
+    id:
+      validation: "^[a-zA-Z0-9_-]+$"
+      description: "Product identifier"

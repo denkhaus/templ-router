@@ -1,0 +1,7 @@
+{
+  "componentsDir": "ui/components",
+  "utilsDir": "utils",
+  "moduleName": "github.com/denkhaus/templ-router/demo",
+  "jsDir": "assets/js/components",
+  "jsPublicPath": "assets/js/components"
+}

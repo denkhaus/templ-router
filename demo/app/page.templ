@@ -1,0 +1,48 @@
+package app
+
+// HomePage - Language selection landing page (no translations needed)
+templ Page() {
+	<div class="max-w-4xl mx-auto text-center">
+		<div class="bg-white rounded-lg shadow-lg p-12">
+			<h1 class="text-5xl font-bold text-gray-800 mb-8">🚀 LIVE HOT-RELOAD DEMO - Dev Lifecycle Active!</h1>
+			<p class="text-xl text-gray-600 mb-12">🔥 HOT-RELOAD TEST - File Updated Successfully!</p>
+			
+			<div class="grid md:grid-cols-2 gap-8 max-w-2xl mx-auto">
+				<a href="/en" class="group block p-8 bg-blue-50 hover:bg-blue-100 rounded-lg border-2 border-blue-200 hover:border-blue-400 transition-all">
+					<div class="text-6xl mb-4">🇺🇸</div>
+					<h2 class="text-2xl font-bold text-blue-800 mb-2">English</h2>
+					<p class="text-blue-600">Continue in English</p>
+				</a>
+				
+				<a href="/de" class="group block p-8 bg-green-50 hover:bg-green-100 rounded-lg border-2 border-green-200 hover:border-green-400 transition-all">
+					<div class="text-6xl mb-4">🇩🇪</div>
+					<h2 class="text-2xl font-bold text-green-800 mb-2">Deutsch</h2>
+					<p class="text-green-600">Auf Deutsch fortfahren</p>
+				</a>
+			</div>
+			
+			<div class="mt-12 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+				<h3 class="text-lg font-semibold text-yellow-800 mb-3">Demo Features</h3>
+				<div class="grid md:grid-cols-2 gap-4 text-sm text-yellow-700">
+					<div class="text-left">
+						<h4 class="font-semibold mb-2">Multi-Language Routes:</h4>
+						<ul class="space-y-1">
+							<li>• /$locale/dashboard</li>
+							<li>• /$locale/admin</li>
+							<li>• /$locale/user/$id</li>
+						</ul>
+					</div>
+					<div class="text-left">
+						<h4 class="font-semibold mb-2">Features:</h4>
+						<ul class="space-y-1">
+							<li>• Decentralized i18n</li>
+							<li>• URL-based language switching</li>
+							<li>• Template-specific translations</li>
+							<li>• Context-based helpers</li>
+						</ul>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}

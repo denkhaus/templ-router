@@ -1,0 +1,31 @@
+package templates
+
+type PlaceholderData struct {
+	Title        string
+	TemplatePath string
+}
+
+templ Placeholder(data PlaceholderData) {
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<title>{ data.Title }</title>
+			<script src="https://cdn.tailwindcss.com"></script>
+		</head>
+		<body class="bg-gray-100">
+			<div class="container mx-auto px-4 py-8">
+				<div class="bg-white rounded-lg shadow-lg p-8">
+					<h1 class="text-3xl font-bold text-gray-800 mb-4">{ data.Title }</h1>
+					<p class="text-gray-600 mb-4">
+						Template: 
+						<code class="bg-gray-100 px-2 py-1 rounded">{ data.TemplatePath }</code>
+					</p>
+					<div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+						<p class="text-blue-800"><strong>Template Placeholder</strong></p>
+						<p class="text-blue-700">This is a placeholder template for development and testing purposes.</p>
+					</div>
+				</div>
+			</div>
+		</body>
+	</html>
+}

@@ -1,0 +1,149 @@
+package dashboard
+
+import (
+	"fmt"
+	"github.com/denkhaus/templ-router/pkg/router"
+)
+
+templ Page() {
+	<div class="max-w-6xl mx-auto">
+		<div class="mb-8">
+			<h1 class="text-3xl font-bold text-gray-800">{ router.T(ctx, "page_title") }</h1>
+			<p class="text-gray-600 mt-2">{ router.T(ctx, "page_subtitle") }</p>
+		</div>
+		<!-- Stats Cards -->
+		<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+			<div class="bg-white rounded-lg shadow p-6">
+				<div class="flex items-center">
+					<div class="p-3 rounded-full bg-blue-500 text-white">
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+						</svg>
+					</div>
+					<div class="ml-4">
+						<h3 class="text-lg font-semibold text-gray-800">{ router.T(ctx, "stats_users") }</h3>
+						<p class="text-2xl font-bold text-blue-600">1,234</p>
+					</div>
+				</div>
+			</div>
+			<div class="bg-white rounded-lg shadow p-6">
+				<div class="flex items-center">
+					<div class="p-3 rounded-full bg-green-500 text-white">
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+						</svg>
+					</div>
+					<div class="ml-4">
+						<h3 class="text-lg font-semibold text-gray-800">{ router.T(ctx, "stats_projects") }</h3>
+						<p class="text-2xl font-bold text-green-600">42</p>
+					</div>
+				</div>
+			</div>
+			<div class="bg-white rounded-lg shadow p-6">
+				<div class="flex items-center">
+					<div class="p-3 rounded-full bg-purple-500 text-white">
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+						</svg>
+					</div>
+					<div class="ml-4">
+						<h3 class="text-lg font-semibold text-gray-800">{ router.T(ctx, "stats_revenue") }</h3>
+						<p class="text-2xl font-bold text-purple-600">
+							if router.GetCurrentLocale(ctx) == "de" {
+								€12.345
+							} else {
+								$12,345
+							}
+						</p>
+					</div>
+				</div>
+			</div>
+			<div class="bg-white rounded-lg shadow p-6">
+				<div class="flex items-center">
+					<div class="p-3 rounded-full bg-yellow-500 text-white">
+						<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+						</svg>
+					</div>
+					<div class="ml-4">
+						<h3 class="text-lg font-semibold text-gray-800">{ router.T(ctx, "stats_uptime") }</h3>
+						<p class="text-2xl font-bold text-yellow-600">99.9%</p>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Recent Activity -->
+		<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+			<div class="bg-white rounded-lg shadow">
+				<div class="p-6 border-b border-gray-200">
+					<h2 class="text-xl font-semibold text-gray-800">{ router.T(ctx, "recent_activity_title") }</h2>
+				</div>
+				<div class="p-6">
+					<div class="space-y-4">
+						<div class="flex items-center space-x-4">
+							<div class="w-2 h-2 bg-blue-500 rounded-full"></div>
+							<div class="flex-1">
+								<p class="text-gray-800">{ router.T(ctx, "activity_user_registered") }</p>
+								<p class="text-sm text-gray-500">{ router.T(ctx, "time_2_minutes_ago") }</p>
+							</div>
+						</div>
+						<div class="flex items-center space-x-4">
+							<div class="w-2 h-2 bg-green-500 rounded-full"></div>
+							<div class="flex-1">
+								<p class="text-gray-800">{ router.T(ctx, "activity_project_completed") }</p>
+								<p class="text-sm text-gray-500">{ router.T(ctx, "time_1_hour_ago") }</p>
+							</div>
+						</div>
+						<div class="flex items-center space-x-4">
+							<div class="w-2 h-2 bg-yellow-500 rounded-full"></div>
+							<div class="flex-1">
+								<p class="text-gray-800">{ router.T(ctx, "activity_backup_completed") }</p>
+								<p class="text-sm text-gray-500">{ router.T(ctx, "time_3_hours_ago") }</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- Quick Actions -->
+			<div class="bg-white rounded-lg shadow">
+				<div class="p-6 border-b border-gray-200">
+					<h2 class="text-xl font-semibold text-gray-800">{ router.T(ctx, "quick_actions_title") }</h2>
+				</div>
+				<div class="p-6">
+					<div class="space-y-3">
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/user/new") } class="block w-full bg-blue-500 text-white text-center py-3 px-4 rounded hover:bg-blue-600 transition-colors">
+							{ router.T(ctx, "action_create_user") }
+						</a>
+						<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/admin") } class="block w-full bg-green-500 text-white text-center py-3 px-4 rounded hover:bg-green-600 transition-colors">
+							{ router.T(ctx, "action_admin_panel") }
+						</a>
+						<button class="w-full bg-gray-500 text-white py-3 px-4 rounded hover:bg-gray-600 transition-colors">
+							{ router.T(ctx, "action_export_data") }
+						</button>
+					</div>
+				</div>
+			</div>
+		</div>
+		<!-- Language Demo -->
+		<div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+			<h3 class="text-lg font-semibold text-blue-800 mb-4">{ router.T(ctx, "language_demo_title") }</h3>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-blue-700">
+				<div>
+					<p><strong>{ router.T(ctx, "current_language") }:</strong> { router.GetCurrentLocale(ctx) }</p>
+					<p>
+						<strong>{ router.T(ctx, "switch_to") }:</strong>
+						if router.GetCurrentLocale(ctx) == "en" {
+							<a href="/de/dashboard" class="underline hover:text-blue-900">Deutsch</a>
+						} else {
+							<a href="/en/dashboard" class="underline hover:text-blue-900">English</a>
+						}
+					</p>
+				</div>
+				<div>
+					<p><strong>{ router.T(ctx, "total_translations") }:</strong> { fmt.Sprint(len(router.GetAvailableKeys(ctx))) }</p>
+					<p><strong>{ router.T(ctx, "template_path") }:</strong> { router.GetCurrentTemplate(ctx) }</p>
+				</div>
+			</div>
+		</div>
+	</div>
+}

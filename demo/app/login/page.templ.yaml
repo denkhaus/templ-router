@@ -1,0 +1,24 @@
+i18n:
+  en:
+    login_title: "Sign in to your account"
+    login_subtitle: "Enter your credentials to access the system"
+    username: "Username"
+    username_placeholder: "Enter your username"
+    password: "Password"
+    password_placeholder: "Enter your password"
+    remember_me: "Remember me"
+    sign_in: "Sign in"
+    need_account: "Don't have an account? Sign up"
+  de:
+    login_title: "Bei Ihrem Konto anmelden"
+    login_subtitle: "Geben Sie Ihre Anmeldedaten ein, um auf das System zuzugreifen"
+    username: "Benutzername"
+    username_placeholder: "Benutzername eingeben"
+    password: "Passwort"
+    password_placeholder: "Passwort eingeben"
+    remember_me: "Angemeldet bleiben"
+    sign_in: "Anmelden"
+    need_account: "Noch kein Konto? Registrieren"
+
+auth:
+  type: "Public"

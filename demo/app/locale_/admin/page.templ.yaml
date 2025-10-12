@@ -1,0 +1,61 @@
+i18n:
+  en:
+    admin_warning: "Admin Area - Restricted Access"
+    page_title: "System Administration"
+    user_management_title: "User Management"
+    user_management_desc: "Manage user accounts, roles, and permissions"
+    user_management_button: "Manage Users"
+    system_settings_title: "System Settings"
+    system_settings_desc: "Configure application settings and preferences"
+    system_settings_button: "System Config"
+    language_management_title: "Language Management"
+    language_management_desc: "Manage translations and language settings"
+    language_management_button: "Manage Languages"
+    system_status_title: "System Status"
+    uptime: "Uptime"
+    active_users: "Active Users"
+    storage_used: "Storage Used"
+    translation_keys: "Translation Keys"
+    admin_demo_title: "Admin Demo Information"
+    current_locale: "Current Locale"
+    admin_access: "Admin Access"
+    granted: "Granted"
+    template_file: "Template File"
+    auth_level: "Auth Level"
+    administrator: "Administrator"
+    
+  de:
+    admin_warning: "Admin-Bereich - Eingeschränkter Zugang"
+    page_title: "Systemadministration"
+    user_management_title: "Benutzerverwaltung"
+    user_management_desc: "Benutzerkonten, Rollen und Berechtigungen verwalten"
+    user_management_button: "Benutzer verwalten"
+    system_settings_title: "Systemeinstellungen"
+    system_settings_desc: "Anwendungseinstellungen und Präferenzen konfigurieren"
+    system_settings_button: "System konfigurieren"
+    language_management_title: "Sprachverwaltung"
+    language_management_desc: "Übersetzungen und Spracheinstellungen verwalten"
+    language_management_button: "Sprachen verwalten"
+    system_status_title: "Systemstatus"
+    uptime: "Betriebszeit"
+    active_users: "Aktive Benutzer"
+    storage_used: "Speicher verwendet"
+    translation_keys: "Übersetzungsschlüssel"
+    admin_demo_title: "Admin-Demo-Informationen"
+    current_locale: "Aktuelle Sprache"
+    admin_access: "Admin-Zugang"
+    granted: "Gewährt"
+    template_file: "Template-Datei"
+    auth_level: "Berechtigungsebene"
+    administrator: "Administrator"
+
+auth:
+  type: "AdminRequired"
+  redirect_url: "/login"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]

@@ -1,0 +1,47 @@
+i18n:
+  en:
+    error_title: "Dashboard Error"
+    error_404_message: "The requested dashboard page could not be found."
+    error_500_message: "An internal error occurred in the dashboard system."
+    error_403_message: "You don't have permission to access this dashboard feature."
+    dashboard_error_info: "Dashboard-Specific Error"
+    dashboard_error_description: "This error occurred within the dashboard area. You may need dashboard permissions to access this feature."
+    button_go_home: "Go Home"
+    button_back_dashboard: "Back to Dashboard"
+    button_go_back: "Go Back"
+    multilang_error_demo: "Multi-Language Error Demo"
+    current_locale: "Current Locale"
+    error_template: "Error Template"
+    available_translations: "Available Translations"
+    switch_language: "Switch Language"
+    view_in_german: "View in German"
+    view_in_english: "View in English"
+    
+  de:
+    error_title: "Dashboard-Fehler"
+    error_404_message: "Die angeforderte Dashboard-Seite konnte nicht gefunden werden."
+    error_500_message: "Ein interner Fehler ist im Dashboard-System aufgetreten."
+    error_403_message: "Sie haben keine Berechtigung, auf diese Dashboard-Funktion zuzugreifen."
+    dashboard_error_info: "Dashboard-spezifischer Fehler"
+    dashboard_error_description: "Dieser Fehler trat im Dashboard-Bereich auf. Möglicherweise benötigen Sie Dashboard-Berechtigungen für diese Funktion."
+    button_go_home: "Zur Startseite"
+    button_back_dashboard: "Zurück zum Dashboard"
+    button_go_back: "Zurück"
+    multilang_error_demo: "Mehrsprachige Fehler-Demo"
+    current_locale: "Aktuelle Sprache"
+    error_template: "Fehler-Template"
+    available_translations: "Verfügbare Übersetzungen"
+    switch_language: "Sprache wechseln"
+    view_in_german: "Auf Deutsch anzeigen"
+    view_in_english: "Auf Englisch anzeigen"
+
+auth:
+  type: "UserRequired"
+  redirect_url: "/login"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]

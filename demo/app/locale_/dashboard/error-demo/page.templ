@@ -1,0 +1,80 @@
+package dashboard
+
+import (
+	"fmt"
+	"github.com/denkhaus/templ-router/pkg/router"
+)
+
+// Page - A page to demonstrate error handling with translations
+templ Page() {
+	<div class="max-w-4xl mx-auto">
+		<div class="bg-white rounded-lg shadow-lg p-8">
+			<h1 class="text-3xl font-bold text-gray-800 mb-6">{ router.T(ctx, "error_demo_title") }</h1>
+			<p class="text-gray-600 mb-8">{ router.T(ctx, "error_demo_description") }</p>
+			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+				<!-- 404 Error Demo -->
+				<div class="bg-red-50 border border-red-200 rounded-lg p-6">
+					<h3 class="text-lg font-semibold text-red-800 mb-3">{ router.T(ctx, "error_404_title") }</h3>
+					<p class="text-red-700 mb-4 text-sm">{ router.T(ctx, "error_404_demo_desc") }</p>
+					<a
+						href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/dashboard/nonexistent") }
+						class="block w-full bg-red-500 text-white py-2 px-4 rounded hover:bg-red-600 transition-colors text-center"
+					>
+						{ router.T(ctx, "trigger_404") }
+					</a>
+				</div>
+				<!-- 403 Error Demo -->
+				<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+					<h3 class="text-lg font-semibold text-yellow-800 mb-3">{ router.T(ctx, "error_403_title") }</h3>
+					<p class="text-yellow-700 mb-4 text-sm">{ router.T(ctx, "error_403_demo_desc") }</p>
+					<div class="w-full bg-yellow-500 text-white py-2 px-4 rounded text-center">
+						{ router.T(ctx, "error_403_simulation") }
+					</div>
+				</div>
+				<!-- 500 Error Demo -->
+				<div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+					<h3 class="text-lg font-semibold text-purple-800 mb-3">{ router.T(ctx, "error_500_title") }</h3>
+					<p class="text-purple-700 mb-4 text-sm">{ router.T(ctx, "error_500_demo_desc") }</p>
+					<div class="w-full bg-purple-500 text-white py-2 px-4 rounded text-center">
+						{ router.T(ctx, "error_500_simulation") }
+					</div>
+				</div>
+			</div>
+			<!-- Error Template Info -->
+			<div class="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
+				<h3 class="text-lg font-semibold text-blue-800 mb-4">{ router.T(ctx, "error_template_info") }</h3>
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-700">
+					<div>
+						<p><strong>{ router.T(ctx, "error_template_path") }:</strong></p>
+						<code class="bg-blue-100 px-2 py-1 rounded">app/$locale/dashboard/error.templ</code>
+					</div>
+					<div>
+						<p><strong>{ router.T(ctx, "error_yaml_path") }:</strong></p>
+						<code class="bg-blue-100 px-2 py-1 rounded">app/$locale/dashboard/error.templ.yaml</code>
+					</div>
+					<div>
+						<p><strong>{ router.T(ctx, "current_locale") }:</strong> { router.GetCurrentLocale(ctx) }</p>
+					</div>
+					<div>
+						<p><strong>{ router.T(ctx, "translation_count") }:</strong> { fmt.Sprint(len(router.GetAvailableKeys(ctx))) }</p>
+					</div>
+				</div>
+			</div>
+			<!-- Navigation -->
+			<div class="mt-8 flex space-x-4">
+				<a
+					href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/dashboard") }
+					class="bg-green-500 text-white px-6 py-2 rounded hover:bg-green-600 transition-colors"
+				>
+					{ router.T(ctx, "back_to_dashboard") }
+				</a>
+				<a
+					href={ templ.URL("/" + router.GetCurrentLocale(ctx)) }
+					class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600 transition-colors"
+				>
+					{ router.T(ctx, "back_to_home") }
+				</a>
+			</div>
+		</div>
+	</div>
+}
