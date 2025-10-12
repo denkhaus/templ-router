@@ -1,7 +1,7 @@
-# Docker Compose for feedback-router development
+# Docker Compose for temple-router development
 
 services:
-  feedback-router-dev:
+  temple-router-dev:
     build:
       context: .
       dockerfile: Dockerfile.dev
@@ -16,21 +16,9 @@ services:
       - GOARCH=amd64
       - GOCACHE=/tmp/go-build
       - GOMODCACHE=/go/pkg/mod
-    working_dir: /app
-    user: "1000:1000"
-    command: >
-      sh -c "
-        echo '📦 Installing missing dependencies...' &&
-        go mod download github.com/google/uuid &&
-        go mod download golang.org/x/tools &&
-        cd demo &&
-        rm -f generated/templates/registry.go &&
-        echo '📦 Generating templates...' && templ generate &&
-        echo '🔧 Running template generator...' && GOCACHE=/tmp TEMPLATE_SCAN_PATH=app TEMPLATE_MODULE_NAME=github.com/denkhaus/templ-router/demo go run ../cmd/template-generator/*.go &&
-        echo '📋 Checking generated registry...' && ls -la generated/templates/ &&
-        cd .. &&
-        echo '🔥 Starting Air for hot-reload development...' && air
-      "
+    working_dir: /app/demo
+    user: "0:0"
+    command: sh -c "cd /app/demo && air -c /app/.air.toml"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8084/api/health"]

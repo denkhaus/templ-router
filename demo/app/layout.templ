@@ -1,6 +1,9 @@
 package app
 
-import "github.com/denkhaus/templ-router/pkg/router"
+import (
+	"github.com/denkhaus/templ-router/pkg/router"
+	"github.com/denkhaus/templ-router/pkg/services/auth"
+)
 
 templ Layout(content templ.Component) {
 	<!DOCTYPE html>
@@ -47,10 +50,41 @@ templ Navbar() {
 						{ router.T(ctx, "nav_admin") }
 					</a>
 				</div>
+				@UserSection()
 				@LanguageSwitcher()
 			</div>
 		</div>
 	</nav>
+}
+
+templ UserSection() {
+	if user := auth.GetCurrentUser(ctx); user != nil {
+		<div class="flex items-center space-x-3 bg-blue-700 rounded px-3 py-2">
+			<div class="flex items-center space-x-2">
+				<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+					<span class="text-sm font-semibold">{ string(user.Username[0]) }</span>
+				</div>
+				<div class="text-sm">
+					<div class="font-semibold">{ user.Username }</div>
+					<div class="text-blue-200 text-xs">{ user.Email }</div>
+				</div>
+			</div>
+			<form method="POST" action="/logout" class="inline">
+				<button type="submit" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm font-medium transition-colors">
+					{ router.T(ctx, "nav_logout") }
+				</button>
+			</form>
+		</div>
+	} else {
+		<div class="flex items-center space-x-2">
+			<a href="/login" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm font-medium transition-colors">
+				{ router.T(ctx, "nav_login") }
+			</a>
+			<a href="/signup" class="bg-blue-500 hover:bg-blue-400 px-3 py-1 rounded text-sm font-medium transition-colors">
+				{ router.T(ctx, "nav_signup") }
+			</a>
+		</div>
+	}
 }
 
 templ LanguageSwitcher() {

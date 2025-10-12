@@ -1,6 +1,9 @@
 package auth
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
 // AuthProvider interface for external authentication functionality (PUBLIC)
 // This is a pluggable service that can be injected into any system
@@ -18,4 +21,20 @@ type AuthHandlersInterface interface {
 	HandleSignup(w http.ResponseWriter, r *http.Request)
 	HandleLogout(w http.ResponseWriter, r *http.Request)
 	RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc))
+}
+
+// User represents a user in the system
+type User struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
+}
+
+// GetCurrentUser retrieves the current user from context
+func GetCurrentUser(ctx context.Context) *User {
+	if user, ok := ctx.Value("user").(*User); ok {
+		return user
+	}
+	return nil
 }

@@ -3,24 +3,23 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-exclude_regex = [".*_test\.go", ".*_templ\.go"]
+exclude_regex = [".*_test\\.go", ".*_templ\\.go"]
 args_bin = []
 bin = "./tmp/main"
-cmd = "go build -o ./tmp/main demo/main.go"
-delay = 2000
-exclude_dir = ["assets", "tmp", "vendor", "testdata", "node_modules", ".git"]
-include_dir = ["demo", "pkg", "cmd"]
+cmd = "go build -buildvcs=false -o ./tmp/main main.go"
+delay = 1000
+exclude_dir = ["assets", "tmp", "vendor", "testdata", "node_modules", ".git", "generated"]
+include_dir = [".", "../pkg", "../cmd"]
 exclude_file = []
 exclude_unchanged = true
 follow_symlink = false
 full_bin = ""
-include_dir = []
 include_ext = ["go"]
 include_file = []
 kill_delay = "2s"
 log = "build-errors.log"
-poll = false
-poll_interval = 0
+poll = true
+poll_interval = 1000
 post_cmd = []
 pre_cmd = []
 rerun = false

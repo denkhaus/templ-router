@@ -4,12 +4,18 @@ i18n:
     nav_home: "Home"
     nav_dashboard: "Dashboard"
     nav_admin: "Admin"
+    nav_login: "Login"
+    nav_signup: "Sign Up"
+    nav_logout: "Logout"
     footer_copyright: "© 2024 Multi-Language Demo. Powered by File-Based Router + i18n"
   de:
     site_title: "Mehrsprachige Demo"
     nav_home: "Startseite"
     nav_dashboard: "Dashboard"
     nav_admin: "Administration"
+    nav_login: "Anmelden"
+    nav_signup: "Registrieren"
+    nav_logout: "Abmelden"
     footer_copyright: "© 2024 Mehrsprachige Demo. Powered by File-Based Router + i18n"
 
 auth:

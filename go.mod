@@ -10,7 +10,6 @@ require (
 	github.com/go-chi/chi/v5 v5.2.3
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/magefile/mage v1.15.0
 	github.com/samber/do/v2 v2.0.0
 	go.uber.org/zap v1.27.0
 	gopkg.in/yaml.v3 v3.0.1
@@ -27,9 +26,9 @@ require (
 )
 
 require (
-	golang.org/x/mod v0.28.0 // indirect
+	golang.org/x/mod v0.29.0 // indirect
 	golang.org/x/sync v0.17.0 // indirect
-	golang.org/x/tools v0.37.0
+	golang.org/x/tools v0.38.0
 	gopkg.in/yaml.v2 v2.4.0
 )
 

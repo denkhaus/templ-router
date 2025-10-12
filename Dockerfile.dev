@@ -19,6 +19,8 @@ COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
+RUN go mod download github.com/google/uuid
+RUN go mod download golang.org/x/tools
 
 # Copy source code
 COPY . .
@@ -27,4 +29,4 @@ COPY . .
 EXPOSE 8084
 
 # Default command
-CMD ["./feedback-router"]
+CMD ["air"]

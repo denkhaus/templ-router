@@ -10,6 +10,7 @@ import (
 	"github.com/denkhaus/templ-router/demo/generated/templates"
 	"github.com/denkhaus/templ-router/pkg/di"
 	"github.com/denkhaus/templ-router/pkg/router"
+	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/services/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
@@ -48,6 +49,13 @@ func startupClean() {
 
 	// Create Chi router
 	mux := chi.NewRouter()
+
+	// Add auth context middleware
+	authMiddleware, err := middleware.NewAuthContextMiddleware(container.GetInjector())
+	if err != nil {
+		logger.Fatal("Failed to create auth middleware", zap.Error(err))
+	}
+	mux.Use(authMiddleware.Middleware)
 
 	// Get clean router from container
 	cleanRouter := container.GetRouter()
