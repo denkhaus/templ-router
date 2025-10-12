@@ -3,6 +3,7 @@ module github.com/denkhaus/templ-router/demo
 go 1.25.0
 
 require (
+	github.com/Oudwins/tailwind-merge-go v0.2.1
 	github.com/a-h/templ v0.3.943
 	github.com/denkhaus/templ-router v0.0.0-00010101000000-000000000000
 	github.com/go-chi/chi/v5 v5.2.3

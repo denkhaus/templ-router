@@ -126,18 +126,6 @@ func extractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		// Create template key using UUID
 		packageName, importPath := getPackageInfo(filePath, config.ModuleName, config)
 		
-		// Override import path for demo module
-		if config.ModuleName == "demo" {
-			// Convert absolute path to demo-relative path
-			relPath := strings.TrimPrefix(filepath.Dir(filePath), config.ScanPath)
-			relPath = strings.TrimPrefix(relPath, "/")
-			if relPath == "" {
-				importPath = "demo/" + config.ScanPath
-			} else {
-				importPath = "demo/" + config.ScanPath + "/" + relPath
-			}
-		}
-		
 		// Debug: Log the paths being generated
 		fmt.Printf("      -> File: %s\n", filePath)
 		fmt.Printf("      -> Package: %s, Import: %s\n", packageName, importPath)

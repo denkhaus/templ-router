@@ -91,7 +91,7 @@ func createRoutePattern(filePath, functionName string, config Config) string {
 	}
 }
 
-// getLocalPackageInfo handles local demo packages
+// getLocalPackageInfo handles local packages generically
 func getLocalPackageInfo(filePath, moduleName string, config Config) (string, string) {
 	rootDir := config.ScanPath
 	
@@ -106,19 +106,35 @@ func getLocalPackageInfo(filePath, moduleName string, config Config) (string, st
 	dir := filepath.Dir(filePath)
 	dir = filepath.ToSlash(dir)
 
-	// For demo module, use local import paths
-	if strings.Contains(dir, "/"+rootDir+"/") {
-		parts := strings.Split(dir, "/"+rootDir+"/")
-		if len(parts) > 1 {
-			dir = rootDir + "/" + parts[1]
-		} else {
-			dir = rootDir
+	// Generic path handling - find the scan path and extract relative path from there
+	// Split the path by "/" and find the last occurrence of rootDir
+	pathParts := strings.Split(dir, "/")
+	var foundIndex = -1
+	
+	// Find the last occurrence of the rootDir in the path
+	for i := len(pathParts) - 1; i >= 0; i-- {
+		if pathParts[i] == rootDir {
+			foundIndex = i
+			break
 		}
-	} else if strings.HasSuffix(dir, "/"+rootDir) {
+	}
+	
+	if foundIndex != -1 {
+		// Extract everything after the last occurrence of rootDir
+		if foundIndex == len(pathParts)-1 {
+			// We're in the root scan directory
+			dir = rootDir
+		} else {
+			// We're in a subdirectory - join the remaining parts
+			subParts := pathParts[foundIndex+1:]
+			dir = rootDir + "/" + strings.Join(subParts, "/")
+		}
+	} else {
+		// Fallback - assume we're in root
 		dir = rootDir
 	}
 
-	// For demo module, use the module name as prefix
+	// Create import path with module name prefix
 	importPath := moduleName + "/" + dir
 	
 	return packageName, importPath
@@ -126,63 +142,8 @@ func getLocalPackageInfo(filePath, moduleName string, config Config) (string, st
 
 // getPackageInfo extracts package name and import path from a Go file
 func getPackageInfo(filePath, moduleName string, config Config) (string, string) {
-	// Handle demo-specific module paths
-	if moduleName == "demo" || moduleName == "." || strings.Contains(moduleName, "demo") {
-		return getLocalPackageInfo(filePath, moduleName, config)
-	}
-	rootDir := config.ScanPath // Use configurable root directory
-	// Parse the file to get package declaration
-	fset := token.NewFileSet()
-	node, err := parser.ParseFile(fset, filePath, nil, parser.PackageClauseOnly)
-	if err != nil {
-		// Fallback to root directory package
-		return rootDir, moduleName + "/" + rootDir
-	}
-
-	packageName := node.Name.Name
-
-	// Create import path based on directory structure
-	dir := filepath.Dir(filePath)
-
-	// Normalize path separators to forward slashes
-	dir = filepath.ToSlash(dir)
-
-	// Remove absolute path and keep only relative path from configurable root directory
-	// Handle both local paths and container paths
-	rootPattern := "/" + rootDir + "/" + rootDir + "/"
-	if strings.Contains(dir, rootPattern) {
-		// Container path: /app/app/locale_/admin -> app/locale_/admin
-		parts := strings.Split(dir, rootPattern)
-		if len(parts) > 1 {
-			dir = rootDir + "/" + parts[1]
-		} else {
-			dir = rootDir
-		}
-	} else if strings.HasSuffix(dir, "/"+rootDir+"/"+rootDir) {
-		// Container root path: /app/app -> app
-		dir = rootDir
-	} else if strings.Contains(dir, "/"+rootDir+"/") {
-		// Local path: ./app/locale_/admin -> app/locale_/admin
-		parts := strings.Split(dir, "/"+rootDir+"/")
-		if len(parts) > 1 {
-			dir = rootDir + "/" + parts[1]
-		} else {
-			dir = rootDir
-		}
-	} else if strings.HasSuffix(dir, "/"+rootDir) {
-		// Local root path
-		dir = rootDir
-	} else if dir == rootDir {
-		dir = rootDir
-	}
-
-	// Ensure no double slashes or incorrect paths
-	dir = strings.TrimPrefix(dir, "./")
-	dir = strings.ReplaceAll(dir, "//", "/")
-
-	importPath := moduleName + "/" + dir
-
-	return packageName, importPath
+	// Use generic local package info for all modules
+	return getLocalPackageInfo(filePath, moduleName, config)
 }
 
 // createHumanName creates a human-readable name for documentation

@@ -1,32 +1,44 @@
-FROM golang:1.25-alpine AS dev
+# Development Dockerfile
+FROM golang:1.25-alpine AS development
 
-# Install development tools
+# Install system dependencies
 RUN apk add --no-cache \
     git \
     curl \
-    bash \
-    make
+    nodejs \
+    npm
 
 # Install development tools
+RUN go install github.com/air-verse/air@latest
 RUN go install github.com/a-h/templ/cmd/templ@latest
-RUN go install github.com/cosmtrek/air@v1.40.4
+RUN go install github.com/magefile/mage@latest
+RUN go install github.com/denkhaus/templ-router/cmd/template-generator@latest
 
 # Set working directory
 WORKDIR /app
 
-# Copy go mod files first for better caching
+# Copy go mod files
 COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
-RUN go mod download github.com/google/uuid
-RUN go mod download golang.org/x/tools
+
+# Install Node.js dependencies for Tailwind
+RUN npm install -g pnpm
+
 
 # Copy source code
 COPY . .
 
+RUN cd demo && pnpm install
+# Generate Templ code
+RUN templ generate
+
+# Build Tailwind CSS
+RUN mage build:tailwindClean
+
 # Expose port
 EXPOSE 8084
 
-# Default command
-CMD ["air"]
+# Default command (can be overridden in docker-compose)
+CMD ["mage", "dev"]
