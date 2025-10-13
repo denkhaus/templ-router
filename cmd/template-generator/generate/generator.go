@@ -1,4 +1,4 @@
-package main
+package generate
 
 import (
 	"embed"
@@ -7,32 +7,33 @@ import (
 	"path/filepath"
 	"sort"
 	"text/template"
+
+	"github.com/denkhaus/templ-router/cmd/template-generator/types"
 )
 
 //go:embed templates/*.tmpl
 var generatorTemplates embed.FS
 
 // generateRegistry generates the modern interface-based template registry
-func generateRegistry(config Config, templates []TemplateInfo) error {
+func GenerateRegistry(config types.Config, templates []types.TemplateInfo) error {
 	// Generate interface-based registry only
 	if err := generateInterfaceRegistry(config, templates); err != nil {
 		return fmt.Errorf("failed to generate interface registry: %w", err)
 	}
-	
+
 	return nil
 }
 
-
 // processImports processes templates and creates unique imports with aliases
-func processImports(templates []TemplateInfo) ([]TemplateWithAlias, []ImportInfo) {
+func processImports(templates []types.TemplateInfo) ([]types.TemplateWithAlias, []types.ImportInfo) {
 	// Group templates by import path
-	importGroups := make(map[string][]TemplateInfo)
+	importGroups := make(map[string][]types.TemplateInfo)
 	for _, tmpl := range templates {
 		importGroups[tmpl.ImportPath] = append(importGroups[tmpl.ImportPath], tmpl)
 	}
 
 	// Create unique imports with aliases
-	var uniqueImports []ImportInfo
+	var uniqueImports []types.ImportInfo
 	aliasCounter := make(map[string]int)
 
 	for importPath, groupTemplates := range importGroups {
@@ -47,7 +48,7 @@ func processImports(templates []TemplateInfo) ([]TemplateWithAlias, []ImportInfo
 			aliasCounter[alias] = 1
 		}
 
-		uniqueImports = append(uniqueImports, ImportInfo{
+		uniqueImports = append(uniqueImports, types.ImportInfo{
 			Alias: alias,
 			Path:  importPath,
 		})
@@ -64,13 +65,13 @@ func processImports(templates []TemplateInfo) ([]TemplateWithAlias, []ImportInfo
 	})
 
 	// Flatten templates with updated aliases
-	var templatesWithAliases []TemplateWithAlias
+	var templatesWithAliases []types.TemplateWithAlias
 	for _, tmpl := range templates {
 		// Find the correct alias for this template
 		for _, group := range importGroups {
 			for _, groupTmpl := range group {
 				if groupTmpl.TemplateKey == tmpl.TemplateKey {
-					templatesWithAliases = append(templatesWithAliases, TemplateWithAlias{
+					templatesWithAliases = append(templatesWithAliases, types.TemplateWithAlias{
 						TemplateInfo: tmpl,
 						PackageAlias: groupTmpl.PackageAlias,
 					})
@@ -83,9 +84,8 @@ func processImports(templates []TemplateInfo) ([]TemplateWithAlias, []ImportInfo
 	return templatesWithAliases, uniqueImports
 }
 
-
 // generateInterfaceRegistry generates the interface-based template registry
-func generateInterfaceRegistry(config Config, templates []TemplateInfo) error {
+func generateInterfaceRegistry(config types.Config, templates []types.TemplateInfo) error {
 	// Create output directory if it doesn't exist
 	if err := os.MkdirAll(config.OutputDir, 0755); err != nil {
 		return fmt.Errorf("failed to create output directory: %w", err)
@@ -98,8 +98,8 @@ func generateInterfaceRegistry(config Config, templates []TemplateInfo) error {
 	data := struct {
 		PackageName string
 		ModuleName  string
-		Templates   []TemplateWithAlias
-		Imports     []ImportInfo
+		Templates   []types.TemplateWithAlias
+		Imports     []types.ImportInfo
 	}{
 		PackageName: config.PackageName,
 		ModuleName:  config.ModuleName,
@@ -128,4 +128,3 @@ func generateInterfaceRegistry(config Config, templates []TemplateInfo) error {
 
 	return nil
 }
-

@@ -42,3 +42,12 @@ func (Build) RegistryGenerate() error {
 		"TEMPLATE_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
 	}, "sh", "-c", "cd demo && template-generator")
 }
+
+func (Build) RegistryWatch() error {
+	fmt.Println("Watching template registry...")
+	return sh.RunWithV(map[string]string{
+		"TEMPLATE_SCAN_PATH":   "app",
+		"TEMPLATE_OUTPUT_DIR":  "generated/templates",
+		"TEMPLATE_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
+	}, "sh", "-c", "cd demo && template-generator --watch")
+}

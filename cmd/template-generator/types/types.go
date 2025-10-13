@@ -1,4 +1,4 @@
-package main
+package types
 
 // Config holds the configuration for the template generator
 type Config struct {

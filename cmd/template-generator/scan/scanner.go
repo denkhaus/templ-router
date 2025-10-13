@@ -1,19 +1,22 @@
-package main
+package scan
 
 import (
 	"fmt"
 	"go/ast"
-	"go/types"
-	"path/filepath"
+	gotypes "go/types"
 	"strings"
+
+	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/template-generator/utils"
+	"github.com/denkhaus/templ-router/cmd/template-generator/validate"
 
 	"github.com/google/uuid"
 	"golang.org/x/tools/go/packages"
 )
 
-// scanTemplatesWithPackages uses the packages API to scan for templates
-func scanTemplatesWithPackages(config Config) ([]TemplateInfo, []string, error) {
-	var templates []TemplateInfo
+// ScanTemplatesWithPackages uses the packages API to scan for templates
+func ScanTemplatesWithPackages(config types.Config) ([]types.TemplateInfo, []string, error) {
+	var templates []types.TemplateInfo
 	var allValidationErrors []string
 
 	// Load packages
@@ -45,13 +48,13 @@ func scanTemplatesWithPackages(config Config) ([]TemplateInfo, []string, error) 
 			}
 
 			// Validate template path
-			if err := validateTemplatePath(filePath, config); err != nil {
+			if err := validate.ValidateTemplatePath(filePath, config); err != nil {
 				return nil, nil, fmt.Errorf("template validation failed: %w", err)
 			}
 
 			fmt.Printf("Processing file: %s\n", filePath)
 
-			fileTemplates, fileValidationErrors, err := extractTemplatesFromFile(file, filePath, pkg, config)
+			fileTemplates, fileValidationErrors, err := ExtractTemplatesFromFile(file, filePath, pkg, config)
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to extract templates from %s: %w", filePath, err)
 			}
@@ -64,9 +67,9 @@ func scanTemplatesWithPackages(config Config) ([]TemplateInfo, []string, error) 
 	return templates, allValidationErrors, nil
 }
 
-// extractTemplatesFromFile extracts template functions from a single file using packages API
-func extractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Package, config Config) ([]TemplateInfo, []string, error) {
-	var templates []TemplateInfo
+// ExtractTemplatesFromFile extracts template functions from a single file using packages API
+func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Package, config types.Config) ([]types.TemplateInfo, []string, error) {
+	var templates []types.TemplateInfo
 	var validationErrors []string
 
 	// Walk through all declarations in the file
@@ -88,7 +91,7 @@ func extractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		fmt.Printf("    Found function: %s\n", functionName)
 
 		// Validate naming convention
-		if err := validateFunctionNaming(functionName, filePath); err != nil {
+		if err := validate.ValidateFunctionNaming(functionName, filePath); err != nil {
 			fmt.Printf("      -> NAMING VIOLATION: %s\n", err.Error())
 			fmt.Printf("      -> Skipping due to naming convention violation\n")
 			validationErrors = append(validationErrors, err.Error())
@@ -103,7 +106,7 @@ func extractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		}
 
 		// Check if it's a function
-		fnType, ok := obj.Type().(*types.Signature)
+		fnType, ok := obj.Type().(*gotypes.Signature)
 		if !ok {
 			fmt.Printf("      -> Not a function type, skipping\n")
 			continue
@@ -124,29 +127,29 @@ func extractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		}
 
 		// Create template key using UUID
-		packageName, importPath := getPackageInfo(filePath, config.ModuleName, config)
-		
+		packageName, importPath := utils.GetPackageInfo(filePath, config.ModuleName, config)
+
 		// Debug: Log the paths being generated
 		fmt.Printf("      -> File: %s\n", filePath)
 		fmt.Printf("      -> Package: %s, Import: %s\n", packageName, importPath)
 		templateKey := uuid.New().String()
-		humanName := createHumanName(filePath, functionName)
+		humanName := utils.CreateHumanName(filePath, functionName)
 
 		// Create route pattern
-		routePattern := createRoutePattern(filePath, functionName, config)
+		routePattern := utils.CreateRoutePattern(filePath, functionName, config)
 
 		// Create package alias
-		packageAlias := createPackageAlias(packageName, importPath, config)
+		packageAlias := utils.CreatePackageAlias(packageName, importPath, config)
 
-		templateInfo := TemplateInfo{
-			FilePath:      filePath,
-			FunctionName:  functionName,
-			PackageName:   packageName,
-			PackageAlias:  packageAlias,
-			ImportPath:    importPath,
-			TemplateKey:   templateKey,
-			RoutePattern:  routePattern,
-			HumanName:     humanName,
+		templateInfo := types.TemplateInfo{
+			FilePath:     filePath,
+			FunctionName: functionName,
+			PackageName:  packageName,
+			PackageAlias: packageAlias,
+			ImportPath:   importPath,
+			TemplateKey:  templateKey,
+			RoutePattern: routePattern,
+			HumanName:    humanName,
 		}
 
 		templates = append(templates, templateInfo)
@@ -156,48 +159,37 @@ func extractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 	return templates, validationErrors, nil
 }
 
-// validateTemplatePath validates that the template file is in the correct location
-func validateTemplatePath(filePath string, config Config) error {
-	rootDir := config.ScanPath
-	// Basic validation - ensure it's a _templ.go file in the configured root directory
-	if !strings.Contains(filePath, "/"+rootDir+"/") && !strings.HasSuffix(filepath.Dir(filePath), "/"+rootDir) {
-		return fmt.Errorf("template file %s is not in the %s directory", filePath, rootDir)
-	}
-	return nil
-}
-
-// scanSpecificPackage scans templates for a specific package
-func scanSpecificPackage(config Config) ([]TemplateInfo, error) {
+// ScanSpecificPackage scans templates for a specific package
+func ScanSpecificPackage(config types.Config) ([]types.TemplateInfo, error) {
 	fmt.Printf("Scanning specific package: %s\n", config.PackageName)
-	
+
 	// Use the existing scanTemplates logic but filter for specific package
 	templates, err := scanAllTemplates(config)
 	if err != nil {
 		return nil, err
 	}
-	
+
 	// Filter templates by target package
-	var filteredTemplates []TemplateInfo
+	var filteredTemplates []types.TemplateInfo
 	for _, template := range templates {
 		if template.PackageName == config.PackageName {
 			filteredTemplates = append(filteredTemplates, template)
 		}
 	}
-	
+
 	fmt.Printf("Found %d templates in package %s\n", len(filteredTemplates), config.PackageName)
 	return filteredTemplates, nil
 }
 
 // scanAllTemplates is the original scanTemplates function renamed
-func scanAllTemplates(config Config) ([]TemplateInfo, error) {
+func scanAllTemplates(config types.Config) ([]types.TemplateInfo, error) {
 
-
-// scanTemplates is the main entry point for template scanning
+	// scanTemplates is the main entry point for template scanning
 	// If TargetPackage is specified, scan only that package
 	if config.PackageName != "" {
-		return scanSpecificPackage(config)
+		return ScanSpecificPackage(config)
 	}
-	
+
 	// Otherwise, scan all templates
 	return scanAllTemplates(config)
 }

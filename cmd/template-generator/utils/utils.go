@@ -1,14 +1,16 @@
-package main
+package utils
 
 import (
 	"go/parser"
 	"go/token"
 	"path/filepath"
 	"strings"
+
+	"github.com/denkhaus/templ-router/cmd/template-generator/types"
 )
 
 // toSnakeCase converts CamelCase to snake_case for URL-friendly route names
-func toSnakeCase(str string) string {
+func ToSnakeCase(str string) string {
 	var result strings.Builder
 	for i, r := range str {
 		if i > 0 && r >= 'A' && r <= 'Z' {
@@ -24,7 +26,7 @@ func toSnakeCase(str string) string {
 }
 
 // createRoutePattern creates a route pattern from a file path and function name
-func createRoutePattern(filePath, functionName string, config Config) string {
+func CreateRoutePattern(filePath, functionName string, config types.Config) string {
 	dir := filepath.Dir(filePath)
 	rootDir := config.ScanPath // Use configurable root directory
 
@@ -50,7 +52,7 @@ func createRoutePattern(filePath, functionName string, config Config) string {
 			return "/error"
 		} else {
 			// Other templates get their own routes based on function name
-			return "/" + toSnakeCase(functionName)
+			return "/" + ToSnakeCase(functionName)
 		}
 	}
 
@@ -67,10 +69,10 @@ func createRoutePattern(filePath, functionName string, config Config) string {
 			cleanParts = append(cleanParts, "$"+paramName)
 		} else {
 			// Convert CamelCase/PascalCase to snake_case for URL-friendly routes
-			cleanParts = append(cleanParts, toSnakeCase(part))
+			cleanParts = append(cleanParts, ToSnakeCase(part))
 		}
 	}
-	
+
 	var routePath string
 	if len(cleanParts) == 0 {
 		routePath = ""
@@ -87,14 +89,14 @@ func createRoutePattern(filePath, functionName string, config Config) string {
 		return routePath + "/error"
 	} else {
 		// For other templates (components), use the function name
-		return routePath + "/" + toSnakeCase(functionName)
+		return routePath + "/" + ToSnakeCase(functionName)
 	}
 }
 
 // getLocalPackageInfo handles local packages generically
-func getLocalPackageInfo(filePath, moduleName string, config Config) (string, string) {
+func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (string, string) {
 	rootDir := config.ScanPath
-	
+
 	// Parse the file to get package declaration
 	fset := token.NewFileSet()
 	node, err := parser.ParseFile(fset, filePath, nil, parser.PackageClauseOnly)
@@ -110,7 +112,7 @@ func getLocalPackageInfo(filePath, moduleName string, config Config) (string, st
 	// Split the path by "/" and find the last occurrence of rootDir
 	pathParts := strings.Split(dir, "/")
 	var foundIndex = -1
-	
+
 	// Find the last occurrence of the rootDir in the path
 	for i := len(pathParts) - 1; i >= 0; i-- {
 		if pathParts[i] == rootDir {
@@ -118,7 +120,7 @@ func getLocalPackageInfo(filePath, moduleName string, config Config) (string, st
 			break
 		}
 	}
-	
+
 	if foundIndex != -1 {
 		// Extract everything after the last occurrence of rootDir
 		if foundIndex == len(pathParts)-1 {
@@ -136,18 +138,18 @@ func getLocalPackageInfo(filePath, moduleName string, config Config) (string, st
 
 	// Create import path with module name prefix
 	importPath := moduleName + "/" + dir
-	
+
 	return packageName, importPath
 }
 
 // getPackageInfo extracts package name and import path from a Go file
-func getPackageInfo(filePath, moduleName string, config Config) (string, string) {
+func GetPackageInfo(filePath, moduleName string, config types.Config) (string, string) {
 	// Use generic local package info for all modules
-	return getLocalPackageInfo(filePath, moduleName, config)
+	return GetLocalPackageInfo(filePath, moduleName, config)
 }
 
 // createHumanName creates a human-readable name for documentation
-func createHumanName(filePath, functionName string) string {
+func CreateHumanName(filePath, functionName string) string {
 	dir := filepath.Dir(filePath)
 
 	// Extract relative path from app/
@@ -187,7 +189,7 @@ func createHumanName(filePath, functionName string) string {
 }
 
 // createPackageAlias creates a package alias for imports
-func createPackageAlias(packageName, importPath string, config Config) string {
+func CreatePackageAlias(packageName, importPath string, config types.Config) string {
 	rootDir := config.ScanPath // Use configurable root directory
 	// For root directory package, no alias needed
 	if packageName == rootDir {

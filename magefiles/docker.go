@@ -22,6 +22,11 @@ func (Docker) Down() error {
 	return sh.RunV("docker-compose", "-f", "docker-compose.dev.yml", "down")
 }
 
+func (Docker) Clean() error {
+	fmt.Println("Cleaning development Docker services...")
+	return sh.RunV("docker-compose", "-f", "docker-compose.dev.yml", "down", "-v", "--remove-orphans")
+}
+
 // Logs shows Docker logs
 func (Docker) Logs() error {
 	fmt.Println("Showing Docker logs...")
@@ -41,7 +46,7 @@ func (p Docker) Rebuild() error {
 }
 
 func (p Docker) Restart() error {
-	mg.SerialDeps(p.Down, p.Rebuild, p.Up)
+	mg.SerialDeps(p.Clean, p.Rebuild, p.Up)
 	fmt.Println("Restarting successfull...")
 	return nil
 }

@@ -18,14 +18,14 @@ func Dev() error {
 	fmt.Println("Starting development server...")
 
 	var wg sync.WaitGroup
-	errChan := make(chan error, 3)
+	errChan := make(chan error, 4)
 
 	// Start Tailwind watch
 	wg.Add(1)
 	go func() {
 		defer wg.Done()
 		fmt.Println("Starting Tailwind CSS watch...")
-		if err := sh.RunV("npx", "@tailwindcss/cli", "-i", "./demo/assets/css/input.css", "-o", "./demo/assets/css/output.css", "--watch"); err != nil {
+		if err := (Build{}).TailwindWatch(); err != nil {
 			errChan <- fmt.Errorf("tailwind watch failed: %w", err)
 		}
 	}()
@@ -35,8 +35,18 @@ func Dev() error {
 	go func() {
 		defer wg.Done()
 		fmt.Println("Starting Templ watch...")
-		if err := sh.RunV("templ", "generate", "--watch", "--proxy=http://localhost:8090", "--open-browser=false"); err != nil {
+		if err := (Build{}).TemplWatch(); err != nil {
 			errChan <- fmt.Errorf("templ watch failed: %w", err)
+		}
+	}()
+
+	// Start Registry watch
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		fmt.Println("Starting Registry watch...")
+		if err := (Build{}).RegistryWatch(); err != nil {
+			errChan <- fmt.Errorf("registry watch failed: %w", err)
 		}
 	}()
 

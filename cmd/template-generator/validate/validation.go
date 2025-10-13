@@ -1,20 +1,32 @@
-package main
+package validate
 
 import (
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/denkhaus/templ-router/cmd/template-generator/types"
 )
 
-// validateFunctionNaming validates that template functions follow naming conventions
-func validateFunctionNaming(functionName, filePath string) error {
+// ValidateTemplatePath validates that the template file is in the correct location
+func ValidateTemplatePath(filePath string, config types.Config) error {
+	rootDir := config.ScanPath
+	// Basic validation - ensure it's a _templ.go file in the configured root directory
+	if !strings.Contains(filePath, "/"+rootDir+"/") && !strings.HasSuffix(filepath.Dir(filePath), "/"+rootDir) {
+		return fmt.Errorf("template file %s is not in the %s directory", filePath, rootDir)
+	}
+	return nil
+}
+
+// ValidateFunctionNaming validates that template functions follow naming conventions
+func ValidateFunctionNaming(functionName, filePath string) error {
 	// Extract the template file name without extension
 	fileName := filepath.Base(filePath)
 	templateName := strings.TrimSuffix(fileName, "_templ.go")
 
 	// Generic validation rules that work for any app structure:
-	
+
 	// Rule 1: Reserved function names must be in correctly named files
 	switch functionName {
 	case "Page":
@@ -43,7 +55,7 @@ func validateFunctionNaming(functionName, filePath string) error {
 	}
 
 	// Rule 3: Check for parameter conflicts in YAML metadata
-	if err := validateYamlParameters(filePath); err != nil {
+	if err := ValidateYamlParameters(filePath); err != nil {
 		return err
 	}
 
@@ -71,39 +83,39 @@ func validateFunctionNaming(functionName, filePath string) error {
 	return nil
 }
 
-// validateYamlParameters checks for parameter conflicts in YAML metadata files
-func validateYamlParameters(filePath string) error {
+// ValidateYamlParameters checks for parameter conflicts in YAML metadata files
+func ValidateYamlParameters(filePath string) error {
 	// Get the corresponding YAML file path
 	yamlPath := strings.TrimSuffix(filePath, "_templ.go") + ".templ.yaml"
-	
+
 	// Check if YAML file exists
 	if _, err := os.Stat(yamlPath); os.IsNotExist(err) {
 		// No YAML file, no validation needed
 		return nil
 	}
-	
+
 	// Read YAML file
 	yamlContent, err := os.ReadFile(yamlPath)
 	if err != nil {
 		// Can't read YAML, skip validation
 		return nil
 	}
-	
+
 	// Check for parameter conflicts based on directory structure
 	dir := filepath.Dir(filePath)
-	
+
 	// Check if we're in a locale_ subdirectory and defining locale parameter
 	if strings.Contains(dir, "/locale_/") && strings.Contains(string(yamlContent), "locale:") {
 		// Check if it's in the dynamic parameters section
-		if strings.Contains(string(yamlContent), "dynamic:") && 
-		   strings.Contains(string(yamlContent), "parameters:") &&
-		   strings.Contains(string(yamlContent), "locale:") {
+		if strings.Contains(string(yamlContent), "dynamic:") &&
+			strings.Contains(string(yamlContent), "parameters:") &&
+			strings.Contains(string(yamlContent), "locale:") {
 			return fmt.Errorf("YAML parameter conflict: 'locale' parameter defined in '%s' but locale is already inherited from parent 'locale_/' directory", yamlPath)
 		}
 	}
-	
+
 	// Add more parameter conflict checks here for other inherited parameters
 	// For example, if we had user_/ directories, we'd check for user parameter conflicts
-	
+
 	return nil
 }
