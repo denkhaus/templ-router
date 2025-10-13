@@ -6,7 +6,13 @@ RUN apk add --no-cache \
     git \
     curl \
     nodejs \
-    npm
+    npm \
+    su-exec
+
+# Create user and home directory for proper permissions
+RUN adduser -D -u 1000 -g 1000 user && \
+    mkdir -p /home/user/.cache/go-build && \
+    chown -R 1000:1000 /home/user
 
 # Install development tools
 RUN go install github.com/air-verse/air@latest
@@ -24,21 +30,25 @@ COPY go.mod go.sum ./
 RUN go mod download
 
 # Install Node.js dependencies for Tailwind
-RUN npm install -g pnpm
+#RUN npm install -g pnpm
 
+# Copy source code with proper ownership
+COPY --chown=1000:1000 . .
 
-# Copy source code
-COPY . .
-
-RUN cd demo && pnpm install
+RUN cd demo && npm install
 # Generate Templ code
 RUN templ generate
 
 # Build Tailwind CSS
 RUN mage build:tailwindClean
 
+# Copy and setup entrypoint script
+COPY docker/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Expose port
 EXPOSE 8084
 
 # Default command (can be overridden in docker-compose)
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["mage", "dev"]

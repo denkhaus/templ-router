@@ -1,0 +1,26 @@
+services:
+  # Development app container (optional)
+  app:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile.dev
+    container_name: templ-router-demo
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    volumes:
+      - ..:/app
+      # Go cache volumes for faster builds
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/home/user/.cache/go-build
+      # Node.js cache for faster npm installs
+      - node-modules-cache:/app/demo/node_modules
+    environment:
+      - GOCACHE=/home/user/.cache/go-build
+      - GOMODCACHE=/go/pkg/mod
+      - HOME=/home/user
+
+volumes:
+  go-mod-cache:
+  go-build-cache:
+  node-modules-cache:

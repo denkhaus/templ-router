@@ -59,7 +59,7 @@ func Dev() error {
 			"--build.cmd", "go build -o /tmp/templ-router-demo/main ./demo/*.go",
 			"--build.bin", "/tmp/templ-router-demo/main",
 			"--build.delay", "100",
-			"--build.exclude_dir", "node_modules",
+			"--build.exclude_dir", "**/node_modules/**",
 			"--build.include_ext", "go", "yaml",
 			"--build.stop_on_error", "false",
 			"--misc.clean_on_exit", "true"); err != nil {

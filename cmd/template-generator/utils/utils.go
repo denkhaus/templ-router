@@ -1,3 +1,8 @@
+// Package utils provides utility functions for the template generator.
+//
+// CRITICAL REQUIREMENT: All functions in this package must be file/directory agnostic.
+// They should not hardcode any project-specific paths, module names, or base routes.
+// The generator must work with any project structure and be completely generic.
 package utils
 
 import (
@@ -26,6 +31,8 @@ func ToSnakeCase(str string) string {
 }
 
 // createRoutePattern creates a route pattern from a file path and function name
+// IMPORTANT: This function must be file/directory agnostic and not hardcode any base paths.
+// Routes should be generated purely based on the file structure without project-specific assumptions.
 func CreateRoutePattern(filePath, functionName string, config types.Config) string {
 	dir := filepath.Dir(filePath)
 	rootDir := config.ScanPath // Use configurable root directory
@@ -43,7 +50,7 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 	}
 
 	if dir == "" || dir == "." || dir == rootDir {
-		// Root level templates - use generic pattern based on function name
+		// Root level templates
 		if functionName == "Page" {
 			return "/"
 		} else if functionName == "Layout" {
@@ -56,7 +63,7 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 		}
 	}
 
-	// Convert identifier_ back to $identifier for URL patterns
+	// Convert identifier_ back to {identifier} for URL patterns
 	// and apply snake_case conversion for better URL conventions
 	parts := strings.Split(dir, "/")
 	var cleanParts []string
@@ -66,7 +73,7 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 		}
 		if strings.HasSuffix(part, "_") {
 			paramName := strings.TrimSuffix(part, "_")
-			cleanParts = append(cleanParts, "$"+paramName)
+			cleanParts = append(cleanParts, "{"+paramName+"}")
 		} else {
 			// Convert CamelCase/PascalCase to snake_case for URL-friendly routes
 			cleanParts = append(cleanParts, ToSnakeCase(part))
