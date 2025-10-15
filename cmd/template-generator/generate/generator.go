@@ -7,8 +7,10 @@ import (
 	"path/filepath"
 	"sort"
 	"text/template"
+	"time"
 
 	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/template-generator/version"
 )
 
 //go:embed templates/*.tmpl
@@ -95,16 +97,21 @@ func generateInterfaceRegistry(config types.Config, templates []types.TemplateIn
 	templatesWithAliases, uniqueImports := processImports(templates)
 
 	// Prepare template data
+	buildInfo := version.GetBuildInfo()
 	data := struct {
-		PackageName string
-		ModuleName  string
-		Templates   []types.TemplateWithAlias
-		Imports     []types.ImportInfo
+		PackageName      string
+		ModuleName       string
+		Templates        []types.TemplateWithAlias
+		Imports          []types.ImportInfo
+		GeneratorVersion string
+		GeneratedAt      string
 	}{
-		PackageName: config.PackageName,
-		ModuleName:  config.ModuleName,
-		Templates:   templatesWithAliases,
-		Imports:     uniqueImports,
+		PackageName:      config.PackageName,
+		ModuleName:       config.ModuleName,
+		Templates:        templatesWithAliases,
+		Imports:          uniqueImports,
+		GeneratorVersion: buildInfo.Short(),
+		GeneratedAt:      time.Now().Format("2006-01-02 15:04:05 MST"),
 	}
 
 	// Parse embedded template

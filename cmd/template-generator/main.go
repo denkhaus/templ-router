@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
 	"github.com/denkhaus/templ-router/cmd/template-generator/commands"
+	"github.com/denkhaus/templ-router/cmd/template-generator/version"
 	"github.com/urfave/cli/v2"
 )
 
@@ -37,11 +39,30 @@ func appFlags() []cli.Flag {
 }
 
 func main() {
+	buildInfo := version.GetBuildInfo()
+	
 	app := &cli.App{
-		Name:   "template-generator",
-		Usage:  "Generate templates for templ-router",
-		Flags:  appFlags(),
-		Action: commands.Run,
+		Name:    "template-generator",
+		Usage:   "Generate templates for templ-router",
+		Version: buildInfo.Short(),
+		Flags:   appFlags(),
+		Action: func(c *cli.Context) error {
+			// Always show version at start of generation
+			fmt.Printf("Template Generator %s\n", buildInfo.String())
+			fmt.Println()
+			return commands.Run(c)
+		},
+		Commands: []*cli.Command{
+			{
+				Name:    "version",
+				Aliases: []string{"v"},
+				Usage:   "Show version information",
+				Action: func(c *cli.Context) error {
+					fmt.Println(buildInfo.String())
+					return nil
+				},
+			},
+		},
 	}
 
 	if err := app.Run(os.Args); err != nil {
