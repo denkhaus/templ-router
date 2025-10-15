@@ -18,7 +18,8 @@ RUN adduser -D -u 1000 -g 1000 user && \
 RUN go install github.com/air-verse/air@latest
 RUN go install github.com/a-h/templ/cmd/templ@latest
 RUN go install github.com/magefile/mage@latest
-RUN go install -ldflags="-X 'github.com/denkhaus/templ-router/cmd/template-generator/version.Version=docker-main' -X 'github.com/denkhaus/templ-router/cmd/template-generator/version.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)'" github.com/denkhaus/templ-router/cmd/template-generator@main
+# Install template-generator from local source (after copying source code)
+# This will be done after COPY step
 
 # Set working directory
 WORKDIR /app
@@ -34,6 +35,9 @@ RUN go mod download
 
 # Copy source code with proper ownership
 COPY --chown=1000:1000 . .
+
+# Install template-generator from local source with version info
+RUN cd cmd/template-generator && go install -ldflags="-X 'github.com/denkhaus/templ-router/cmd/template-generator/version.Version=docker-local' -X 'github.com/denkhaus/templ-router/cmd/template-generator/version.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)'" .
 
 RUN cd demo && npm install
 # Generate Templ code
