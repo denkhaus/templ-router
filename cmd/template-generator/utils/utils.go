@@ -6,6 +6,7 @@
 package utils
 
 import (
+	"fmt"
 	"go/parser"
 	"go/token"
 	"path/filepath"
@@ -37,16 +38,69 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 	dir := filepath.Dir(filePath)
 	rootDir := config.ScanPath // Use configurable root directory
 
+	// DEBUG: Add extensive logging to debug Docker vs local differences
+	fmt.Printf("DEBUG CreateRoutePattern:\n")
+	fmt.Printf("  filePath: %s\n", filePath)
+	fmt.Printf("  functionName: %s\n", functionName)
+	fmt.Printf("  config.ScanPath: %s\n", config.ScanPath)
+	fmt.Printf("  dir (before): %s\n", dir)
+	fmt.Printf("  rootDir: %s\n", rootDir)
+
 	// Extract relative path from configurable root directory
-	if strings.Contains(dir, "/"+rootDir+"/") {
-		parts := strings.Split(dir, "/"+rootDir+"/")
-		if len(parts) > 1 {
-			dir = parts[1]
-		} else {
-			dir = ""
-		}
-	} else if strings.HasSuffix(dir, "/"+rootDir) {
+	// Handle both absolute and relative paths robustly
+	
+	// First, try to find the scan path in the directory path
+	// This handles cases where we have absolute paths like /app/demo/app/locale_
+	// and need to extract the part after the last occurrence of the scan path
+	
+	// Convert to forward slashes for consistent handling
+	dir = filepath.ToSlash(dir)
+	
+	// Find the last occurrence of "/scanPath/" or "/scanPath" at the end
+	scanPattern := "/" + rootDir + "/"
+	scanSuffix := "/" + rootDir
+	
+	if idx := strings.LastIndex(dir, scanPattern); idx != -1 {
+		// Found "/app/" pattern - extract everything after it
+		dir = dir[idx+len(scanPattern):]
+		fmt.Printf("  Case 1: Found '/%s/' at index %d, extracted: '%s'\n", rootDir, idx, dir)
+	} else if strings.HasSuffix(dir, scanSuffix) {
+		// Found "/app" at the end - this is the root directory
 		dir = ""
+		fmt.Printf("  Case 2: dir ends with '/%s', set to empty\n", rootDir)
+	} else if dir == rootDir {
+		// Direct match with scan path
+		dir = ""
+		fmt.Printf("  Case 3: dir equals rootDir, set to empty\n")
+	} else {
+		// Fallback: try to find any occurrence of the scan path and extract relative part
+		fmt.Printf("  Case 4: No standard pattern found, attempting fallback\n")
+		fmt.Printf("  Original dir: %s\n", dir)
+		
+		// Split by "/" and find the scan path
+		parts := strings.Split(dir, "/")
+		var foundIndex = -1
+		
+		// Find the last occurrence of rootDir in the path parts
+		for i := len(parts) - 1; i >= 0; i-- {
+			if parts[i] == rootDir {
+				foundIndex = i
+				break
+			}
+		}
+		
+		if foundIndex != -1 && foundIndex < len(parts)-1 {
+			// Extract everything after the scan path
+			relativeParts := parts[foundIndex+1:]
+			dir = strings.Join(relativeParts, "/")
+			fmt.Printf("  Fallback: Found rootDir at index %d, extracted: '%s'\n", foundIndex, dir)
+		} else if foundIndex == len(parts)-1 {
+			// The scan path is the last part - we're in root
+			dir = ""
+			fmt.Printf("  Fallback: rootDir is last part, set to empty\n")
+		} else {
+			fmt.Printf("  Fallback: Could not find rootDir in path, keeping original\n")
+		}
 	}
 
 	if dir == "" || dir == "." || dir == rootDir {
@@ -88,16 +142,22 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 	}
 
 	// Add function-specific suffix for different template types
+	var finalRoute string
 	if functionName == "Page" {
-		return routePath
+		finalRoute = routePath
 	} else if functionName == "Layout" {
-		return routePath + "/layout"
+		finalRoute = routePath + "/layout"
 	} else if functionName == "Error" {
-		return routePath + "/error"
+		finalRoute = routePath + "/error"
 	} else {
 		// For other templates (components), use the function name
-		return routePath + "/" + ToSnakeCase(functionName)
+		finalRoute = routePath + "/" + ToSnakeCase(functionName)
 	}
+	
+	fmt.Printf("  Final route: %s\n", finalRoute)
+	fmt.Printf("DEBUG CreateRoutePattern END\n\n")
+	
+	return finalRoute
 }
 
 // getLocalPackageInfo handles local packages generically
