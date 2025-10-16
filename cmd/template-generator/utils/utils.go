@@ -6,7 +6,6 @@
 package utils
 
 import (
-	"fmt"
 	"go/parser"
 	"go/token"
 	"path/filepath"
@@ -38,13 +37,7 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 	dir := filepath.Dir(filePath)
 	rootDir := config.ScanPath // Use configurable root directory
 
-	// DEBUG: Add extensive logging to debug Docker vs local differences
-	fmt.Printf("DEBUG CreateRoutePattern:\n")
-	fmt.Printf("  filePath: %s\n", filePath)
-	fmt.Printf("  functionName: %s\n", functionName)
-	fmt.Printf("  config.ScanPath: %s\n", config.ScanPath)
-	fmt.Printf("  dir (before): %s\n", dir)
-	fmt.Printf("  rootDir: %s\n", rootDir)
+	// Extract relative path from scan directory
 
 	// Extract relative path from configurable root directory
 	// GENERIC APPROACH: Work with the actual working directory and scan path
@@ -69,22 +62,17 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 		}
 	}
 	
-	fmt.Printf("  Directory parts: %v\n", dirParts)
-	fmt.Printf("  Scan path '%s' found at index: %d\n", rootDir, scanPathIndex)
 	
 	if scanPathIndex == -1 {
 		// Scan path not found in directory - this shouldn't happen in normal operation
-		fmt.Printf("  WARNING: Scan path not found in directory, using original path\n")
 		// Keep original dir for now, but this might indicate a configuration issue
 	} else if scanPathIndex == len(dirParts)-1 {
 		// The scan path is the last part - we're in the root scan directory
 		dir = ""
-		fmt.Printf("  Root directory detected (scan path is last part)\n")
 	} else {
 		// Extract everything after the scan path
 		relativeParts := dirParts[scanPathIndex+1:]
 		dir = strings.Join(relativeParts, "/")
-		fmt.Printf("  Extracted relative path: '%s'\n", dir)
 	}
 
 	if dir == "" || dir == "." || dir == rootDir {
@@ -126,22 +114,16 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 	}
 
 	// Add function-specific suffix for different template types
-	var finalRoute string
 	if functionName == "Page" {
-		finalRoute = routePath
+		return routePath
 	} else if functionName == "Layout" {
-		finalRoute = routePath + "/layout"
+		return routePath + "/layout"
 	} else if functionName == "Error" {
-		finalRoute = routePath + "/error"
+		return routePath + "/error"
 	} else {
 		// For other templates (components), use the function name
-		finalRoute = routePath + "/" + ToSnakeCase(functionName)
+		return routePath + "/" + ToSnakeCase(functionName)
 	}
-	
-	fmt.Printf("  Final route: %s\n", finalRoute)
-	fmt.Printf("DEBUG CreateRoutePattern END\n\n")
-	
-	return finalRoute
 }
 
 // getLocalPackageInfo handles local packages generically
@@ -159,36 +141,82 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 	dir := filepath.Dir(filePath)
 	dir = filepath.ToSlash(dir)
 
-	// Generic path handling - find the scan path and extract relative path from there
-	// Split the path by "/" and find the last occurrence of rootDir
+	// CRITICAL: We need to extract the full relative path from the module root,
+	// not just from the scan path. The import path must be relative to where
+	// the go.mod file is located.
+	
+	// Find the working directory (where go.mod is) in the file path
+	// This is more robust than trying to extract from scan path only
 	pathParts := strings.Split(dir, "/")
-	var foundIndex = -1
-
-	// Find the last occurrence of the rootDir in the path
+	
+	// Find the scan path in the directory
+	var scanPathIndex = -1
 	for i := len(pathParts) - 1; i >= 0; i-- {
 		if pathParts[i] == rootDir {
-			foundIndex = i
+			scanPathIndex = i
 			break
 		}
 	}
-
-	if foundIndex != -1 {
-		// Extract everything after the last occurrence of rootDir
-		if foundIndex == len(pathParts)-1 {
-			// We're in the root scan directory
-			dir = rootDir
-		} else {
-			// We're in a subdirectory - join the remaining parts
-			subParts := pathParts[foundIndex+1:]
-			dir = rootDir + "/" + strings.Join(subParts, "/")
-		}
+	
+	var importPath string
+	if scanPathIndex == -1 {
+		// Fallback if scan path not found
+		importPath = moduleName + "/" + rootDir
 	} else {
-		// Fallback - assume we're in root
-		dir = rootDir
+		// Extract the full path from the module root
+		// We need everything from the working directory onwards
+		
+		// The scan path index tells us where the scan directory is
+		// We need to include the path from the module root to the scan directory
+		// plus the relative path within the scan directory
+		
+		if scanPathIndex == len(pathParts)-1 {
+			// We're in the root scan directory - need to find the path to it
+			// Look for common project structure indicators
+			var moduleRootToScanPath string
+			
+			// Check if there's a parent directory that might be the module root
+			if scanPathIndex > 0 {
+				// Take everything from before the scan path as the module-relative path
+				moduleRootParts := pathParts[:scanPathIndex]
+				// Find a reasonable starting point (skip absolute path prefixes)
+				var startIndex = 0
+				for i, part := range moduleRootParts {
+					// Look for common project directory names that indicate module root vicinity
+					if part == "demo" || part == "cmd" || part == "pkg" || part == "internal" {
+						startIndex = i
+						break
+					}
+				}
+				if startIndex < len(moduleRootParts) {
+					moduleRootToScanPath = strings.Join(moduleRootParts[startIndex:], "/") + "/"
+				}
+			}
+			
+			importPath = moduleName + "/" + moduleRootToScanPath + rootDir
+		} else {
+			// We're in a subdirectory of the scan path
+			subParts := pathParts[scanPathIndex+1:]
+			
+			// Same logic as above for finding the module root to scan path
+			var moduleRootToScanPath string
+			if scanPathIndex > 0 {
+				moduleRootParts := pathParts[:scanPathIndex]
+				var startIndex = 0
+				for i, part := range moduleRootParts {
+					if part == "demo" || part == "cmd" || part == "pkg" || part == "internal" {
+						startIndex = i
+						break
+					}
+				}
+				if startIndex < len(moduleRootParts) {
+					moduleRootToScanPath = strings.Join(moduleRootParts[startIndex:], "/") + "/"
+				}
+			}
+			
+			importPath = moduleName + "/" + moduleRootToScanPath + rootDir + "/" + strings.Join(subParts, "/")
+		}
 	}
-
-	// Create import path with module name prefix
-	importPath := moduleName + "/" + dir
 
 	return packageName, importPath
 }
