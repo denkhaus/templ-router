@@ -145,9 +145,8 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 	// not just from the scan path. The import path must be relative to where
 	// the go.mod file is located.
 	
-	// WORKING DIRECTORY AWARE APPROACH: 
-	// The generator is executed from a working directory, and scan-path is relative to that.
-	// We need to determine the working directory's position relative to the module root.
+	// SIMPLIFIED APPROACH: The module name already contains the correct base path
+	// We just need to add the scan path and any subdirectories
 	
 	pathParts := strings.Split(dir, "/")
 	
@@ -165,31 +164,13 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 		// Fallback if scan path not found
 		importPath = moduleName + "/" + rootDir
 	} else {
-		// Extract the working directory from the file path
-		// For /path/to/project/demo/app/file.go, if scanPath is "app",
-		// then working directory is "demo" and full path should be "demo/app"
-		
-		var workingDirPath string
-		if scanPathIndex > 0 {
-			// Look at the directory immediately before the scan path
-			// This represents the working directory where the generator was executed
-			workingDir := pathParts[scanPathIndex-1]
-			
-			// Only include the working directory if it's not an absolute path prefix
-			// (skip things like "", "app", "usr", etc. that are clearly not project dirs)
-			if workingDir != "" && workingDir != "app" && workingDir != "usr" && 
-			   workingDir != "home" && workingDir != "tmp" && len(workingDir) > 1 {
-				workingDirPath = workingDir + "/"
-			}
-		}
-		
 		if scanPathIndex == len(pathParts)-1 {
 			// We're in the root scan directory
-			importPath = moduleName + "/" + workingDirPath + rootDir
+			importPath = moduleName + "/" + rootDir
 		} else {
 			// We're in a subdirectory of the scan path
 			subParts := pathParts[scanPathIndex+1:]
-			importPath = moduleName + "/" + workingDirPath + rootDir + "/" + strings.Join(subParts, "/")
+			importPath = moduleName + "/" + rootDir + "/" + strings.Join(subParts, "/")
 		}
 	}
 
