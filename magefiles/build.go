@@ -40,7 +40,7 @@ func (Build) RegistryGenerate() error {
 		"TEMPLATE_SCAN_PATH":   "app",
 		"TEMPLATE_OUTPUT_DIR":  "generated/templates",
 		"TEMPLATE_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
-	}, "sh", "-c", "cd demo && template-generator")
+	}, "sh", "-c", "cd demo && go run ../cmd/template-generator/main.go")
 }
 
 func (Build) RegistryWatch() error {
@@ -49,5 +49,5 @@ func (Build) RegistryWatch() error {
 		"TEMPLATE_SCAN_PATH":   "app",
 		"TEMPLATE_OUTPUT_DIR":  "generated/templates",
 		"TEMPLATE_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
-	}, "sh", "-c", "cd demo && template-generator --watch")
+	}, "sh", "-c", "cd demo && go run ../cmd/template-generator/main.go --watch")
 }
