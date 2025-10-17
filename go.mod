@@ -4,7 +4,7 @@ go 1.24.0
 
 toolchain go1.24.8
 
-require github.com/a-h/templ v0.3.943
+require github.com/a-h/templ v0.3.960
 
 require (
 	github.com/fsnotify/fsnotify v1.9.0
