@@ -173,6 +173,13 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 			importPath = moduleName + "/" + rootDir + "/" + strings.Join(subParts, "/")
 		}
 	}
+	
+	// CRITICAL FIX: We also need to extract the correct package name from the file path
+	// The package name should be the last directory in the path, not always the scan path
+	if scanPathIndex != -1 && scanPathIndex < len(pathParts)-1 {
+		// We're in a subdirectory - the package name is the last directory
+		packageName = pathParts[len(pathParts)-1]
+	}
 
 	return packageName, importPath
 }
