@@ -40,11 +40,19 @@ func (Build) RegistryGenerate() error {
 	if err := sh.RunV("sh", "-c", "cd cmd/template-generator && go install ."); err != nil {
 		fmt.Printf("Warning: Could not reinstall generator: %v\n", err)
 	}
-	return sh.RunWithV(map[string]string{
+	
+	// Generate templates
+	if err := sh.RunWithV(map[string]string{
 		"TEMPLATE_SCAN_PATH":   "app",
 		"TEMPLATE_OUTPUT_DIR":  "generated/templates",
 		"TEMPLATE_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
-	}, "sh", "-c", "cd demo && template-generator")
+	}, "sh", "-c", "cd demo && template-generator"); err != nil {
+		return err
+	}
+	
+	// Run go mod tidy to ensure generated packages are recognized
+	fmt.Println("Running go mod tidy to register generated packages...")
+	return sh.RunV("sh", "-c", "cd demo && go mod tidy")
 }
 
 func (Build) RegistryWatch() error {
