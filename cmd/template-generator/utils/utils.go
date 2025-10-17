@@ -145,8 +145,10 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 	// not just from the scan path. The import path must be relative to where
 	// the go.mod file is located.
 	
-	// Find the working directory (where go.mod is) in the file path
-	// This is more robust than trying to extract from scan path only
+	// WORKING DIRECTORY AWARE APPROACH: 
+	// The generator is executed from a working directory, and scan-path is relative to that.
+	// We need to determine the working directory's position relative to the module root.
+	
 	pathParts := strings.Split(dir, "/")
 	
 	// Find the scan path in the directory
@@ -163,58 +165,31 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 		// Fallback if scan path not found
 		importPath = moduleName + "/" + rootDir
 	} else {
-		// Extract the full path from the module root
-		// We need everything from the working directory onwards
+		// Extract the working directory from the file path
+		// For /path/to/project/demo/app/file.go, if scanPath is "app",
+		// then working directory is "demo" and full path should be "demo/app"
 		
-		// The scan path index tells us where the scan directory is
-		// We need to include the path from the module root to the scan directory
-		// plus the relative path within the scan directory
+		var workingDirPath string
+		if scanPathIndex > 0 {
+			// Look at the directory immediately before the scan path
+			// This represents the working directory where the generator was executed
+			workingDir := pathParts[scanPathIndex-1]
+			
+			// Only include the working directory if it's not an absolute path prefix
+			// (skip things like "", "app", "usr", etc. that are clearly not project dirs)
+			if workingDir != "" && workingDir != "app" && workingDir != "usr" && 
+			   workingDir != "home" && workingDir != "tmp" && len(workingDir) > 1 {
+				workingDirPath = workingDir + "/"
+			}
+		}
 		
 		if scanPathIndex == len(pathParts)-1 {
-			// We're in the root scan directory - need to find the path to it
-			// Look for common project structure indicators
-			var moduleRootToScanPath string
-			
-			// Check if there's a parent directory that might be the module root
-			if scanPathIndex > 0 {
-				// Take everything from before the scan path as the module-relative path
-				moduleRootParts := pathParts[:scanPathIndex]
-				// Find a reasonable starting point (skip absolute path prefixes)
-				var startIndex = 0
-				for i, part := range moduleRootParts {
-					// Look for common project directory names that indicate module root vicinity
-					if part == "demo" || part == "cmd" || part == "pkg" || part == "internal" {
-						startIndex = i
-						break
-					}
-				}
-				if startIndex < len(moduleRootParts) {
-					moduleRootToScanPath = strings.Join(moduleRootParts[startIndex:], "/") + "/"
-				}
-			}
-			
-			importPath = moduleName + "/" + moduleRootToScanPath + rootDir
+			// We're in the root scan directory
+			importPath = moduleName + "/" + workingDirPath + rootDir
 		} else {
 			// We're in a subdirectory of the scan path
 			subParts := pathParts[scanPathIndex+1:]
-			
-			// Same logic as above for finding the module root to scan path
-			var moduleRootToScanPath string
-			if scanPathIndex > 0 {
-				moduleRootParts := pathParts[:scanPathIndex]
-				var startIndex = 0
-				for i, part := range moduleRootParts {
-					if part == "demo" || part == "cmd" || part == "pkg" || part == "internal" {
-						startIndex = i
-						break
-					}
-				}
-				if startIndex < len(moduleRootParts) {
-					moduleRootToScanPath = strings.Join(moduleRootParts[startIndex:], "/") + "/"
-				}
-			}
-			
-			importPath = moduleName + "/" + moduleRootToScanPath + rootDir + "/" + strings.Join(subParts, "/")
+			importPath = moduleName + "/" + workingDirPath + rootDir + "/" + strings.Join(subParts, "/")
 		}
 	}
 
