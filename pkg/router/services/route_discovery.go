@@ -108,9 +108,13 @@ func (rd *routeDiscoveryImpl) generateTemplateFilePathFromPattern(routePattern s
 			// Convert $id to id_
 			paramName := strings.TrimPrefix(part, "$")
 			pathParts = append(pathParts, paramName+"_")
-		} else if len(part) == 2 && (part == "en" || part == "de" || part == "fr" || part == "es") {
-			// Handle locale parameters
+		} else if part == "{locale}" || (len(part) == 2 && (part == "en" || part == "de" || part == "fr" || part == "es")) {
+			// Handle locale parameters - both placeholder {locale} and actual locale codes
 			pathParts = append(pathParts, "locale_")
+		} else if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
+			// Handle other dynamic parameters like {id}
+			paramName := strings.Trim(part, "{}")
+			pathParts = append(pathParts, paramName+"_")
 		} else {
 			pathParts = append(pathParts, part)
 		}

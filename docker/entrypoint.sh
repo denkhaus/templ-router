@@ -1,9 +1,14 @@
 #!/bin/sh
 # Fix ownership of mounted volume files and Go cache directories
 # Use find to avoid errors on missing/temporary files
+#find /app -type f -exec chown 1000:1000 {} + 2>/dev/null || true
+#find /app -type d -exec chown 1000:1000 {} + 2>/dev/null || true
 
 # Create and fix Go cache directories with proper permissions
 mkdir -p /go/pkg/mod/cache 2>/dev/null || true
+mkdir -p /go/pkg/mod/github.com 2>/dev/null || true
+mkdir -p /go/pkg/mod/gopkg.in 2>/dev/null || true
+mkdir -p /go/pkg/mod/go.uber.org 2>/dev/null || true
 mkdir -p /home/user/.cache/go-build 2>/dev/null || true
 
 # Fix Go cache permissions recursively
