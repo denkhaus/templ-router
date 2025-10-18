@@ -11,7 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
 // toSnakeCase converts CamelCase to snake_case for URL-friendly route names

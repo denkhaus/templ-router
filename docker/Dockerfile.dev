@@ -13,14 +13,16 @@ RUN apk add --no-cache \
 RUN adduser -D -u 1000 -g 1000 user && \
     mkdir -p /home/user/.cache/go-build && \
     mkdir -p /go/pkg/mod && \
+    mkdir -p /go/bin && \
     chown -R 1000:1000 /home/user && \
-    chown -R 1000:1000 /go/pkg/mod
+    chown -R 1000:1000 /go/pkg/mod && \
+    chown -R 1000:1000 /go/bin
 
 # Install development tools
 RUN go install github.com/air-verse/air@latest
 RUN go install github.com/a-h/templ/cmd/templ@latest
 RUN go install github.com/magefile/mage@latest
-# Install template-generator from local source (after copying source code)
+# Install trgen from local source using mage (after copying source code)
 # This will be done after COPY step
 
 # Set working directory
@@ -35,12 +37,12 @@ RUN go mod download
 # Copy source code with proper ownership
 COPY --chown=1000:1000 . .
 
-# Install template-generator from local source with version info
-RUN cd cmd/template-generator && go install -ldflags="-X 'github.com/denkhaus/templ-router/cmd/template-generator/version.Version=docker-local' -X 'github.com/denkhaus/templ-router/cmd/template-generator/version.BuildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)'" .
+# Install trgen using mage with proper versioning
+RUN mage generator:install
 
 RUN cd demo && npm install
-# Generate Templ code
-RUN templ generate
+# Generate Templ code using trgen
+RUN trgen --scan-path demo/app --module-name github.com/denkhaus/templ-router
 
 # Build Tailwind CSS
 RUN mage build:tailwindClean

@@ -5,8 +5,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/commands"
-	"github.com/denkhaus/templ-router/cmd/template-generator/version"
+	"github.com/denkhaus/templ-router/cmd/trgen/commands"
+	"github.com/denkhaus/templ-router/cmd/trgen/version"
 	"github.com/urfave/cli/v2"
 )
 
@@ -47,13 +47,13 @@ func main() {
 	buildInfo := version.GetBuildInfo()
 	
 	app := &cli.App{
-		Name:    "template-generator",
-		Usage:   "Generate templates for templ-router",
+		Name:    "trgen",
+		Usage:   "templ-router generator - Generate templates for templ-router",
 		Version: buildInfo.Short(),
 		Flags:   appFlags(),
 		Action: func(c *cli.Context) error {
 			// Always show version at start of generation
-			fmt.Printf("Template Generator %s\n", buildInfo.String())
+			fmt.Printf("trgen %s\n", buildInfo.String())
 			fmt.Println()
 			return commands.Run(c)
 		},

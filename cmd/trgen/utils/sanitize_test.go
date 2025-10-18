@@ -2,7 +2,7 @@ package utils
 
 import (
 	"testing"
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
 func TestSanitizePackageName(t *testing.T) {

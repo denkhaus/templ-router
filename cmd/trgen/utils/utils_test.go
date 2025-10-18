@@ -3,7 +3,7 @@ package utils
 import (
 	"testing"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
 func TestGetLocalPackageInfo(t *testing.T) {

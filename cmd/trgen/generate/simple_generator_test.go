@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
 // TestGenerateRegistry_Basic tests the basic registry generation

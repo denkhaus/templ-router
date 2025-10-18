@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
 // TestGetLocalPackageInfoWithRealFiles tests with actual files from the demo project

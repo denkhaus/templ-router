@@ -6,9 +6,9 @@ import (
 	gotypes "go/types"
 	"strings"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
-	"github.com/denkhaus/templ-router/cmd/template-generator/utils"
-	"github.com/denkhaus/templ-router/cmd/template-generator/validate"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/utils"
+	"github.com/denkhaus/templ-router/cmd/trgen/validate"
 
 	"github.com/google/uuid"
 	"golang.org/x/tools/go/packages"

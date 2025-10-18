@@ -9,8 +9,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
-	"github.com/denkhaus/templ-router/cmd/template-generator/version"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/version"
 )
 
 //go:embed templates/*.tmpl

@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
 // TestGetLocalPackageInfo_CorrectBehavior tests the actual correct behavior

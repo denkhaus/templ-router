@@ -3,9 +3,9 @@ package commands
 import (
 	"fmt"
 
-	"github.com/denkhaus/templ-router/cmd/template-generator/generate"
-	"github.com/denkhaus/templ-router/cmd/template-generator/scan"
-	"github.com/denkhaus/templ-router/cmd/template-generator/types"
+	"github.com/denkhaus/templ-router/cmd/trgen/generate"
+	"github.com/denkhaus/templ-router/cmd/trgen/scan"
+	"github.com/denkhaus/templ-router/cmd/trgen/types"
 
 	"log"
 	"os"
