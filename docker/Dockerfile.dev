@@ -12,7 +12,9 @@ RUN apk add --no-cache \
 # Create user and home directory for proper permissions
 RUN adduser -D -u 1000 -g 1000 user && \
     mkdir -p /home/user/.cache/go-build && \
-    chown -R 1000:1000 /home/user
+    mkdir -p /go/pkg/mod && \
+    chown -R 1000:1000 /home/user && \
+    chown -R 1000:1000 /go/pkg/mod
 
 # Install development tools
 RUN go install github.com/air-verse/air@latest
@@ -29,9 +31,6 @@ COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
-
-# Install Node.js dependencies for Tailwind
-#RUN npm install -g pnpm
 
 # Copy source code with proper ownership
 COPY --chown=1000:1000 . .

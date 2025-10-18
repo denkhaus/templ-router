@@ -5,12 +5,12 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
+	"github.com/go-chi/chi/v5"
 )
 
-// TemplateProvider provides access to template components
-type TemplateProvider interface {
-	GetTemplate(key string) (interface{}, bool)
-	GetAllTemplateKeys() []string
+type AssetsService interface {
+	SetupRoutesWithRouter(mux chi.Router)
+	SetupRoutes(mux *chi.Mux)
 }
 
 // Import central type definitions to eliminate struct redundancy

@@ -6,6 +6,8 @@ services:
       dockerfile: docker/Dockerfile.dev
     container_name: templ-router-demo
     restart: unless-stopped
+    env_file:
+      - ../.env
     ports:
       - "8084:8084"
     volumes:

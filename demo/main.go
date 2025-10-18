@@ -3,10 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
-	"os"
 
+	"github.com/denkhaus/templ-router/demo/assets"
 	"github.com/denkhaus/templ-router/demo/generated/templates"
 	"github.com/denkhaus/templ-router/pkg/di"
 	"github.com/denkhaus/templ-router/pkg/router"
@@ -19,27 +18,38 @@ import (
 
 // main demonstrates the new clean architecture
 func main() {
-	startupClean()
+	startupClean(context.Background())
 }
 
-func startupClean() {
-	ctx := context.Background()
+func startupClean(ctx context.Context) error {
+
+	// this is handled by docker compose
+	// if err := godotenv.Load(".env"); err != nil {
+	// 	return fmt.Errorf("failed to load environment file: %w", err)
+	// }
 
 	// Create DI container
 	container := di.NewContainer()
 	defer container.Shutdown()
 
-	// Step 2: Create and register the application-specific template registry
-	templateRegistry, err := templates.NewTemplateRegistry(container.GetInjector())
-	if err != nil {
-		log.Fatal("Failed to create template registry:", err)
-	}
-	container.RegisterTemplateRegistry(templateRegistry)
+	container.RegisterRouterServices()
 
-	// Register all services
-	if err := container.RegisterRouterServices(ctx); err != nil {
-		log.Fatal("Failed to register services:", err)
+	// Step 2: Create and register the application-specific template registry
+	templateRegistry, err := templates.NewRegistry(container.GetInjector())
+	if err != nil {
+		return fmt.Errorf("failed to create template registry: %w", err)
 	}
+
+	assetsService, err := assets.NewService(container.GetInjector())
+	if err != nil {
+		return fmt.Errorf("failed to create assets service: %w", err)
+	}
+
+	// Register application services using options pattern
+	container.RegisterApplicationServices(
+		di.WithTemplateRegistry(templateRegistry),
+		di.WithAssetsService(assetsService),
+	)
 
 	// Get logger from container
 	logger := container.GetLogger()
@@ -53,7 +63,7 @@ func startupClean() {
 	// Add auth context middleware
 	authMiddleware, err := middleware.NewAuthContextMiddleware(container.GetInjector())
 	if err != nil {
-		logger.Fatal("Failed to create auth middleware", zap.Error(err))
+		return fmt.Errorf("failed to create auth middleware: %w", err)
 	}
 	mux.Use(authMiddleware.Middleware)
 
@@ -62,11 +72,8 @@ func startupClean() {
 
 	// Initialize the router (discover routes, layouts, etc.)
 	if err := cleanRouter.Initialize(); err != nil {
-		logger.Fatal("Failed to initialize clean router", zap.Error(err))
+		return fmt.Errorf("failed to initialize clean router: %w", err)
 	}
-
-	// Serve static assets
-	mux.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
 	// Add API routes
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
@@ -84,8 +91,7 @@ func startupClean() {
 	// Register file-based routes
 	logger.Info("Registering routes with clean architecture...")
 	if err := cleanRouter.RegisterRoutes(mux); err != nil {
-		fmt.Printf("FATAL: Failed to register routes - %v\n", err)
-		os.Exit(1)
+		return fmt.Errorf("failed to register routes: %w", err)
 	}
 
 	// Register external auth routes (pluggable authentication)
@@ -109,8 +115,10 @@ func startupClean() {
 	// Start server
 	logger.Info("Starting Clean Architecture Demo Server on :8084")
 	if err := http.ListenAndServe(":8084", mux); err != nil {
-		logger.Fatal("Server failed to start", zap.Error(err))
+		return fmt.Errorf("failed to start server: %w", err)
 	}
+
+	return nil
 }
 
 // logRouteInformation logs information about discovered routes
@@ -131,17 +139,4 @@ func logRouteInformation(cleanRouter router.RouterCore, logger *zap.Logger) {
 			zap.String("template", route.TemplateFile),
 			zap.Bool("dynamic", route.IsDynamic))
 	}
-
-	logger.Info("")
-	logger.Info("Clean Architecture Features:")
-	logger.Info("  - Separation of Concerns with middleware pattern")
-	logger.Info("  - Clean service interfaces without circular dependencies")
-	logger.Info("  - Handler pipeline for composable request processing")
-	logger.Info("  - Dependency injection with samber/do")
-	logger.Info("  - Route discovery abstraction")
-	logger.Info("  - Configuration loading abstraction")
-	logger.Info("  - Testable and maintainable code structure")
 }
-
-// All service implementations have been moved to their respective packages
-// and are now managed through dependency injection

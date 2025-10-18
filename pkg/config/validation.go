@@ -3,7 +3,7 @@ package config
 import "fmt"
 
 // Validate validates the configuration
-func (c *Config) Validate() error {
+func (c *configImpl) Validate() error {
 	// Validate server configuration
 	if c.Server.Port < 1 || c.Server.Port > 65535 {
 		return fmt.Errorf("invalid server port: %d", c.Server.Port)
@@ -18,7 +18,7 @@ func (c *Config) Validate() error {
 	if c.Auth.MinPasswordLength < 1 {
 		return fmt.Errorf("minimum password length must be at least 1")
 	}
-	
+
 	// Validate default admin configuration
 	if c.Auth.CreateDefaultAdmin {
 		if c.Auth.DefaultAdminEmail == "" {

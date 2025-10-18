@@ -17,9 +17,9 @@ func maskSensitive(value string) string {
 }
 
 // LogSummary logs a summary of the configuration with sensitive data masked
-func (c *Config) LogSummary() {
+func (c *configImpl) LogSummary() {
 	fmt.Println("=== Configuration Summary ===")
-	
+
 	// Server Configuration
 	fmt.Printf("Server:\n")
 	fmt.Printf("  Host: %s\n", c.Server.Host)
@@ -29,7 +29,7 @@ func (c *Config) LogSummary() {
 	fmt.Printf("  Write Timeout: %s\n", c.Server.WriteTimeout)
 	fmt.Printf("  Idle Timeout: %s\n", c.Server.IdleTimeout)
 	fmt.Printf("  Shutdown Timeout: %s\n", c.Server.ShutdownTimeout)
-	
+
 	// Database Configuration
 	fmt.Printf("Database:\n")
 	fmt.Printf("  Host: %s\n", c.Database.Host)
@@ -38,7 +38,7 @@ func (c *Config) LogSummary() {
 	fmt.Printf("  Password: %s\n", maskSensitive(c.Database.Password))
 	fmt.Printf("  Name: %s\n", c.Database.Name)
 	fmt.Printf("  SSL Mode: %s\n", c.Database.SSLMode)
-	
+
 	// Authentication Configuration
 	fmt.Printf("Authentication:\n")
 	fmt.Printf("  Require Email Verification: %t\n", c.Auth.RequireEmailVerification)
@@ -57,7 +57,7 @@ func (c *Config) LogSummary() {
 		fmt.Printf("  Default Admin First Name: %s\n", c.Auth.DefaultAdminFirstName)
 		fmt.Printf("  Default Admin Last Name: %s\n", c.Auth.DefaultAdminLastName)
 	}
-	
+
 	// Email Configuration
 	fmt.Printf("Email:\n")
 	fmt.Printf("  SMTP Host: %s\n", func() string {
@@ -89,7 +89,7 @@ func (c *Config) LogSummary() {
 		return c.Email.ReplyToEmail
 	}())
 	fmt.Printf("  Enable Dummy Mode: %t\n", c.Email.EnableDummyMode)
-	
+
 	// Security Configuration
 	fmt.Printf("Security:\n")
 	fmt.Printf("  CSRF Secret: %s\n", maskSensitive(c.Security.CSRFSecret))
@@ -101,7 +101,7 @@ func (c *Config) LogSummary() {
 	fmt.Printf("  Enable Security Headers: %t\n", c.Security.EnableSecurityHeaders)
 	fmt.Printf("  Enable HSTS: %t\n", c.Security.EnableHSTS)
 	fmt.Printf("  HSTS Max Age: %d\n", c.Security.HSTSMaxAge)
-	
+
 	// Logging Configuration
 	fmt.Printf("Logging:\n")
 	fmt.Printf("  Level: %s\n", c.Logging.Level)
@@ -111,11 +111,11 @@ func (c *Config) LogSummary() {
 	if c.Logging.EnableFile {
 		fmt.Printf("  File Path: %s\n", c.Logging.FilePath)
 	}
-	
+
 	// Environment Detection
 	fmt.Printf("Environment:\n")
 	fmt.Printf("  Production Mode: %t\n", c.IsProduction())
 	fmt.Printf("  Development Mode: %t\n", c.IsDevelopment())
-	
+
 	fmt.Println("=============================")
 }

@@ -20,12 +20,12 @@ type RouteRegistrar interface {
 }
 
 // routeRegistrar handles route registration logic (private implementation)
-// SEPARATED FROM: clean_router.go (Separation of Concerns)
 type routeRegistrar struct {
 	router          *chi.Mux
 	handlerBuilder  HandlerBuilder
 	middlewareSetup MiddlewareSetup
 	configService   interfaces.ConfigService
+	assetService    interfaces.AssetsService
 	logger          *zap.Logger
 }
 
@@ -42,6 +42,7 @@ func NewRouteRegistrar(i do.Injector, router *chi.Mux) (RouteRegistrar, error) {
 	}
 
 	configService := do.MustInvoke[interfaces.ConfigService](i)
+	assetService := do.MustInvoke[interfaces.AssetsService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &routeRegistrar{
@@ -49,6 +50,7 @@ func NewRouteRegistrar(i do.Injector, router *chi.Mux) (RouteRegistrar, error) {
 		handlerBuilder:  handlerBuilder,
 		middlewareSetup: middlewareSetup,
 		configService:   configService,
+		assetService:    assetService,
 		logger:          logger,
 	}, nil
 }
@@ -110,10 +112,8 @@ func (rr *routeRegistrar) convertRoutePattern(pattern string) string {
 
 // RegisterStaticRoutes registers static file serving routes
 func (rr *routeRegistrar) RegisterStaticRoutes() {
-	// Serve static assets
-	rr.router.Handle("/assets/*", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets/"))))
-
-	rr.logger.Debug("Static routes registered", zap.String("path", "/assets/*"))
+	rr.assetService.SetupRoutes(rr.router)
+	rr.logger.Debug("Static routes registered")
 }
 
 // Register404Handler registers the 404 not found handler

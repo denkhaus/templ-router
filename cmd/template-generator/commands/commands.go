@@ -28,12 +28,15 @@ func Run(c *cli.Context) error {
 	return nil
 }
 
+// CRITICAL: This generator MUST be 100% configuration-agnostic!
+// These are the ONLY acceptable defaults - generic output paths that work everywhere.
+// NEVER add defaults for module names, scan paths, or project-specific values!
 func newConfig(c *cli.Context) types.Config {
 	return types.Config{
-		ModuleName:  c.String("module-name"),
-		ScanPath:    c.String("scan-path"),
-		OutputDir:   "generated/templates",
-		PackageName: "templates",
+		ModuleName:  c.String("module-name"),  // NO DEFAULT - must be provided
+		ScanPath:    c.String("scan-path"),    // NO DEFAULT - must be provided  
+		OutputDir:   "generated/templates",    // Generic output path - OK
+		PackageName: "templates",              // Generic package name - OK
 	}
 }
 

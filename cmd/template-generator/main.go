@@ -10,6 +10,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// CRITICAL: This generator MUST be 100% configuration-agnostic!
+// It's a LIBRARY for thousands of developers, NOT a local tool.
+// NEVER hardcode project names, paths, or module names.
+// EVERY project has different structures and names.
+// NO DEFAULTS for project-specific values!
 func appFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{
@@ -24,16 +29,16 @@ func appFlags() []cli.Flag {
 			EnvVars: []string{"TEMPLATE_WATCH_EXTENSIONS"},
 		},
 		&cli.StringFlag{
-			Name:    "scan-path",
-			Value:   "app",
-			Usage:   "Path to scan for templates",
-			EnvVars: []string{"TEMPLATE_SCAN_PATH"},
+			Name:     "scan-path",
+			Usage:    "Path to scan for templates (required)",
+			EnvVars:  []string{"TEMPLATE_SCAN_PATH"},
+			Required: true,
 		},
 		&cli.StringFlag{
-			Name:    "module-name",
-			Value:   "github.com/denkhaus/templ-router",
-			Usage:   "Go module name",
-			EnvVars: []string{"TEMPLATE_MODULE_NAME"},
+			Name:     "module-name", 
+			Usage:    "Go module name (required)",
+			EnvVars:  []string{"TEMPLATE_MODULE_NAME"},
+			Required: true,
 		},
 	}
 }

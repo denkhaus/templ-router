@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/denkhaus/templ-router/pkg/config"
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -50,11 +50,11 @@ func createEncoder(format string) zapcore.Encoder {
 }
 
 // createWriteSyncer creates the appropriate write syncer based on config
-func createWriteSyncer(cfg *config.Config) (zapcore.WriteSyncer, error) {
+func createWriteSyncer(cfg interfaces.ConfigService) (zapcore.WriteSyncer, error) {
 	var writers []zapcore.WriteSyncer
 
 	// Always add stdout/stderr based on output config
-	switch strings.ToLower(cfg.Logging.Output) {
+	switch strings.ToLower(cfg.GetLogOutput()) {
 	case "stdout":
 		writers = append(writers, zapcore.AddSync(os.Stdout))
 	case "stderr":
@@ -64,14 +64,16 @@ func createWriteSyncer(cfg *config.Config) (zapcore.WriteSyncer, error) {
 	}
 
 	// Add file output if enabled
-	if cfg.Logging.EnableFile {
+	if cfg.IsFileLoggingEnabled() {
+
+		filePath := cfg.GetLogFilePath()
 		// Create directory if it doesn't exist
-		dir := filepath.Dir(cfg.Logging.FilePath)
+		dir := filepath.Dir(filePath)
 		if err := os.MkdirAll(dir, 0755); err != nil {
 			return nil, fmt.Errorf("failed to create log directory: %w", err)
 		}
 
-		file, err := os.OpenFile(cfg.Logging.FilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+		file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open log file: %w", err)
 		}
@@ -84,13 +86,13 @@ func createWriteSyncer(cfg *config.Config) (zapcore.WriteSyncer, error) {
 
 // NewService creates the logger service for DI
 func NewService(injector do.Injector) (*zap.Logger, error) {
-	cfg := do.MustInvoke[*config.Config](injector)
+	cfg := do.MustInvoke[interfaces.ConfigService](injector)
 
 	// Parse log level
-	level := parseLogLevel(cfg.Logging.Level)
+	level := parseLogLevel(cfg.GetLogLevel())
 
 	// Create encoder based on format
-	encoder := createEncoder(cfg.Logging.Format)
+	encoder := createEncoder(cfg.GetLogFormat())
 
 	// Create write syncer based on output config
 	writeSyncer, err := createWriteSyncer(cfg)
@@ -116,13 +118,13 @@ func NewService(injector do.Injector) (*zap.Logger, error) {
 			}
 			return "development"
 		}()),
-		zap.String("level", cfg.Logging.Level),
-		zap.String("format", cfg.Logging.Format),
-		zap.String("output", cfg.Logging.Output),
-		zap.Bool("file_enabled", cfg.Logging.EnableFile),
+		zap.String("level", cfg.GetLogLevel()),
+		zap.String("format", cfg.GetLogFormat()),
+		zap.String("output", cfg.GetLogOutput()),
+		zap.Bool("file_enabled", cfg.IsFileLoggingEnabled()),
 		zap.String("file_path", func() string {
-			if cfg.Logging.EnableFile {
-				return cfg.Logging.FilePath
+			if cfg.IsFileLoggingEnabled() {
+				return cfg.GetLogFilePath()
 			}
 			return "disabled"
 		}()),

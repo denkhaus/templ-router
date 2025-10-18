@@ -30,6 +30,36 @@ func ToSnakeCase(str string) string {
 	return result.String()
 }
 
+// sanitizePackageName converts directory names to valid Go package identifiers
+// Removes hyphens, dots, and other invalid characters
+func sanitizePackageName(name string) string {
+	// Replace hyphens and dots with empty string
+	name = strings.ReplaceAll(name, "-", "")
+	name = strings.ReplaceAll(name, ".", "")
+	
+	// Remove any other non-alphanumeric characters except underscores
+	var result strings.Builder
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' {
+			result.WriteRune(r)
+		}
+	}
+	
+	sanitized := result.String()
+	
+	// Ensure it doesn't start with a number
+	if len(sanitized) > 0 && sanitized[0] >= '0' && sanitized[0] <= '9' {
+		sanitized = "pkg" + sanitized
+	}
+	
+	// Ensure it's not empty
+	if sanitized == "" {
+		sanitized = "pkg"
+	}
+	
+	return sanitized
+}
+
 // createRoutePattern creates a route pattern from a file path and function name
 // IMPORTANT: This function must be file/directory agnostic and not hardcode any base paths.
 // Routes should be generated purely based on the file structure without project-specific assumptions.
@@ -178,7 +208,8 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 	// The package name should be the last directory in the path, not always the scan path
 	if scanPathIndex != -1 && scanPathIndex < len(pathParts)-1 {
 		// We're in a subdirectory - the package name is the last directory
-		packageName = pathParts[len(pathParts)-1]
+		rawPackageName := pathParts[len(pathParts)-1]
+		packageName = sanitizePackageName(rawPackageName)
 	}
 
 	return packageName, importPath
@@ -241,9 +272,10 @@ func CreatePackageAlias(packageName, importPath string, config types.Config) str
 	// For other packages, create alias to avoid conflicts
 	parts := strings.Split(importPath, "/")
 	if len(parts) > 1 {
-		// Use the last part of the import path as alias
-		return parts[len(parts)-1]
+		// Use the last part of the import path as alias and sanitize it
+		rawAlias := parts[len(parts)-1]
+		return sanitizePackageName(rawAlias)
 	}
 
-	return packageName
+	return sanitizePackageName(packageName)
 }

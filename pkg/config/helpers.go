@@ -3,7 +3,7 @@ package config
 import "fmt"
 
 // GetDatabaseDSN returns the database connection string
-func (c *Config) GetDatabaseDSN() string {
+func (c *configImpl) GetDatabaseDSN() string {
 	return fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		c.Database.Host,
@@ -16,17 +16,21 @@ func (c *Config) GetDatabaseDSN() string {
 }
 
 // GetServerAddress returns the server address
-func (c *Config) GetServerAddress() string {
+func (c *configImpl) GetServerAddress() string {
 	return fmt.Sprintf("%s:%d", c.Server.Host, c.Server.Port)
 }
 
 // IsProduction returns true if running in production mode
-func (c *Config) IsProduction() bool {
+func (c *configImpl) IsProduction() bool {
+	if c.Environment.Kind == "develop" {
+		return false
+	}
+
 	return c.Server.BaseURL != "http://localhost:8080" &&
 		c.Security.CSRFSecret != "change-me-in-production"
 }
 
 // IsDevelopment returns true if running in development mode
-func (c *Config) IsDevelopment() bool {
+func (c *configImpl) IsDevelopment() bool {
 	return !c.IsProduction()
 }

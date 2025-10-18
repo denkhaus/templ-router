@@ -119,3 +119,80 @@ func ValidateYamlParameters(filePath string) error {
 
 	return nil
 }
+
+// ValidateConfig validates the configuration
+func ValidateConfig(config types.Config) error {
+	if config.ScanPath == "" {
+		return fmt.Errorf("scan path cannot be empty")
+	}
+	
+	if config.OutputDir == "" {
+		return fmt.Errorf("output directory cannot be empty")
+	}
+	
+	if config.ModuleName == "" {
+		return fmt.Errorf("module name cannot be empty")
+	}
+	
+	if config.PackageName == "" {
+		return fmt.Errorf("package name cannot be empty")
+	}
+	
+	// Validate package name format
+	if strings.Contains(config.PackageName, "-") {
+		return fmt.Errorf("package name contains invalid characters (hyphens not allowed)")
+	}
+	
+	if len(config.PackageName) > 0 && config.PackageName[0] >= '0' && config.PackageName[0] <= '9' {
+		return fmt.Errorf("package name cannot start with a number")
+	}
+	
+	// Validate module name format
+	if strings.Contains(config.ModuleName, " ") {
+		return fmt.Errorf("module name contains invalid characters (spaces not allowed)")
+	}
+	
+	return nil
+}
+
+// ValidateTemplates validates a slice of template info
+func ValidateTemplates(templates []types.TemplateInfo) error {
+	if len(templates) == 0 {
+		return nil // Empty templates are allowed
+	}
+	
+	// Check for duplicate template keys
+	templateKeys := make(map[string]bool)
+	for _, tmpl := range templates {
+		if tmpl.FunctionName == "" {
+			return fmt.Errorf("function name cannot be empty")
+		}
+		
+		if tmpl.TemplateKey == "" {
+			return fmt.Errorf("template key cannot be empty")
+		}
+		
+		if templateKeys[tmpl.TemplateKey] {
+			return fmt.Errorf("duplicate template key: %s", tmpl.TemplateKey)
+		}
+		templateKeys[tmpl.TemplateKey] = true
+	}
+	
+	// Check for duplicate route patterns
+	routePatterns := make(map[string]bool)
+	for _, tmpl := range templates {
+		if routePatterns[tmpl.RoutePattern] {
+			return fmt.Errorf("duplicate route pattern: %s", tmpl.RoutePattern)
+		}
+		routePatterns[tmpl.RoutePattern] = true
+	}
+	
+	// Check for invalid package aliases
+	for _, tmpl := range templates {
+		if strings.Contains(tmpl.PackageAlias, "-") {
+			return fmt.Errorf("invalid package alias: %s (contains hyphens)", tmpl.PackageAlias)
+		}
+	}
+	
+	return nil
+}

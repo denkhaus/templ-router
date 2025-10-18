@@ -49,6 +49,14 @@ func (cs *configService) GetLayoutRootDirectory() string {
 	return cs.config.Layout.RootDirectory
 }
 
+func (cs *configService) GetLayoutAssetsDirectory() string {
+	return cs.config.Layout.AssetsDirectory
+}
+
+func (cs *configService) GetLayoutAssetsRouteName() string {
+	return cs.config.Layout.AssetsRouteName
+}
+
 func (cs *configService) GetLayoutFileName() string {
 	return cs.config.Layout.LayoutFileName
 }
@@ -63,11 +71,6 @@ func (cs *configService) GetMetadataExtension() string {
 
 func (cs *configService) IsLayoutInheritanceEnabled() bool {
 	return cs.config.Layout.EnableInheritance
-}
-
-// Template generator configuration methods
-func (cs *configService) GetTemplateScanPath() string {
-	return cs.config.TemplateGenerator.ScanPath
 }
 
 func (cs *configService) GetTemplateOutputDir() string {
@@ -253,4 +256,12 @@ func (cs *configService) GetReplyToEmail() string {
 
 func (cs *configService) IsEmailDummyModeEnabled() bool {
 	return cs.config.Email.EnableDummyMode
+}
+
+func (cs *configService) IsDevelopment() bool {
+	return cs.config.IsDevelopment()
+}
+
+func (cs *configService) IsProduction() bool {
+	return cs.config.IsProduction()
 }

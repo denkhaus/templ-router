@@ -21,12 +21,13 @@ type ConfigService interface {
 	// Layout configuration
 	GetLayoutRootDirectory() string
 	GetLayoutFileName() string
+	GetLayoutAssetsDirectory() string
+	GetLayoutAssetsRouteName() string
 	GetTemplateExtension() string
 	GetMetadataExtension() string
 	IsLayoutInheritanceEnabled() bool
 
 	// Template generator configuration
-	GetTemplateScanPath() string
 	GetTemplateOutputDir() string
 	GetTemplatePackageName() string
 
@@ -82,4 +83,8 @@ type ConfigService interface {
 	GetFromName() string
 	GetReplyToEmail() string
 	IsEmailDummyModeEnabled() bool
+
+	// Environment configuration
+	IsDevelopment() bool
+	IsProduction() bool
 }

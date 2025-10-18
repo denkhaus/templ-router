@@ -56,7 +56,7 @@ func Dev() error {
 		defer wg.Done()
 		fmt.Println("Starting Air development server...")
 		if err := sh.RunV("air",
-			"--build.cmd", "go build -o /tmp/templ-router-demo/main ./demo/*.go",
+			"--build.cmd", "cd ./demo && go build -o /tmp/templ-router-demo/main ./main.go",
 			"--build.bin", "/tmp/templ-router-demo/main",
 			"--build.delay", "100",
 			"--build.exclude_dir", "**/node_modules/**",

@@ -11,13 +11,13 @@ import (
 )
 
 // cleanRouterCore implements clean architecture principles with proper separation of concerns (private implementation)
-// REFACTORED FROM: clean_router.go (301 lines → 4 separate files)
 type cleanRouterCore struct {
 	// Core configuration
-	scanPath string
-	config   interfaces.ConfigService
-	logger   *zap.Logger
-	injector do.Injector // Store injector for proper DI
+	scanPath      string
+	config        interfaces.ConfigService
+	assetsService interfaces.AssetsService
+	logger        *zap.Logger
+	injector      do.Injector // Store injector for proper DI
 
 	// Separated components (Separation of Concerns)
 	routeRegistrar  RouteRegistrar
@@ -44,6 +44,7 @@ func NewCleanRouterCore(i do.Injector) (RouterCore, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 	handlerPipeline := do.MustInvoke[*pipeline.HandlerPipeline](i)
 	routeDiscovery := do.MustInvoke[RouteDiscovery](i)
+	assetsService := do.MustInvoke[interfaces.AssetsService](i)
 	configLoader := do.MustInvoke[ConfigLoader](i)
 
 	// Create separated components
@@ -63,8 +64,9 @@ func NewCleanRouterCore(i do.Injector) (RouterCore, error) {
 	}
 
 	return &cleanRouterCore{
-		scanPath:        config.GetTemplateScanPath(), // Use config interface method
+		scanPath:        config.GetLayoutRootDirectory(),
 		config:          config,
+		assetsService:   assetsService,
 		logger:          logger,
 		injector:        i, // Store injector for RouteRegistrar creation
 		handlerBuilder:  handlerBuilder,

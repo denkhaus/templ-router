@@ -3,7 +3,7 @@ package config
 import "time"
 
 // Config holds all application configuration
-type Config struct {
+type configImpl struct {
 	// Server configuration
 	Server ServerConfig `envconfig:"SERVER"`
 
@@ -24,12 +24,15 @@ type Config struct {
 
 	// Internationalization configuration
 	I18n I18nConfig `envconfig:"I18N"`
-	
+
 	// Layout configuration
 	Layout LayoutConfig `envconfig:"LAYOUT"`
-	
+
 	// Template generator configuration
 	TemplateGenerator TemplateGeneratorConfig `envconfig:"TEMPLATE_GENERATOR"`
+
+	// Environment configuration
+	Environment EnvironmentConfig `envconfig:"ENVIRONMENT"`
 }
 
 // ServerConfig holds server-related configuration
@@ -69,13 +72,13 @@ type AuthConfig struct {
 	// Password settings
 	MinPasswordLength   int  `envconfig:"MIN_PASSWORD_LENGTH" default:"8"`
 	RequireStrongPasswd bool `envconfig:"REQUIRE_STRONG_PASSWORD" default:"false"`
-	
+
 	// Default admin user settings
-	CreateDefaultAdmin     bool   `envconfig:"CREATE_DEFAULT_ADMIN" default:"true"`
-	DefaultAdminEmail      string `envconfig:"DEFAULT_ADMIN_EMAIL" default:"admin@example.com"`
-	DefaultAdminPassword   string `envconfig:"DEFAULT_ADMIN_PASSWORD" default:"admin123"`
-	DefaultAdminFirstName  string `envconfig:"DEFAULT_ADMIN_FIRST_NAME" default:"Default"`
-	DefaultAdminLastName   string `envconfig:"DEFAULT_ADMIN_LAST_NAME" default:"Admin"`
+	CreateDefaultAdmin    bool   `envconfig:"CREATE_DEFAULT_ADMIN" default:"true"`
+	DefaultAdminEmail     string `envconfig:"DEFAULT_ADMIN_EMAIL" default:"admin@example.com"`
+	DefaultAdminPassword  string `envconfig:"DEFAULT_ADMIN_PASSWORD" default:"admin123"`
+	DefaultAdminFirstName string `envconfig:"DEFAULT_ADMIN_FIRST_NAME" default:"Default"`
+	DefaultAdminLastName  string `envconfig:"DEFAULT_ADMIN_LAST_NAME" default:"Admin"`
 }
 
 // EmailConfig holds email-related configuration
@@ -91,7 +94,6 @@ type EmailConfig struct {
 	FromEmail    string `envconfig:"FROM_EMAIL" default:"noreply@example.com"`
 	FromName     string `envconfig:"FROM_NAME" default:"Router Application"`
 	ReplyToEmail string `envconfig:"REPLY_TO_EMAIL" default:""`
-
 
 	// Development settings
 	EnableDummyMode bool `envconfig:"ENABLE_DUMMY_MODE" default:"true"`
@@ -132,32 +134,39 @@ type I18nConfig struct {
 	FallbackLocale   string   `envconfig:"FALLBACK_LOCALE" default:"en"`
 }
 
+type EnvironmentConfig struct {
+	Kind string `envconfig:"KIND" default:"develop"`
+}
+
 // LayoutConfig holds layout system configuration
 type LayoutConfig struct {
-	// Root directory for templates and layouts (library-agnostic)
+	// Root directory for templates and layouts
 	RootDirectory string `envconfig:"ROOT_DIRECTORY" default:"app"`
-	
+
+	// Assets directory for assets
+	AssetsDirectory string `envconfig:"ASSETS_DIRECTORY" default:"assets"`
+
+	// Assets route name used to make assets from AssetsDirectory accessible by the assets service
+	AssetsRouteName string `envconfig:"ASSETS_ROUTE_NAME" default:"assets"`
+
 	// Layout file name (without extension)
 	LayoutFileName string `envconfig:"LAYOUT_FILE_NAME" default:"layout"`
-	
+
 	// Template file extension
 	TemplateExtension string `envconfig:"TEMPLATE_EXTENSION" default:".templ"`
-	
+
 	// YAML metadata file extension
 	MetadataExtension string `envconfig:"METADATA_EXTENSION" default:".templ.yaml"`
-	
+
 	// Enable layout inheritance (Next.js style)
 	EnableInheritance bool `envconfig:"ENABLE_INHERITANCE" default:"true"`
 }
 
 // TemplateGeneratorConfig holds template generator configuration
 type TemplateGeneratorConfig struct {
-	// Scan path for template generation (should match Layout.RootDirectory)
-	ScanPath string `envconfig:"SCAN_PATH" default:"app"`
-	
 	// Output directory for generated templates
 	OutputDir string `envconfig:"OUTPUT_DIR" default:"generated/templates"`
-	
+
 	// Package name for generated templates
 	PackageName string `envconfig:"PACKAGE_NAME" default:"templates"`
 }

@@ -1,10 +1,7 @@
 package di
 
 import (
-	"context"
-
 	"github.com/denkhaus/templ-router/pkg/config"
-	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
@@ -33,23 +30,22 @@ func (c *Container) GetInjector() do.Injector {
 	return c.injector
 }
 
-// RegisterTemplateRegistry registers an external template registry
-func (c *Container) RegisterTemplateRegistry(registry interfaces.TemplateRegistry) {
-	do.ProvideValue(c.injector, registry)
-}
-
-// RegisterTemplateProvider registers an external template provider
-func (c *Container) RegisterTemplateProvider(provider interfaces.TemplateProvider) {
-	do.ProvideValue(c.injector, provider)
+// RegisterApplicationServices registers all services the application provides to override internal behaviour
+// Uses options pattern for flexible configuration
+func (c *Container) RegisterApplicationServices(options ...ApplicationOption) {
+	// Apply all options
+	for _, option := range options {
+		option(c)
+	}
 }
 
 // RegisterRouterServices registers all router services (without template dependencies)
-func (c *Container) RegisterRouterServices(ctx context.Context) error {
+func (c *Container) RegisterRouterServices() {
 	// Register logger
 	do.Provide(c.injector, logger.NewService)
 
 	// Register configuration
-	do.Provide(c.injector, config.NewService)
+	// this should not be exposed. use config.NewConfigService instead
 	do.Provide(c.injector, config.NewConfigService)
 
 	// Register stores - constructors already return interfaces! (pluggable)
@@ -107,7 +103,6 @@ func (c *Container) RegisterRouterServices(ctx context.Context) error {
 	// Register clean router (refactored with separation of concerns)
 	do.Provide(c.injector, router.NewCleanRouterCore)
 
-	return nil
 }
 
 // GetRouter returns the clean router from the container
