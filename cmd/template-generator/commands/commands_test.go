@@ -16,7 +16,7 @@ func TestLoadConfig(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "Default config",
+			name:    "Default config",
 			envVars: map[string]string{},
 			expected: types.Config{
 				ScanPath:    "app",
@@ -64,7 +64,7 @@ func TestLoadConfig(t *testing.T) {
 			for key, value := range tt.envVars {
 				os.Setenv(key, value)
 			}
-			
+
 			// Clean up after test
 			defer func() {
 				for key := range tt.envVars {
@@ -79,7 +79,7 @@ func TestLoadConfig(t *testing.T) {
 				ModuleName:  getEnvOrDefault("TEMPLATE_MODULE_NAME", ""),
 				PackageName: getEnvOrDefault("TEMPLATE_PACKAGE_NAME", "templates"),
 			}
-			
+
 			if tt.expectError {
 				// Skip error testing for now since we're not testing actual LoadConfig
 				t.Skip("Skipping error test - function signature changed")
@@ -89,15 +89,15 @@ func TestLoadConfig(t *testing.T) {
 			if config.ScanPath != tt.expected.ScanPath {
 				t.Errorf("Expected ScanPath %s, got %s", tt.expected.ScanPath, config.ScanPath)
 			}
-			
+
 			if config.OutputDir != tt.expected.OutputDir {
 				t.Errorf("Expected OutputDir %s, got %s", tt.expected.OutputDir, config.OutputDir)
 			}
-			
+
 			if config.ModuleName != tt.expected.ModuleName {
 				t.Errorf("Expected ModuleName %s, got %s", tt.expected.ModuleName, config.ModuleName)
 			}
-			
+
 			if config.PackageName != tt.expected.PackageName {
 				t.Errorf("Expected PackageName %s, got %s", tt.expected.PackageName, config.PackageName)
 			}
@@ -107,14 +107,14 @@ func TestLoadConfig(t *testing.T) {
 
 func TestRunGenerate(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create test template files
 	appDir := filepath.Join(tempDir, "app")
 	err := os.MkdirAll(appDir, 0755)
 	if err != nil {
 		t.Fatalf("Failed to create test directory: %v", err)
 	}
-	
+
 	// Create a simple template file
 	templateContent := `package app
 
@@ -123,7 +123,7 @@ import "github.com/a-h/templ"
 templ Page() {
 	<div>Test page</div>
 }`
-	
+
 	err = os.WriteFile(filepath.Join(appDir, "page_templ.go"), []byte(templateContent), 0644)
 	if err != nil {
 		t.Fatalf("Failed to write test template file: %v", err)
@@ -156,7 +156,7 @@ require github.com/a-h/templ v0.2.543
 		t.Fatalf("Failed to get current directory: %v", err)
 	}
 	defer os.Chdir(originalDir)
-	
+
 	err = os.Chdir(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to change to temp directory: %v", err)
@@ -182,29 +182,19 @@ require github.com/a-h/templ v0.2.543
 	if !contains(contentStr, "package templates") {
 		t.Error("Registry should contain correct package declaration")
 	}
-	
+
 	// Since the test might not find templates due to package loading issues,
 	// just verify the registry structure is correct
-	if !contains(contentStr, "func NewTemplateRegistry") {
+	if !contains(contentStr, "func NewRegistry") {
 		t.Error("Registry should contain NewTemplateRegistry function")
 	}
 }
 
-func TestRunGenerateInvalidConfig(t *testing.T) {
-	// Skip this test since runGeneration doesn't return errors
-	t.Skip("Skipping test - runGeneration doesn't return errors")
-}
-
-func TestRunGenerateNonExistentScanPath(t *testing.T) {
-	// Skip this test since runGeneration doesn't return errors
-	t.Skip("Skipping test - runGeneration doesn't return errors")
-}
-
 // Helper function to check if a string contains a substring
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && 
-		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr || 
-		 stringContains(s, substr)))
+	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) &&
+		(s[:len(substr)] == substr || s[len(s)-len(substr):] == substr ||
+			stringContains(s, substr)))
 }
 
 // Simple string contains implementation

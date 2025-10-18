@@ -77,22 +77,11 @@ func (c *Container) RegisterRouterServices() {
 	do.Provide(c.injector, middleware.NewErrorServiceCore)
 	do.Provide(c.injector, middleware.NewConfigurableParameterExtractor)
 
-	// Register middleware components (these are internal implementations)
-	// These remain concrete since they're used internally by the pipeline
 	do.Provide(c.injector, middleware.NewAuthMiddleware)
 	do.Provide(c.injector, middleware.NewI18nMiddleware)
 	do.Provide(c.injector, middleware.NewTemplateMiddleware)
 
-	// Register handler pipeline
-	do.Provide(c.injector, func(i do.Injector) (*pipeline.HandlerPipeline, error) {
-		authMiddleware := do.MustInvoke[middleware.AuthMiddlewareInterface](i)
-		i18nMiddleware := do.MustInvoke[middleware.I18nMiddlewareInterface](i)
-		templateMiddleware := do.MustInvoke[middleware.TemplateMiddlewareInterface](i)
-		logger := do.MustInvoke[*zap.Logger](i)
-
-		return pipeline.NewHandlerPipeline(authMiddleware, i18nMiddleware, templateMiddleware, logger), nil
-	})
-
+	do.Provide(c.injector, pipeline.NewHandlerPipeline)
 	do.Provide(c.injector, services.NewRouteDiscovery)
 	do.Provide(c.injector, services.NewConfigLoader)
 

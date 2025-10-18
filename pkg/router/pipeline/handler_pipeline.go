@@ -5,6 +5,8 @@ import (
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
+
+	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
 
@@ -30,19 +32,19 @@ type ConfigFile struct {
 	// Add other config fields as needed
 }
 
-// NewHandlerPipeline creates a new handler pipeline
-func NewHandlerPipeline(
-	authMiddleware middleware.AuthMiddlewareInterface,
-	i18nMiddleware middleware.I18nMiddlewareInterface,
-	templateMiddleware middleware.TemplateMiddlewareInterface,
-	logger *zap.Logger,
-) *HandlerPipeline {
+func NewHandlerPipeline(i do.Injector) (*HandlerPipeline, error) {
+	authMiddleware := do.MustInvoke[middleware.AuthMiddlewareInterface](i)
+	i18nMiddleware := do.MustInvoke[middleware.I18nMiddlewareInterface](i)
+	templateMiddleware := do.MustInvoke[middleware.TemplateMiddlewareInterface](i)
+	logger := do.MustInvoke[*zap.Logger](i)
+
 	return &HandlerPipeline{
 		authMiddleware:     authMiddleware,
 		i18nMiddleware:     i18nMiddleware,
 		templateMiddleware: templateMiddleware,
 		logger:             logger,
-	}
+	}, nil
+
 }
 
 // BuildHandler creates a complete HTTP handler using the middleware pipeline

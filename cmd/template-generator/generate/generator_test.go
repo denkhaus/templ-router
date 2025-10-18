@@ -12,46 +12,46 @@ import (
 func TestGenerateRegistry(t *testing.T) {
 	tempDir := t.TempDir()
 	outputDir := filepath.Join(tempDir, "generated", "templates")
-	
+
 	// Create test templates
 	templates := []types.TemplateInfo{
 		{
-			FunctionName:  "Page",
-			PackageName:   "app",
-			ImportPath:    "github.com/test/project/app",
-			PackageAlias:  "app",
-			RoutePattern:  "/",
-			TemplateKey:   "test-key-1",
-			FilePath:      "/test/app/page_templ.go",
-			HumanName:     "Page",
+			FunctionName: "Page",
+			PackageName:  "app",
+			ImportPath:   "github.com/test/project/app",
+			PackageAlias: "app",
+			RoutePattern: "/",
+			TemplateKey:  "test-key-1",
+			FilePath:     "/test/app/page_templ.go",
+			HumanName:    "Page",
 		},
 		{
-			FunctionName:  "Layout",
-			PackageName:   "app",
-			ImportPath:    "github.com/test/project/app",
-			PackageAlias:  "app",
-			RoutePattern:  "/layout",
-			TemplateKey:   "test-key-2",
-			FilePath:      "/test/app/layout_templ.go",
-			HumanName:     "Layout",
+			FunctionName: "Layout",
+			PackageName:  "app",
+			ImportPath:   "github.com/test/project/app",
+			PackageAlias: "app",
+			RoutePattern: "/layout",
+			TemplateKey:  "test-key-2",
+			FilePath:     "/test/app/layout_templ.go",
+			HumanName:    "Layout",
 		},
 		{
-			FunctionName:  "Page",
-			PackageName:   "errordemo",
-			ImportPath:    "github.com/test/project/app/error-demo",
-			PackageAlias:  "errordemo",
-			RoutePattern:  "/error-demo",
-			TemplateKey:   "test-key-3",
-			FilePath:      "/test/app/error-demo/page_templ.go",
-			HumanName:     "error-demo.Page",
+			FunctionName: "Page",
+			PackageName:  "errordemo",
+			ImportPath:   "github.com/test/project/app/error-demo",
+			PackageAlias: "errordemo",
+			RoutePattern: "/error-demo",
+			TemplateKey:  "test-key-3",
+			FilePath:     "/test/app/error-demo/page_templ.go",
+			HumanName:    "error-demo.Page",
 		},
 	}
 
 	config := types.Config{
-		ScanPath:      "app",
-		OutputDir:     outputDir,
-		ModuleName:    "github.com/test/project",
-		PackageName:   "templates",
+		ScanPath:    "app",
+		OutputDir:   outputDir,
+		ModuleName:  "github.com/test/project",
+		PackageName: "templates",
 	}
 
 	err := GenerateRegistry(config, templates)
@@ -122,12 +122,12 @@ func TestGenerateRegistry(t *testing.T) {
 func TestGenerateRegistryEmptyTemplates(t *testing.T) {
 	tempDir := t.TempDir()
 	outputDir := filepath.Join(tempDir, "generated", "templates")
-	
+
 	config := types.Config{
-		ScanPath:      "app",
-		OutputDir:     outputDir,
-		ModuleName:    "github.com/test/project",
-		PackageName:   "templates",
+		ScanPath:    "app",
+		OutputDir:   outputDir,
+		ModuleName:  "github.com/test/project",
+		PackageName: "templates",
 	}
 
 	err := GenerateRegistry(config, []types.TemplateInfo{})
@@ -154,15 +154,15 @@ func TestGenerateRegistryEmptyTemplates(t *testing.T) {
 		t.Error("Registry should have correct package declaration")
 	}
 
-	if !strings.Contains(contentStr, "func NewTemplateRegistry") {
-		t.Error("Registry should have NewTemplateRegistry function")
+	if !strings.Contains(contentStr, "func NewRegistry") {
+		t.Error("Registry should have NewRegistry function")
 	}
 }
 
 func TestGenerateRegistryInvalidOutputDir(t *testing.T) {
 	// Try to write to a non-existent directory without creating it
 	invalidDir := "/nonexistent/path/that/should/not/exist"
-	
+
 	templates := []types.TemplateInfo{
 		{
 			FunctionName: "Page",
