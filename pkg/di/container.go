@@ -2,7 +2,6 @@ package di
 
 import (
 	"github.com/denkhaus/templ-router/pkg/config"
-	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
@@ -56,12 +55,8 @@ func (c *Container) RegisterRouterServices() {
 	// Internal services (these can remain concrete for now)
 	do.Provide(c.injector, services.NewInMemoryTranslationStore)
 
-	// Register clean services - constructors already return interfaces!
-	// Note: AuthHandlers can be overridden by application via WithAuthHandlers option
-	// Only register default if not already provided
-	if do.HealthCheck[interfaces.AuthHandlers](c.injector) != nil {
-		do.Provide(c.injector, auth.NewAuthHandlers)
-	}
+	do.Provide(c.injector, auth.NewAuthHandlers)
+
 	do.Provide(c.injector, services.NewAuthService)
 	do.Provide(c.injector, services.NewI18nService)
 

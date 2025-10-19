@@ -2,6 +2,7 @@ package router
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
@@ -131,6 +132,27 @@ func (crc *cleanRouterCore) RegisterRoutes(chiRouter *chi.Mux) error {
 
 	// Register static routes
 	crc.routeRegistrar.RegisterStaticRoutes()
+
+	// Register authentication handlers
+	authHandlers := do.MustInvoke[interfaces.AuthHandlers](crc.injector)
+	authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
+		switch method {
+		case "GET":
+			chiRouter.Get(path, handler)
+		case "POST":
+			chiRouter.Post(path, handler)
+		case "PUT":
+			chiRouter.Put(path, handler)
+		case "DELETE":
+			chiRouter.Delete(path, handler)
+		case "PATCH":
+			chiRouter.Patch(path, handler)
+		default:
+			crc.logger.Warn("Unsupported HTTP method for auth handler",
+				zap.String("method", method),
+				zap.String("path", path))
+		}
+	})
 
 	// Register error handlers
 	crc.routeRegistrar.Register404Handler()

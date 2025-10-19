@@ -355,6 +355,44 @@ func (m *mockTemplateMiddleware) HandleTemplateError(err error, w http.ResponseW
 	http.Error(w, "Template error", http.StatusInternalServerError)
 }
 
+// Mock AuthHandlers for router tests
+type mockRouterAuthHandlers struct{}
+
+func (m *mockRouterAuthHandlers) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {
+	// Register mock auth routes
+	registerFunc("GET", "/login", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Login page"))
+	})
+	registerFunc("POST", "/login", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Login processed"))
+	})
+	registerFunc("GET", "/signup", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Signup page"))
+	})
+	registerFunc("POST", "/logout", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Logged out"))
+	})
+}
+
+func (m *mockRouterAuthHandlers) HandleLogin(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Login handled"))
+}
+
+func (m *mockRouterAuthHandlers) HandleLogout(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Logout handled"))
+}
+
+func (m *mockRouterAuthHandlers) HandleSignup(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Signup handled"))
+}
+
 func createRouterTestContainer() do.Injector {
 	injector := do.New()
 
@@ -377,6 +415,9 @@ func createRouterTestContainer() do.Injector {
 	do.ProvideValue[middleware.AuthMiddlewareInterface](injector, &mockAuthMiddleware{})
 	do.ProvideValue[middleware.I18nMiddlewareInterface](injector, &mockI18nMiddleware{})
 	do.ProvideValue[middleware.TemplateMiddlewareInterface](injector, &mockTemplateMiddleware{})
+	
+	// Register AuthHandlers (required by RegisterRoutes)
+	do.ProvideValue[interfaces.AuthHandlers](injector, &mockRouterAuthHandlers{})
 
 	// Create and register handler pipeline
 	do.Provide(injector, pipeline.NewHandlerPipeline)
