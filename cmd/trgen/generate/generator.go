@@ -93,6 +93,14 @@ func generateInterfaceRegistry(config types.Config, templates []types.TemplateIn
 		return fmt.Errorf("failed to create output directory: %w", err)
 	}
 
+	// Clean up existing registry file before regeneration
+	outputPath := filepath.Join(config.OutputDir, "registry.go")
+	if _, err := os.Stat(outputPath); err == nil {
+		if err := os.Remove(outputPath); err != nil {
+			return fmt.Errorf("failed to remove existing registry file: %w", err)
+		}
+	}
+
 	// Group templates by import path and create aliases
 	templatesWithAliases, uniqueImports := processImports(templates)
 
@@ -121,7 +129,6 @@ func generateInterfaceRegistry(config types.Config, templates []types.TemplateIn
 	}
 
 	// Create output file
-	outputPath := filepath.Join(config.OutputDir, "registry.go")
 	file, err := os.Create(outputPath)
 	if err != nil {
 		return fmt.Errorf("failed to create interface registry file: %w", err)
