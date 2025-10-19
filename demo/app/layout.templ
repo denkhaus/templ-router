@@ -60,7 +60,7 @@ templ Navbar() {
 }
 
 templ UserSection() {
-	if user := router.GetCurrentUser(ctx); user != nil {
+	if user := router.GetCurrentUser[interfaces.UserEntity](ctx); user != nil {
 		<div class="flex items-center space-x-3 bg-blue-700 rounded px-3 py-2">
 			<div class="flex items-center space-x-2">
 				<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">

@@ -13,65 +13,62 @@ const (
 
 // GetCurrentUser retrieves the current user from context
 // This is a generic utility function that works with any UserEntity implementation
-func GetCurrentUser(ctx context.Context) interfaces.UserEntity {
-	if user, ok := ctx.Value(UserContextKey).(interfaces.UserEntity); ok {
+func GetCurrentUser[T interfaces.UserEntity](ctx context.Context) T {
+	var zero T
+	if user, ok := ctx.Value(UserContextKey).(T); ok {
 		return user
 	}
-	return nil
-}
-
-// getCurrentUser is an internal alias for backward compatibility
-func getCurrentUser(ctx context.Context) interfaces.UserEntity {
-	return GetCurrentUser(ctx)
-}
-
-// setUserInContext sets a user in the context
-// This is a helper function for middleware to set the authenticated user
-func setUserInContext(ctx context.Context, user interfaces.UserEntity) context.Context {
-	return context.WithValue(ctx, UserContextKey, user)
+	return zero
 }
 
 // HasUser checks if a user is present in the context
 func HasUser(ctx context.Context) bool {
-	return GetCurrentUser(ctx) != nil
+	return ctx.Value(UserContextKey) != nil
 }
 
-// hasUser is an internal alias for backward compatibility
-func hasUser(ctx context.Context) bool {
-	return HasUser(ctx)
-}
-
-// getUserID retrieves the current user's ID from context
-func getUserID(ctx context.Context) string {
-	if user := getCurrentUser(ctx); user != nil {
+// GetUserID retrieves the current user's ID from context
+func GetUserID[T interfaces.UserEntity](ctx context.Context) string {
+	user := GetCurrentUser[T](ctx)
+	var zero T
+	if any(user) != any(zero) {
 		return user.GetID()
 	}
 	return ""
 }
 
-// getUserEmail retrieves the current user's email from context
-func getUserEmail(ctx context.Context) string {
-	if user := getCurrentUser(ctx); user != nil {
+// GetUserEmail retrieves the current user's email from context
+func GetUserEmail[T interfaces.UserEntity](ctx context.Context) string {
+	user := GetCurrentUser[T](ctx)
+	var zero T
+	if any(user) != any(zero) {
 		return user.GetEmail()
 	}
 	return ""
 }
 
-// getUserRoles retrieves the current user's roles from context
-func getUserRoles(ctx context.Context) []string {
-	if user := getCurrentUser(ctx); user != nil {
+// GetUserRoles retrieves the current user's roles from context
+func GetUserRoles[T interfaces.UserEntity](ctx context.Context) []string {
+	user := GetCurrentUser[T](ctx)
+	var zero T
+	if any(user) != any(zero) {
 		return user.GetRoles()
 	}
 	return nil
 }
 
-// hasRole checks if the current user has a specific role
-func hasRole(ctx context.Context, role string) bool {
-	roles := getUserRoles(ctx)
+// UserHasRole checks if the current user has a specific role
+func UserHasRole[T interfaces.UserEntity](ctx context.Context, role string) bool {
+	roles := GetUserRoles[T](ctx)
 	for _, r := range roles {
 		if r == role {
 			return true
 		}
 	}
 	return false
+}
+
+// SetUserInContext sets a user in the context (generic version for external use)
+// This allows external applications to store their own User types
+func SetUserInContext[T interfaces.UserEntity](ctx context.Context, user T) context.Context {
+	return context.WithValue(ctx, UserContextKey, user)
 }

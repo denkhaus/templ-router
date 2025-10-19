@@ -51,7 +51,7 @@ func TestGetCurrentUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := GetCurrentUser(tt.ctx)
+			result := GetCurrentUser[*testUserEntity](tt.ctx)
 			
 			if tt.expected == nil {
 				if result != nil {
@@ -83,8 +83,8 @@ func TestSetUserInContext(t *testing.T) {
 		roles: []string{"user"},
 	}
 	
-	ctx := setUserInContext(context.Background(), user)
-	result := GetCurrentUser(ctx)
+	ctx := SetUserInContext(context.Background(), user)
+	result := GetCurrentUser[*testUserEntity](ctx)
 	
 	if result == nil {
 		t.Fatal("setUserInContext() did not set user in context")
@@ -147,7 +147,7 @@ func TestGetUserID(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getUserID(tt.ctx)
+			result := GetUserID[*testUserEntity](tt.ctx)
 			if result != tt.expected {
 				t.Errorf("getUserID() = %v, want %v", result, tt.expected)
 			}
@@ -177,7 +177,7 @@ func TestGetUserEmail(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getUserEmail(tt.ctx)
+			result := GetUserEmail[*testUserEntity](tt.ctx)
 			if result != tt.expected {
 				t.Errorf("getUserEmail() = %v, want %v", result, tt.expected)
 			}
@@ -207,7 +207,7 @@ func TestGetUserRoles(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := getUserRoles(tt.ctx)
+			result := GetUserRoles[*testUserEntity](tt.ctx)
 			
 			if tt.expected == nil {
 				if result != nil {
@@ -263,7 +263,7 @@ func TestHasRole(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := hasRole(tt.ctx, tt.role)
+			result := UserHasRole[*testUserEntity](tt.ctx, tt.role)
 			if result != tt.expected {
 				t.Errorf("hasRole() = %v, want %v", result, tt.expected)
 			}
