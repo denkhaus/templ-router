@@ -21,3 +21,17 @@ func WithAssetsService(assetsService interfaces.AssetsService) ApplicationOption
 		do.ProvideValue(c.injector, assetsService)
 	}
 }
+
+// WithUserStore sets a custom user store implementation
+func WithUserStore(userStore interfaces.UserStore) ApplicationOption {
+	return func(c *Container) {
+		do.ProvideValue(c.injector, userStore)
+	}
+}
+
+// WithAuthHandlers sets custom authentication handlers
+func WithAuthHandlers(authHandlers interfaces.AuthHandlers) ApplicationOption {
+	return func(c *Container) {
+		do.ProvideValue(c.injector, authHandlers)
+	}
+}

@@ -2,6 +2,7 @@ package di
 
 import (
 	"github.com/denkhaus/templ-router/pkg/config"
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
@@ -49,18 +50,18 @@ func (c *Container) RegisterRouterServices() {
 	do.Provide(c.injector, config.NewConfigService)
 
 	// Register stores - constructors already return interfaces! (pluggable)
-	// Option 1: In-Memory Stores (simple, for development)
+	// Session store stays in router (user-type agnostic)
 	do.Provide(c.injector, services.NewInMemorySessionStore)
-	do.Provide(c.injector, services.NewInMemoryUserStore)
-
-	// Option 2: Productive Stores (advanced, for production) - commented out
-	// do.Provide(c.injector, auth.NewProductiveSessionStore)
-	// do.Provide(c.injector, auth.NewProductiveUserStore)
 
 	// Internal services (these can remain concrete for now)
 	do.Provide(c.injector, services.NewInMemoryTranslationStore)
 
 	// Register clean services - constructors already return interfaces!
+	// Note: AuthHandlers can be overridden by application via WithAuthHandlers option
+	// Only register default if not already provided
+	if do.HealthCheck[interfaces.AuthHandlers](c.injector) != nil {
+		do.Provide(c.injector, auth.NewAuthHandlers)
+	}
 	do.Provide(c.injector, services.NewAuthService)
 	do.Provide(c.injector, services.NewI18nService)
 
@@ -84,10 +85,6 @@ func (c *Container) RegisterRouterServices() {
 	do.Provide(c.injector, pipeline.NewHandlerPipeline)
 	do.Provide(c.injector, services.NewRouteDiscovery)
 	do.Provide(c.injector, services.NewConfigLoader)
-
-	// Register auth services (external, pluggable)
-	do.Provide(c.injector, auth.NewAuthProvider)
-	do.Provide(c.injector, auth.NewAuthHandlers)
 
 	// Register clean router (refactored with separation of concerns)
 	do.Provide(c.injector, router.NewCleanRouterCore)

@@ -60,16 +60,9 @@ func (cas *CleanAuthService) Authenticate(req *http.Request, requirements *inter
 		}, nil
 	}
 
-	// Use interfaces.User directly (no conversion needed)
-	interfacesUser := &interfaces.User{
-		ID:    user.ID,
-		Email: user.Email,
-		Roles: user.Roles,
-	}
-
 	return &interfaces.AuthResult{
 		IsAuthenticated: true,
-		User:            interfacesUser,
+		User:            user,
 	}, nil
 }
 
@@ -93,12 +86,12 @@ func (cas *CleanAuthService) HasRequiredPermissions(req *http.Request, settings 
 }
 
 // userHasRequiredRoles checks if user has required roles
-func (cas *CleanAuthService) userHasRequiredRoles(user *interfaces.User, settings *interfaces.AuthSettings) bool {
+func (cas *CleanAuthService) userHasRequiredRoles(user interfaces.UserEntity, settings *interfaces.AuthSettings) bool {
 	switch settings.Type {
 	case interfaces.AuthTypePublic:
 		return true
 	case interfaces.AuthTypeUser:
-		return len(user.Roles) > 0 // Any authenticated user
+		return len(user.GetRoles()) > 0 // Any authenticated user
 	case interfaces.AuthTypeAdmin:
 		return cas.userHasRole(user, "admin")
 	default:
@@ -116,8 +109,8 @@ func (cas *CleanAuthService) userHasRequiredRoles(user *interfaces.User, setting
 }
 
 // userHasRole checks if user has a specific role
-func (cas *CleanAuthService) userHasRole(user *interfaces.User, role string) bool {
-	for _, userRole := range user.Roles {
+func (cas *CleanAuthService) userHasRole(user interfaces.UserEntity, role string) bool {
+	for _, userRole := range user.GetRoles() {
 		if userRole == role {
 			return true
 		}

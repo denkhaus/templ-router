@@ -16,7 +16,7 @@ type AssetsService interface {
 // Import central type definitions to eliminate struct redundancy
 // All Route, Template, Auth, User, Session types are now centralized in types.go
 
-// AuthService handles authentication and authorization
+// AuthService handles authentication and authorization (generic)
 type AuthService interface {
 	Authenticate(req *http.Request, requirements *AuthSettings) (*AuthResult, error)
 	HasRequiredPermissions(req *http.Request, settings *AuthSettings) bool
@@ -59,11 +59,22 @@ type SessionStore interface {
 	DeleteSession(sessionID string) error
 }
 
-// UserStore interface for user management (pluggable)
+// UserEntity defines the minimal interface that any user implementation must satisfy
+type UserEntity interface {
+	GetID() string
+	GetEmail() string
+	GetRoles() []string
+}
+
+// UserStore interface for user management (pluggable and generic)
 type UserStore interface {
-	GetUserByID(userID string) (*User, error)
-	GetUserByEmail(email string) (*User, error)
-	ValidateCredentials(email, password string) (*User, error)
-	CreateUser(username, email, password string) (*User, error)
+	GetUserByID(userID string) (UserEntity, error)
+	GetUserByEmail(email string) (UserEntity, error)
+	ValidateCredentials(email, password string) (UserEntity, error)
+	CreateUser(username, email, password string) (UserEntity, error)
 	UserExists(username, email string) (bool, error)
+
+	// Request-based methods for complete data extraction and validation
+	ValidateCredentialsFromRequest(req *http.Request) (UserEntity, error)
+	CreateUserFromRequest(req *http.Request) (UserEntity, error)
 }

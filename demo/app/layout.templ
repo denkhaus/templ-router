@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"github.com/denkhaus/templ-router/pkg/router"
-	"github.com/denkhaus/templ-router/pkg/services/auth"
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 )
+
 
 templ Layout(content templ.Component) {
 	<!DOCTYPE html>
@@ -58,15 +60,15 @@ templ Navbar() {
 }
 
 templ UserSection() {
-	if user := auth.GetCurrentUser(ctx); user != nil {
+	if user := router.GetCurrentUser(ctx); user != nil {
 		<div class="flex items-center space-x-3 bg-blue-700 rounded px-3 py-2">
 			<div class="flex items-center space-x-2">
 				<div class="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-					<span class="text-sm font-semibold">{ string(user.Username[0]) }</span>
+					<span class="text-sm font-semibold">{ string(user.GetEmail()[0]) }</span>
 				</div>
 				<div class="text-sm">
-					<div class="font-semibold">{ user.Username }</div>
-					<div class="text-blue-200 text-xs">{ user.Email }</div>
+					<div class="font-semibold">{ user.GetEmail() }</div>
+					<div class="text-blue-200 text-xs">{ user.GetEmail() }</div>
 				</div>
 			</div>
 			<form method="POST" action="/logout" class="inline">

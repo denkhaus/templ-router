@@ -1,5 +1,7 @@
 package interfaces
 
+import "time"
+
 // CENTRAL TYPE DEFINITIONS - Consolidation of all duplicate structs
 // This file eliminates the massive struct redundancy identified in code quality analysis
 
@@ -11,14 +13,14 @@ type Route struct {
 	Handler      string `json:"handler,omitempty"`
 	TemplateFile string `json:"template_file"`
 	MetadataFile string `json:"metadata_file,omitempty"`
-	
+
 	// Dynamic routing
 	IsDynamic  bool `json:"is_dynamic"`
 	Precedence int  `json:"precedence,omitempty"`
-	
+
 	// Internationalization
 	Locale string `json:"locale,omitempty"`
-	
+
 	// Security
 	AuthSettings *AuthSettings `json:"auth_settings,omitempty"`
 }
@@ -73,26 +75,21 @@ func (at AuthType) String() string {
 	}
 }
 
-// AuthResult contains authentication result
+// AuthResult contains authentication result (generic)
 type AuthResult struct {
-	IsAuthenticated bool   `json:"is_authenticated"`
-	User            *User  `json:"user,omitempty"`
-	RedirectURL     string `json:"redirect_url,omitempty"`
-	ErrorMessage    string `json:"error_message,omitempty"`
-}
-
-// User represents an authenticated user
-type User struct {
-	ID    string   `json:"id"`
-	Email string   `json:"email"`
-	Roles []string `json:"roles,omitempty"`
+	IsAuthenticated bool       `json:"is_authenticated"`
+	User            UserEntity `json:"user,omitempty"`
+	RedirectURL     string     `json:"redirect_url,omitempty"`
+	ErrorMessage    string     `json:"error_message,omitempty"`
 }
 
 // Session represents a user session
 type Session struct {
-	ID     string `json:"id"`
-	UserID string `json:"user_id"`
-	Valid  bool   `json:"valid"`
+	ID        string    `json:"id"`
+	UserID    string    `json:"user_id"`
+	Valid     bool      `json:"valid"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 // Template represents a *.templ file containing UI components
@@ -102,7 +99,7 @@ type Template struct {
 	FilePath      string `json:"file_path"`
 	FileName      string `json:"file_name"`
 	DirectoryPath string `json:"directory_path"`
-	
+
 	// Template metadata
 	Type          string                 `json:"type,omitempty"`
 	ComponentName string                 `json:"component_name,omitempty"`
@@ -116,16 +113,16 @@ type ConfigFile struct {
 	// File paths
 	FilePath         string `json:"file_path"`
 	TemplateFilePath string `json:"template_file_path,omitempty"`
-	
+
 	// Metadata
-	RouteMetadata   interface{}            `json:"route_metadata,omitempty"`
-	I18nMappings    map[string]string      `json:"i18n_mappings,omitempty"`
+	RouteMetadata   interface{}                  `json:"route_metadata,omitempty"`
+	I18nMappings    map[string]string            `json:"i18n_mappings,omitempty"`
 	MultiLocaleI18n map[string]map[string]string `json:"multi_locale_i18n,omitempty"`
-	
+
 	// Settings
-	AuthSettings    *AuthSettings `json:"auth_settings,omitempty"`
-	LayoutSettings  interface{}   `json:"layout_settings,omitempty"`
-	ErrorSettings   interface{}   `json:"error_settings,omitempty"`
+	AuthSettings    *AuthSettings    `json:"auth_settings,omitempty"`
+	LayoutSettings  interface{}      `json:"layout_settings,omitempty"`
+	ErrorSettings   interface{}      `json:"error_settings,omitempty"`
 	DynamicSettings *DynamicSettings `json:"dynamic_settings,omitempty"`
 }
 

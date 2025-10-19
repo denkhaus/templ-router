@@ -7,10 +7,11 @@ import (
 
 	"github.com/denkhaus/templ-router/demo/assets"
 	"github.com/denkhaus/templ-router/demo/generated/templates"
+	"github.com/denkhaus/templ-router/demo/pkg/services"
 	"github.com/denkhaus/templ-router/pkg/di"
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
-	"github.com/denkhaus/templ-router/pkg/services/auth"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -33,22 +34,28 @@ func startupClean(ctx context.Context) error {
 	defer container.Shutdown()
 
 	container.RegisterRouterServices()
+	injector := container.GetInjector()
 
-	// Step 2: Create and register the application-specific template registry
-	templateRegistry, err := templates.NewRegistry(container.GetInjector())
+	templateRegistry, err := templates.NewRegistry(injector)
 	if err != nil {
 		return fmt.Errorf("failed to create template registry: %w", err)
 	}
 
-	assetsService, err := assets.NewService(container.GetInjector())
+	assetsService, err := assets.NewService(injector)
 	if err != nil {
 		return fmt.Errorf("failed to create assets service: %w", err)
+	}
+
+	userStore, err := services.NewDefaultUserStore(injector)
+	if err != nil {
+		return fmt.Errorf("failed to create userStore: %w", err)
 	}
 
 	// Register application services using options pattern
 	container.RegisterApplicationServices(
 		di.WithTemplateRegistry(templateRegistry),
 		di.WithAssetsService(assetsService),
+		di.WithUserStore(userStore),
 	)
 
 	// Get logger from container
@@ -96,7 +103,7 @@ func startupClean(ctx context.Context) error {
 
 	// Register external auth routes (pluggable authentication)
 	logger.Info("Registering external auth routes...")
-	authHandlers := do.MustInvoke[auth.AuthHandlersInterface](container.GetInjector())
+	authHandlers := do.MustInvoke[interfaces.AuthHandlers](injector)
 	authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
 		switch method {
 		case "POST":

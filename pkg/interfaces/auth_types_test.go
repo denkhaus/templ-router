@@ -4,6 +4,25 @@ import (
 	"testing"
 )
 
+// TestUser implements UserEntity interface for testing
+type TestUser struct {
+	ID    string
+	Email string
+	Roles []string
+}
+
+func (u *TestUser) GetID() string {
+	return u.ID
+}
+
+func (u *TestUser) GetEmail() string {
+	return u.Email
+}
+
+func (u *TestUser) GetRoles() []string {
+	return u.Roles
+}
+
 func TestAuthSettings_Validation(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -66,7 +85,7 @@ func TestAuthResult_Validation(t *testing.T) {
 			name: "Successful authentication",
 			result: AuthResult{
 				IsAuthenticated: true,
-				User: &User{
+				User: &TestUser{
 					ID:    "user123",
 					Email: "test@example.com",
 					Roles: []string{"user"},
@@ -114,33 +133,33 @@ func TestAuthResult_Validation(t *testing.T) {
 }
 
 func TestUser_Validation(t *testing.T) {
-	user := User{
+	user := &TestUser{
 		ID:    "user123",
 		Email: "test@example.com",
 		Roles: []string{"user", "admin"},
 	}
 
-	if user.ID == "" {
+	if user.GetID() == "" {
 		t.Error("User should have an ID")
 	}
-	if user.Email == "" {
+	if user.GetEmail() == "" {
 		t.Error("User should have an email")
 	}
-	if len(user.Roles) == 0 {
+	if len(user.GetRoles()) == 0 {
 		t.Error("User should have at least one role")
 	}
 }
 
 func TestUser_HasRole(t *testing.T) {
-	user := User{
+	user := &TestUser{
 		ID:    "user123",
 		Email: "test@example.com",
 		Roles: []string{"user", "admin"},
 	}
 
 	// Helper function to check if user has role
-	hasRole := func(u User, role string) bool {
-		for _, r := range u.Roles {
+	hasRole := func(u UserEntity, role string) bool {
+		for _, r := range u.GetRoles() {
 			if r == role {
 				return true
 			}

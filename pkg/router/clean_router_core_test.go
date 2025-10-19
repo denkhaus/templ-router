@@ -8,6 +8,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
@@ -144,37 +145,27 @@ func (m *mockConfigLoader) LoadRouteConfig(templatePath string) (*interfaces.Con
 
 type mockAuthService struct{}
 
-func (m *mockAuthService) ValidateCredentials(email, password string) (*interfaces.User, error) {
-	return nil, nil
+func (m *mockAuthService) Authenticate(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
+	return &interfaces.AuthResult{
+		IsAuthenticated: true,
+		User: &testUser{ID: "test123", Email: "test@example.com", Roles: []string{"user"}},
+	}, nil
 }
 
-func (m *mockAuthService) CreateUser(user *interfaces.User) error {
-	return nil
+func (m *mockAuthService) HasRequiredPermissions(req *http.Request, settings *interfaces.AuthSettings) bool {
+	return true
 }
 
-func (m *mockAuthService) GetUserByEmail(email string) (*interfaces.User, error) {
-	return nil, nil
+// testUser implements UserEntity interface for router tests
+type testUser struct {
+	ID    string
+	Email string
+	Roles []string
 }
 
-func (m *mockAuthService) GetUserByID(id string) (*interfaces.User, error) {
-	return nil, nil
-}
-
-func (m *mockAuthService) UpdateUser(user *interfaces.User) error {
-	return nil
-}
-
-func (m *mockAuthService) DeleteUser(id string) error {
-	return nil
-}
-
-func (m *mockAuthService) GenerateToken(user *interfaces.User) (string, error) {
-	return "mock-token", nil
-}
-
-func (m *mockAuthService) ValidateToken(token string) (*interfaces.User, error) {
-	return nil, nil
-}
+func (u *testUser) GetID() string    { return u.ID }
+func (u *testUser) GetEmail() string { return u.Email }
+func (u *testUser) GetRoles() []string { return u.Roles }
 
 func (m *mockAuthService) RefreshToken(token string) (string, error) {
 	return "new-mock-token", nil
@@ -200,13 +191,6 @@ func (m *mockAuthService) ResendVerificationEmail(email string) error {
 	return nil
 }
 
-func (m *mockAuthService) Authenticate(r *http.Request, settings *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
-	return &interfaces.AuthResult{IsAuthenticated: true}, nil
-}
-
-func (m *mockAuthService) HasRequiredPermissions(r *http.Request, settings *interfaces.AuthSettings) bool {
-	return true
-}
 
 type mockI18nService struct{}
 
@@ -291,6 +275,86 @@ func (m *mockLayoutService) WrapInLayout(component templ.Component, layout *inte
 	return component
 }
 
+// Mock ErrorService
+type mockErrorService struct{}
+
+func (m *mockErrorService) FindErrorTemplateForPath(path string) *interfaces.ErrorTemplate {
+	return &interfaces.ErrorTemplate{
+		FilePath:  "app/error.templ",
+		ErrorCode: 404,
+	}
+}
+
+func (m *mockErrorService) CreateErrorComponent(message, path string) templ.Component {
+	return nil
+}
+
+// Mock Middleware Interfaces
+type mockAuthMiddleware struct{}
+
+func (m *mockAuthMiddleware) Handle(next http.Handler, requirements *interfaces.AuthSettings) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (m *mockAuthMiddleware) AuthenticateRequest(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (m *mockAuthMiddleware) RequireAuth(authSettings *interfaces.AuthSettings) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+type mockI18nMiddleware struct{}
+
+func (m *mockI18nMiddleware) Handle(next http.Handler, templatePath string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (m *mockI18nMiddleware) ExtractLocale(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (m *mockI18nMiddleware) SetupI18nContext(templatePath string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+type mockTemplateMiddleware struct{}
+
+func (m *mockTemplateMiddleware) Handle(route interfaces.Route, params map[string]string) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("Mock template response"))
+	})
+}
+
+func (m *mockTemplateMiddleware) RenderTemplate(route interfaces.Route) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func (m *mockTemplateMiddleware) HandleTemplateError(err error, w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "Template error", http.StatusInternalServerError)
+}
+
 func createRouterTestContainer() do.Injector {
 	injector := do.New()
 
@@ -305,6 +369,14 @@ func createRouterTestContainer() do.Injector {
 	do.ProvideValue[interfaces.I18nService](injector, &mockI18nService{})
 	do.ProvideValue[interfaces.TemplateService](injector, &mockTemplateService{})
 	do.ProvideValue[interfaces.LayoutService](injector, &mockLayoutService{})
+	
+	// Register ErrorService (required by middleware setup)
+	do.ProvideValue[interfaces.ErrorService](injector, &mockErrorService{})
+	
+	// Register middleware interfaces (required by middleware setup)
+	do.ProvideValue[middleware.AuthMiddlewareInterface](injector, &mockAuthMiddleware{})
+	do.ProvideValue[middleware.I18nMiddlewareInterface](injector, &mockI18nMiddleware{})
+	do.ProvideValue[middleware.TemplateMiddlewareInterface](injector, &mockTemplateMiddleware{})
 
 	// Create and register handler pipeline
 	do.Provide(injector, pipeline.NewHandlerPipeline)

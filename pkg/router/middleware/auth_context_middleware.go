@@ -4,7 +4,6 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/denkhaus/templ-router/pkg/services/auth"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -51,7 +50,7 @@ func (acm *AuthContextMiddleware) Middleware(next http.Handler) http.Handler {
 		// Get user from session
 		user, err := acm.userStore.GetUserByID(session.UserID)
 		if err != nil {
-			acm.logger.Warn("Failed to get user from session", 
+			acm.logger.Warn("Failed to get user from session",
 				zap.String("session_id", session.ID),
 				zap.String("user_id", session.UserID),
 				zap.Error(err))
@@ -59,26 +58,13 @@ func (acm *AuthContextMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Convert to auth.User for the context
-		authUser := &auth.User{
-			ID:       user.ID,
-			Username: user.ID, // Using ID as username for now
-			Email:    user.Email,
-			Role:     "admin", // Set admin role for admin user
-		}
-		
-		// Set role based on user roles
-		if len(user.Roles) > 0 {
-			authUser.Role = user.Roles[0] // Use first role
-		}
-
-		// Add user to context
-		ctx = context.WithValue(ctx, "user", authUser)
+		// Add user to context directly
+		ctx = context.WithValue(ctx, "user", user)
 		r = r.WithContext(ctx)
 
-		acm.logger.Debug("User added to context", 
-			zap.String("user_id", user.ID),
-			zap.String("email", user.Email))
+		acm.logger.Debug("User added to context",
+			zap.String("user_id", user.GetID()),
+			zap.String("email", user.GetEmail()))
 
 		next.ServeHTTP(w, r)
 	})

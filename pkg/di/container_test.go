@@ -1,6 +1,7 @@
 package di
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/a-h/templ"
@@ -42,9 +43,13 @@ func TestRegisterRouterServices(t *testing.T) {
 	// Register required dependencies
 	mockRegistry := &mockTemplateRegistry{}
 	mockAssets := &mockAssetsService{}
+	mockUserStore := &mockUserStore{}
+	mockAuthHandlers := &mockAuthHandlers{}
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
 		WithAssetsService(mockAssets),
+		WithUserStore(mockUserStore),
+		WithAuthHandlers(mockAuthHandlers),
 	)
 	
 	// Should not panic
@@ -69,9 +74,13 @@ func TestGetLogger(t *testing.T) {
 	// Register required dependencies
 	mockRegistry := &mockTemplateRegistry{}
 	mockAssets := &mockAssetsService{}
+	mockUserStore := &mockUserStore{}
+	mockAuthHandlers := &mockAuthHandlers{}
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
 		WithAssetsService(mockAssets),
+		WithUserStore(mockUserStore),
+		WithAuthHandlers(mockAuthHandlers),
 	)
 	container.RegisterRouterServices()
 	
@@ -89,12 +98,17 @@ func TestGetLogger(t *testing.T) {
 func TestGetRouter(t *testing.T) {
 	container := NewContainer()
 	
-	// Register required dependencies
+	// Register required dependencies including mock UserStore
+	// This simulates how an application would provide its own UserStore implementation
 	mockRegistry := &mockTemplateRegistry{}
 	mockAssets := &mockAssetsService{}
+	mockUserStore := &mockUserStore{}
+	mockAuthHandlers := &mockAuthHandlers{}
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
 		WithAssetsService(mockAssets),
+		WithUserStore(mockUserStore),
+		WithAuthHandlers(mockAuthHandlers),
 	)
 	container.RegisterRouterServices()
 	
@@ -106,6 +120,18 @@ func TestGetRouter(t *testing.T) {
 
 func TestShutdown(t *testing.T) {
 	container := NewContainer()
+	
+	// Register minimal dependencies for shutdown test
+	mockRegistry := &mockTemplateRegistry{}
+	mockAssets := &mockAssetsService{}
+	mockUserStore := &mockUserStore{}
+	mockAuthHandlers := &mockAuthHandlers{}
+	container.RegisterApplicationServices(
+		WithTemplateRegistry(mockRegistry),
+		WithAssetsService(mockAssets),
+		WithUserStore(mockUserStore),
+		WithAuthHandlers(mockAuthHandlers),
+	)
 	container.RegisterRouterServices()
 	
 	err := container.Shutdown()
@@ -172,3 +198,53 @@ type mockAssetsService struct{}
 
 func (m *mockAssetsService) SetupRoutes(router *chi.Mux) {}
 func (m *mockAssetsService) SetupRoutesWithRouter(router chi.Router) {}
+
+// Mock UserStore for testing
+type mockUserStore struct{}
+
+func (m *mockUserStore) GetUserByID(userID string) (interfaces.UserEntity, error) {
+	return &mockUser{ID: userID, Email: "test@example.com", Roles: []string{"user"}}, nil
+}
+
+func (m *mockUserStore) GetUserByEmail(email string) (interfaces.UserEntity, error) {
+	return &mockUser{ID: "test123", Email: email, Roles: []string{"user"}}, nil
+}
+
+func (m *mockUserStore) ValidateCredentials(email, password string) (interfaces.UserEntity, error) {
+	return &mockUser{ID: "test123", Email: email, Roles: []string{"user"}}, nil
+}
+
+func (m *mockUserStore) CreateUser(username, email, password string) (interfaces.UserEntity, error) {
+	return &mockUser{ID: "new123", Email: email, Roles: []string{"user"}}, nil
+}
+
+func (m *mockUserStore) UserExists(username, email string) (bool, error) {
+	return false, nil
+}
+
+func (m *mockUserStore) ValidateCredentialsFromRequest(req *http.Request) (interfaces.UserEntity, error) {
+	return &mockUser{ID: "test123", Email: "test@example.com", Roles: []string{"user"}}, nil
+}
+
+func (m *mockUserStore) CreateUserFromRequest(req *http.Request) (interfaces.UserEntity, error) {
+	return &mockUser{ID: "new123", Email: "new@example.com", Roles: []string{"user"}}, nil
+}
+
+// Mock AuthHandlers for testing
+type mockAuthHandlers struct{}
+
+func (m *mockAuthHandlers) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {}
+func (m *mockAuthHandlers) HandleLogin(w http.ResponseWriter, r *http.Request) {}
+func (m *mockAuthHandlers) HandleLogout(w http.ResponseWriter, r *http.Request) {}
+func (m *mockAuthHandlers) HandleSignup(w http.ResponseWriter, r *http.Request) {}
+
+// Mock User for testing
+type mockUser struct {
+	ID    string
+	Email string
+	Roles []string
+}
+
+func (u *mockUser) GetID() string    { return u.ID }
+func (u *mockUser) GetEmail() string { return u.Email }
+func (u *mockUser) GetRoles() []string { return u.Roles }
