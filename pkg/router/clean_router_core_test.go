@@ -148,7 +148,7 @@ type mockAuthService struct{}
 func (m *mockAuthService) Authenticate(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
 	return &interfaces.AuthResult{
 		IsAuthenticated: true,
-		User: &testUser{ID: "test123", Email: "test@example.com", Roles: []string{"user"}},
+		User:            &testUser{ID: "test123", Email: "test@example.com", Roles: []string{"user"}},
 	}, nil
 }
 
@@ -163,8 +163,8 @@ type testUser struct {
 	Roles []string
 }
 
-func (u *testUser) GetID() string    { return u.ID }
-func (u *testUser) GetEmail() string { return u.Email }
+func (u *testUser) GetID() string      { return u.ID }
+func (u *testUser) GetEmail() string   { return u.Email }
 func (u *testUser) GetRoles() []string { return u.Roles }
 
 func (m *mockAuthService) RefreshToken(token string) (string, error) {
@@ -190,7 +190,6 @@ func (m *mockAuthService) VerifyEmail(token string) error {
 func (m *mockAuthService) ResendVerificationEmail(email string) error {
 	return nil
 }
-
 
 type mockI18nService struct{}
 
@@ -360,11 +359,11 @@ type mockRouterAuthHandlers struct{}
 
 func (m *mockRouterAuthHandlers) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {
 	// Register mock auth routes
-	registerFunc("GET", "/login", func(w http.ResponseWriter, r *http.Request) {
+	registerFunc("GET", "/signin", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Login page"))
 	})
-	registerFunc("POST", "/login", func(w http.ResponseWriter, r *http.Request) {
+	registerFunc("POST", "/signin", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Login processed"))
 	})
@@ -372,23 +371,23 @@ func (m *mockRouterAuthHandlers) RegisterRoutes(registerFunc func(method, path s
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Signup page"))
 	})
-	registerFunc("POST", "/logout", func(w http.ResponseWriter, r *http.Request) {
+	registerFunc("POST", "/signout", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("Logged out"))
 	})
 }
 
-func (m *mockRouterAuthHandlers) HandleLogin(w http.ResponseWriter, r *http.Request) {
+func (m *mockRouterAuthHandlers) HandleSignIn(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Login handled"))
 }
 
-func (m *mockRouterAuthHandlers) HandleLogout(w http.ResponseWriter, r *http.Request) {
+func (m *mockRouterAuthHandlers) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Logout handled"))
 }
 
-func (m *mockRouterAuthHandlers) HandleSignup(w http.ResponseWriter, r *http.Request) {
+func (m *mockRouterAuthHandlers) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("Signup handled"))
 }
@@ -407,15 +406,15 @@ func createRouterTestContainer() do.Injector {
 	do.ProvideValue[interfaces.I18nService](injector, &mockI18nService{})
 	do.ProvideValue[interfaces.TemplateService](injector, &mockTemplateService{})
 	do.ProvideValue[interfaces.LayoutService](injector, &mockLayoutService{})
-	
+
 	// Register ErrorService (required by middleware setup)
 	do.ProvideValue[interfaces.ErrorService](injector, &mockErrorService{})
-	
+
 	// Register middleware interfaces (required by middleware setup)
 	do.ProvideValue[middleware.AuthMiddlewareInterface](injector, &mockAuthMiddleware{})
 	do.ProvideValue[middleware.I18nMiddlewareInterface](injector, &mockI18nMiddleware{})
 	do.ProvideValue[middleware.TemplateMiddlewareInterface](injector, &mockTemplateMiddleware{})
-	
+
 	// Register AuthHandlers (required by RegisterRoutes)
 	do.ProvideValue[interfaces.AuthHandlers](injector, &mockRouterAuthHandlers{})
 

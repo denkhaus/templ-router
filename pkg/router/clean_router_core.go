@@ -17,6 +17,7 @@ type cleanRouterCore struct {
 	scanPath      string
 	config        interfaces.ConfigService
 	assetsService interfaces.AssetsService
+	authHandlers  interfaces.AuthHandlers
 	logger        *zap.Logger
 	injector      do.Injector // Store injector for proper DI
 
@@ -46,6 +47,7 @@ func NewCleanRouterCore(i do.Injector) (RouterCore, error) {
 	handlerPipeline := do.MustInvoke[*pipeline.HandlerPipeline](i)
 	routeDiscovery := do.MustInvoke[RouteDiscovery](i)
 	assetsService := do.MustInvoke[interfaces.AssetsService](i)
+	authHandlers := do.MustInvoke[interfaces.AuthHandlers](i)
 	configLoader := do.MustInvoke[ConfigLoader](i)
 
 	// Create separated components
@@ -67,6 +69,7 @@ func NewCleanRouterCore(i do.Injector) (RouterCore, error) {
 	return &cleanRouterCore{
 		scanPath:        config.GetLayoutRootDirectory(),
 		config:          config,
+		authHandlers:    authHandlers,
 		assetsService:   assetsService,
 		logger:          logger,
 		injector:        i, // Store injector for RouteRegistrar creation
@@ -134,8 +137,8 @@ func (crc *cleanRouterCore) RegisterRoutes(chiRouter *chi.Mux) error {
 	crc.routeRegistrar.RegisterStaticRoutes()
 
 	// Register authentication handlers
-	authHandlers := do.MustInvoke[interfaces.AuthHandlers](crc.injector)
-	authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
+
+	crc.authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
 		switch method {
 		case "GET":
 			chiRouter.Get(path, handler)

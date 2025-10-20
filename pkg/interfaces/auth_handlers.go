@@ -7,13 +7,13 @@ import "net/http"
 type AuthHandlers interface {
 	// RegisterRoutes registers authentication routes with the provided registration function
 	RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc))
-	
-	// HandleLogin handles user login requests
-	HandleLogin(w http.ResponseWriter, r *http.Request)
-	
-	// HandleSignup handles user signup requests  
-	HandleSignup(w http.ResponseWriter, r *http.Request)
-	
-	// HandleLogout handles user logout requests
-	HandleLogout(w http.ResponseWriter, r *http.Request)
+
+	// HandleSignIn handles user login requests
+	HandleSignIn(w http.ResponseWriter, r *http.Request)
+
+	// HandleSignUp handles user signup requests
+	HandleSignUp(w http.ResponseWriter, r *http.Request)
+
+	// HandleSignOut handles user logout requests
+	HandleSignOut(w http.ResponseWriter, r *http.Request)
 }

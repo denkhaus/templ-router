@@ -35,14 +35,14 @@ func NewAuthHandlers(i do.Injector) (interfaces.AuthHandlers, error) {
 
 // RegisterRoutes registers authentication API routes only
 func (h *authHandlersImpl) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {
-	registerFunc("POST", "/api/auth/login", h.HandleLogin)
-	registerFunc("POST", "/api/auth/signup", h.HandleSignup)
-	registerFunc("POST", "/api/auth/logout", h.HandleLogout)
+	registerFunc("POST", "/api/auth/signin", h.HandleSignIn)
+	registerFunc("POST", "/api/auth/signup", h.HandleSignUp)
+	registerFunc("POST", "/api/auth/signout", h.HandleSignOut)
 }
 
 // HandleLogin handles user login API endpoint
 // UserStore extracts and validates all relevant data from the request
-func (h *authHandlersImpl) HandleLogin(w http.ResponseWriter, r *http.Request) {
+func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.respondWithError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -85,9 +85,9 @@ func (h *authHandlersImpl) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// HandleSignup handles user registration API endpoint
+// HandleSignUp handles user registration API endpoint
 // UserStore extracts and validates ALL relevant data from the request
-func (h *authHandlersImpl) HandleSignup(w http.ResponseWriter, r *http.Request) {
+func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.respondWithError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -113,8 +113,8 @@ func (h *authHandlersImpl) HandleSignup(w http.ResponseWriter, r *http.Request) 
 	})
 }
 
-// HandleLogout handles user logout API endpoint
-func (h *authHandlersImpl) HandleLogout(w http.ResponseWriter, r *http.Request) {
+// HandleSignOut handles user logout API endpoint
+func (h *authHandlersImpl) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.respondWithError(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
