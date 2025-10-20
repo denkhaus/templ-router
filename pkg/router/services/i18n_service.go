@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -81,7 +81,7 @@ func (cis *cleanI18nService) CreateContext(ctx context.Context, locale, template
 	}
 
 	// Create i18n data structure that router.T() expects
-	i18nData := &router.I18nData{
+	i18nData := &i18n.I18nData{
 		Locale:          locale,
 		CurrentTemplate: templatePath,
 		Translations:    make(map[string]string),
@@ -144,9 +144,9 @@ func (cis *cleanI18nService) CreateContext(ctx context.Context, locale, template
 	}
 
 	// Set the context values that router.T() expects
-	ctx = context.WithValue(ctx, router.I18nDataKey, i18nData)
-	ctx = context.WithValue(ctx, router.I18nLocaleKey, locale)
-	ctx = context.WithValue(ctx, router.I18nTemplateKey, templatePath)
+	ctx = context.WithValue(ctx, i18n.I18nDataKey, i18nData)
+	ctx = context.WithValue(ctx, i18n.I18nLocaleKey, locale)
+	ctx = context.WithValue(ctx, i18n.I18nTemplateKey, templatePath)
 
 	return ctx
 }

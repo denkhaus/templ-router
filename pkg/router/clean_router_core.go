@@ -34,7 +34,7 @@ type cleanRouterCore struct {
 	configLoader   ConfigLoader
 
 	// Data storage (clean, no business logic)
-	routes          []Route
+	routes          []interfaces.Route
 	layoutTemplates []LayoutTemplate
 	errorTemplates  []ErrorTemplate
 }
@@ -168,7 +168,7 @@ func (crc *cleanRouterCore) RegisterRoutes(chiRouter *chi.Mux) error {
 }
 
 // convertToInterfaceRoutes converts router.Route to interfaces.Route
-func (crc *cleanRouterCore) convertToInterfaceRoutes(routes []Route) []interfaces.Route {
+func (crc *cleanRouterCore) convertToInterfaceRoutes(routes []interfaces.Route) []interfaces.Route {
 	interfaceRoutes := make([]interfaces.Route, len(routes))
 
 	for i, route := range routes {
@@ -183,7 +183,7 @@ func (crc *cleanRouterCore) convertToInterfaceRoutes(routes []Route) []interface
 }
 
 // GetRoutes returns all discovered routes
-func (crc *cleanRouterCore) GetRoutes() []Route {
+func (crc *cleanRouterCore) GetRoutes() []interfaces.Route {
 	return crc.routes
 }
 

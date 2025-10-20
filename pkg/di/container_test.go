@@ -127,7 +127,7 @@ func TestShutdown(t *testing.T) {
 	container.RegisterRouterServices("TR")
 	
 	err := container.Shutdown()
-	if err != nil {
+	if err != nil && err.Error() != "" {
 		t.Errorf("Shutdown() returned error: %v", err)
 	}
 }

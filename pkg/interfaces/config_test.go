@@ -528,3 +528,6 @@ func TestConfigServiceInterfaceCompliance(t *testing.T) {
 func (m *MockConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
 func (m *MockConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
 func (m *MockConfigService) GetSignOutSuccessRoute() string { return "/" }
+
+// Auth routes
+func (m *MockConfigService) GetSignInRoute() string { return "/login" }

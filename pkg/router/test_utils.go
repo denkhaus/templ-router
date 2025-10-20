@@ -96,13 +96,13 @@ func (m *MockAssetsService) SetupRoutesWithRouter(mux chi.Router) {}
 func (m *MockAssetsService) SetupRoutes(mux *chi.Mux)             {}
 
 type MockRouteDiscovery struct {
-	Routes         []Route
+	Routes         []interfaces.Route
 	Layouts        []LayoutTemplate
 	ErrorTemplates []ErrorTemplate
 	ShouldError    bool
 }
 
-func (m *MockRouteDiscovery) DiscoverRoutes(scanPath string) ([]Route, error) {
+func (m *MockRouteDiscovery) DiscoverRoutes(scanPath string) ([]interfaces.Route, error) {
 	if m.ShouldError {
 		return nil, errors.New("mock discovery error")
 	}
@@ -276,7 +276,7 @@ func CreateTestContainer() do.Injector {
 
 	do.Provide(injector, func(i do.Injector) (RouteDiscovery, error) {
 		return &MockRouteDiscovery{
-			Routes: []Route{
+			Routes: []interfaces.Route{
 				{Path: "/", TemplateFile: "index.templ", IsDynamic: false},
 				{Path: "/about", TemplateFile: "about.templ", IsDynamic: false},
 				{Path: "/user/{id}", TemplateFile: "user.templ", IsDynamic: true},
@@ -328,3 +328,6 @@ func CreateTestContainer() do.Injector {
 func (m *MockConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
 func (m *MockConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
 func (m *MockConfigService) GetSignOutSuccessRoute() string { return "/" }
+
+// Auth routes
+func (m *MockConfigService) GetSignInRoute() string { return "/login" }

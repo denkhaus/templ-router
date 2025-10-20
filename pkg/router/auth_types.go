@@ -11,10 +11,10 @@ type AuthType string
 const (
 	// AuthTypePublic allows access without authentication
 	AuthTypePublic AuthType = "Public"
-	
+
 	// AuthTypeUserRequired requires any authenticated user
 	AuthTypeUserRequired AuthType = "UserRequired"
-	
+
 	// AuthTypeAdminRequired requires admin privileges
 	AuthTypeAdminRequired AuthType = "AdminRequired"
 )
@@ -47,24 +47,23 @@ func (at AuthType) RequiresAdmin() bool {
 // ParseAuthType parses a string into an AuthType
 func ParseAuthType(s string) (AuthType, error) {
 	s = strings.TrimSpace(s)
-	
+
 	// Only accept the new format - no legacy support
 	authType := AuthType(s)
 	if authType.IsValid() {
 		return authType, nil
 	}
-	
+
 	// Default to Public for empty strings
 	if s == "" {
 		return AuthTypePublic, nil
 	}
-	
+
 	return "", fmt.Errorf("invalid auth type: %s. Valid types are: Public, UserRequired, AdminRequired", s)
 }
 
-// AuthSettings represents authentication settings for a route
-type AuthSettings struct {
-	Type        AuthType  `yaml:"type"`
-	RedirectURL string    `yaml:"redirect_url,omitempty"`
-}
-
+// // AuthSettings represents authentication settings for a route
+// type AuthSettings struct {
+// 	Type        AuthType  `yaml:"type"`
+// 	RedirectURL string    `yaml:"redirect_url,omitempty"`
+// }

@@ -283,3 +283,6 @@ func TestNewKeyResolver(t *testing.T) {
 func (m *mockTemplateConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
 func (m *mockTemplateConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
 func (m *mockTemplateConfigService) GetSignOutSuccessRoute() string { return "/" }
+
+// Auth routes
+func (m *mockTemplateConfigService) GetSignInRoute() string { return "/login" }

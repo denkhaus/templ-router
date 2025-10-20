@@ -137,3 +137,21 @@ type DynamicParameterConfig struct {
 	Description     string   `json:"description,omitempty"`
 	SupportedValues []string `json:"supported_values,omitempty"`
 }
+
+// InternationalizationIdentifier represents a structured key for translations
+type InternationalizationIdentifier struct {
+	// Key is the identifier key (e.g., "admin.dashboard.create.title")
+	Key string
+
+	// Source is the source of the key ("opinionated-schema" or "yaml-metadata")
+	Source string
+
+	// TemplatePath is the path to the template that uses this identifier
+	TemplatePath string
+
+	// DefaultValue is the default value if translation is missing
+	DefaultValue string
+
+	// Locales contains translations for different locales
+	Locales map[string]string
+}

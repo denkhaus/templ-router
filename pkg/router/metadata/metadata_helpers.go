@@ -1,8 +1,9 @@
-package router
+package metadata
 
 import (
 	"context"
 
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
@@ -15,7 +16,7 @@ func M(ctx context.Context, key string) string {
 	}
 
 	// Try router.ConfigFile first
-	if config, ok := configValue.(*ConfigFile); ok {
+	if config, ok := configValue.(*interfaces.ConfigFile); ok {
 		return extractMetadataFromConfig(config.RouteMetadata, key)
 	}
 
@@ -26,39 +27,6 @@ func M(ctx context.Context, key string) string {
 
 	return "[INVALID_METADATA_CONFIG: " + key + "]" // Invalid config type
 }
-
-// extractLocaleFromRequest extracts locale from URL path or headers
-// func extractLocaleFromRequest(r *http.Request) string {
-// 	// First, try to extract from URL path (e.g., /en/dashboard, /de/admin)
-// 	path := strings.TrimPrefix(r.URL.Path, "/")
-// 	pathParts := strings.Split(path, "/")
-
-// 	if len(pathParts) > 0 {
-// 		firstPart := pathParts[0]
-// 		if isValidLocaleCode(firstPart) {
-// 			return firstPart
-// 		}
-// 	}
-
-// 	// Fallback to Accept-Language header
-// 	acceptLang := r.Header.Get("Accept-Language")
-// 	if acceptLang != "" {
-// 		// Parse Accept-Language header (simplified)
-// 		langs := strings.Split(acceptLang, ",")
-// 		for _, lang := range langs {
-// 			// Remove quality values (e.g., "en-US;q=0.9" -> "en-US")
-// 			lang = strings.Split(strings.TrimSpace(lang), ";")[0]
-// 			// Extract primary language (e.g., "en-US" -> "en")
-// 			primaryLang := strings.Split(lang, "-")[0]
-// 			if isValidLocaleCode(primaryLang) {
-// 				return primaryLang
-// 			}
-// 		}
-// 	}
-
-// 	// Default fallback
-// 	return "en"
-// }
 
 // extractMetadataFromConfig extracts metadata from RouteMetadata (works with both router and shared configs)
 func extractMetadataFromConfig(routeMetadata interface{}, key string) string {

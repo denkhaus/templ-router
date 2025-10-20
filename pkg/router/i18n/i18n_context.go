@@ -1,4 +1,4 @@
-package router
+package i18n
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"go.uber.org/zap"
 )
 
@@ -52,7 +53,7 @@ func NewI18nRegistry(logger *zap.Logger) *I18nRegistry {
 }
 
 // RegisterTemplateTranslations registers translations for a template
-func (reg *I18nRegistry) RegisterTemplateTranslations(templatePath string, config *ConfigFile) error {
+func (reg *I18nRegistry) RegisterTemplateTranslations(templatePath string, config *interfaces.ConfigFile) error {
 	if templatePath == "" {
 		return fmt.Errorf("template path cannot be empty")
 	}
@@ -79,7 +80,7 @@ func (reg *I18nRegistry) RegisterTemplateTranslations(templatePath string, confi
 }
 
 // processYAMLTranslations processes different YAML i18n formats
-func (reg *I18nRegistry) processYAMLTranslations(templatePath string, config *ConfigFile) error {
+func (reg *I18nRegistry) processYAMLTranslations(templatePath string, config *interfaces.ConfigFile) error {
 	// Check if we have multi-locale format (preferred)
 	if len(config.MultiLocaleI18n) > 0 {
 		return reg.processMultiLocaleFormat(templatePath, config)
@@ -95,7 +96,7 @@ func (reg *I18nRegistry) processYAMLTranslations(templatePath string, config *Co
 
 // processSimpleFormat processes simple key-value YAML
 // Format: i18n: { key: "value", key2: "value2" }
-func (reg *I18nRegistry) processSimpleFormat(templatePath string, config *ConfigFile) error {
+func (reg *I18nRegistry) processSimpleFormat(templatePath string, config *interfaces.ConfigFile) error {
 	// Default to English for simple format
 	defaultLocale := "en"
 
@@ -175,7 +176,7 @@ func (reg *I18nRegistry) ValidateAllTranslations(supportedLocales []string) erro
 
 // processMultiLocaleFormat processes YAML with multiple locales
 // Format: i18n: { en: { key: "value" }, de: { key: "wert" } }
-func (reg *I18nRegistry) processMultiLocaleFormat(templatePath string, config *ConfigFile) error {
+func (reg *I18nRegistry) processMultiLocaleFormat(templatePath string, config *interfaces.ConfigFile) error {
 	for locale, translations := range config.MultiLocaleI18n {
 		if reg.templateTranslations[templatePath][locale] == nil {
 			reg.templateTranslations[templatePath][locale] = make(map[string]string)
@@ -193,79 +194,6 @@ func (reg *I18nRegistry) processMultiLocaleFormat(templatePath string, config *C
 
 	return nil
 }
-
-// CreateI18nContext creates an i18n context for a request
-// func (reg *I18nRegistry) CreateI18nContext(ctx context.Context, locale, templatePath string) context.Context {
-// 	reg.mu.RLock()
-// 	defer reg.mu.RUnlock()
-
-// 	// Get translations for this template and locale
-// 	translations := make(map[string]string)
-
-// 	// LIBRARY-AGNOSTIC: Load layout translations first (as base)
-// 	// FAIL FAST: No hardcoded paths allowed - Config injection required
-// 	panic("i18n_context.go: Config injection required - hardcoded layout paths forbidden")
-
-// 	// This function needs to be refactored to receive config via DI
-// 	// For now, we'll skip layout loading to prevent build errors
-// 	layoutPaths := []string{} // Empty to prevent undefined variable error
-// 	for _, layoutPath := range layoutPaths {
-// 		if templateTranslations, exists := reg.templateTranslations[layoutPath]; exists {
-// 			reg.logger.Debug("Found layout translations", zap.String("layout_path", layoutPath))
-// 			if localeTranslations, exists := templateTranslations[locale]; exists {
-// 				for k, v := range localeTranslations {
-// 					translations[k] = v
-// 				}
-// 			}
-// 			// Fallback to English for layout
-// 			if locale != "en" {
-// 				if enTranslations, exists := templateTranslations["en"]; exists {
-// 					for k, v := range enTranslations {
-// 						if _, exists := translations[k]; !exists { // Don't override locale-specific
-// 							translations[k] = v
-// 						}
-// 					}
-// 				}
-// 			}
-// 			break // Use first found layout
-// 		}
-// 	}
-
-// 	// Load template-specific translations (override layout if same key)
-// 	if templateTranslations, exists := reg.templateTranslations[templatePath]; exists {
-// 		if localeTranslations, exists := templateTranslations[locale]; exists {
-// 			for k, v := range localeTranslations {
-// 				translations[k] = v // Template-specific overrides layout
-// 			}
-// 		}
-
-// 		// Fallback to English if locale not found
-// 		if locale != "en" {
-// 			if enTranslations, exists := templateTranslations["en"]; exists {
-// 				for k, v := range enTranslations {
-// 					if _, exists := translations[k]; !exists { // Don't override existing
-// 						translations[k] = v
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-
-// 	i18nData := &I18nData{
-// 		Locale:          locale,
-// 		CurrentTemplate: templatePath,
-// 		Translations:    translations,
-// 		FallbackLocale:  "en",
-// 		Logger:          reg.logger,
-// 	}
-
-// 	// Add to context
-// 	ctx = context.WithValue(ctx, I18nDataKey, i18nData)
-// 	ctx = context.WithValue(ctx, I18nLocaleKey, locale)
-// 	ctx = context.WithValue(ctx, I18nTemplateKey, templatePath)
-
-// 	return ctx
-// }
 
 // T translates a key using the current context
 func T(ctx context.Context, key string) string {

@@ -1,35 +1,36 @@
 package app
 
 import (
-	"context"
 	"github.com/denkhaus/templ-router/pkg/router"
-	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
+	"github.com/denkhaus/templ-router/pkg/router/metadata"
+	"github.com/denkhaus/templ-router/demo/pkg/services"
 )
 
 
 templ Layout(content templ.Component) {
 	<!DOCTYPE html>
-	<html lang={ router.GetCurrentLocale(ctx) }>
+	<html lang={ i18n.GetCurrentLocale(ctx) }>
 		<head>
 			<meta charset="UTF-8"/>
 			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-			if router.M(ctx, "title") != "" {
-				<title>{ router.M(ctx, "title") }</title>
+			if metadata.M(ctx, "title") != "" {
+				<title>{ metadata.M(ctx, "title") }</title>
 			} else {
-				<title>{ router.T(ctx, "site_title") }</title>
+				<title>{ i18n.T(ctx, "site_title") }</title>
 			}
 			<link href="/assets/css/output.css" rel="stylesheet"/>
 			<script src="/assets/js/htmx.min.js"></script>
 		</head>
-		<body class="bg-gray-50 min-h-screen" data-theme={ router.M(ctx, "theme") }>
+		<body class="bg-gray-50 min-h-screen" data-theme={ metadata.M(ctx, "theme") }>
 			@Navbar()
 			<main class="container mx-auto p-6">
 				@content
 			</main>
 			@Footer()
-			if router.M(ctx, "app_version") != "" {
+			if metadata.M(ctx, "app_version") != "" {
 				<div class="fixed bottom-2 right-2 text-xs text-gray-400">
-					v{ router.M(ctx, "app_version") }
+					v{ metadata.M(ctx, "app_version") }
 				</div>
 			}
 		</body>
@@ -39,17 +40,17 @@ templ Layout(content templ.Component) {
 templ Navbar() {
 	<nav class="bg-blue-600 text-white p-4">
 		<div class="container mx-auto flex justify-between items-center">
-			<h1 class="text-xl font-bold">{ router.T(ctx, "site_title") }</h1>
+			<h1 class="text-xl font-bold">{ i18n.T(ctx, "site_title") }</h1>
 			<div class="flex items-center space-x-6">
 				<div class="space-x-4">
-					<a href={ templ.URL("/" + router.GetCurrentLocale(ctx)) } class="hover:underline">
-						{ router.T(ctx, "nav_home") }
+					<a href={ i18n.LocalizeSafeURL(ctx, "/") } class="hover:underline">
+						{ i18n.T(ctx, "nav_home") }
 					</a>
-					<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/dashboard") } class="hover:underline">
-						{ router.T(ctx, "nav_dashboard") }
+					<a href={ i18n.LocalizeSafeURL(ctx, "/dashboard") } class="hover:underline">
+						{ i18n.T(ctx, "nav_dashboard") }
 					</a>
-					<a href={ templ.URL("/" + router.GetCurrentLocale(ctx) + "/admin") } class="hover:underline">
-						{ router.T(ctx, "nav_admin") }
+					<a href={ i18n.LocalizeSafeURL(ctx, "/admin") } class="hover:underline">
+						{ i18n.T(ctx, "nav_admin") }
 					</a>
 				</div>
 				@UserSection()
@@ -73,17 +74,17 @@ templ UserSection() {
 			</div>
 			<form method="POST" action="/logout" class="inline">
 				<button type="submit" class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm font-medium transition-colors">
-					{ router.T(ctx, "nav_logout") }
+					{ i18n.T(ctx, "nav_logout") }
 				</button>
 			</form>
 		</div>
 	} else {
 		<div class="flex items-center space-x-2">
 			<a href="/login" class="bg-green-500 hover:bg-green-600 px-3 py-1 rounded text-sm font-medium transition-colors">
-				{ router.T(ctx, "nav_login") }
+				{ i18n.T(ctx, "nav_login") }
 			</a>
 			<a href="/signup" class="bg-blue-500 hover:bg-blue-400 px-3 py-1 rounded text-sm font-medium transition-colors">
-				{ router.T(ctx, "nav_signup") }
+				{ i18n.T(ctx, "nav_signup") }
 			</a>
 		</div>
 	}
@@ -93,7 +94,7 @@ templ LanguageSwitcher() {
 	<div class="flex items-center space-x-2 bg-blue-700 rounded px-3 py-1">
 		<span class="text-sm">🌐</span>
 		<div class="flex space-x-1">
-			if router.GetCurrentLocale(ctx) == "en" {
+			if i18n.GetCurrentLocale(ctx) == "en" {
 				<span class="bg-white text-blue-600 px-2 py-1 rounded text-sm font-semibold">EN</span>
 				<a href="/de" class="text-blue-200 hover:text-white px-2 py-1 rounded text-sm">DE</a>
 			} else {
@@ -107,7 +108,7 @@ templ LanguageSwitcher() {
 templ Footer() {
 	<footer class="bg-gray-800 text-white p-4 mt-8">
 		<div class="container mx-auto text-center">
-			<p>{ router.T(ctx, "footer_copyright") }</p>
+			<p>{ i18n.T(ctx, "footer_copyright") }</p>
 		</div>
 	</footer>
 }

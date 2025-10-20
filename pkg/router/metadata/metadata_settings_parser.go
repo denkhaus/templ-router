@@ -1,4 +1,4 @@
-package router
+package metadata
 
 import (
 	"github.com/denkhaus/templ-router/pkg/interfaces"
@@ -14,7 +14,7 @@ func NewMetadataSettingsParser() *MetadataSettingsParser {
 }
 
 // parseAuthSettings parses auth settings from YAML into AuthSettings struct
-func (msp *MetadataSettingsParser) parseAuthSettings(authData interface{}) *interfaces.AuthSettings {
+func (msp *MetadataSettingsParser) ParseAuthSettings(authData interface{}) *interfaces.AuthSettings {
 	if authData == nil {
 		return &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}
 	}

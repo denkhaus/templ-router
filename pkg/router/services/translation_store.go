@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -92,7 +92,7 @@ func (s *simpleTranslationStore) loadTranslationsForPath(templatePath string) er
 	yamlPath := templatePath + ".yaml"
 
 	// Try to load the YAML file
-	config, err := router.ParseYAMLMetadataExtended(yamlPath, s.logger)
+	config, err := i18n.ParseYAMLMetadataExtended(yamlPath, s.logger)
 	if err != nil {
 		s.logger.Debug("No YAML file found or failed to parse",
 			zap.String("yaml_path", yamlPath),

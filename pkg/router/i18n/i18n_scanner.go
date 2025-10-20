@@ -1,4 +1,4 @@
-package router
+package i18n
 
 import (
 	"fmt"

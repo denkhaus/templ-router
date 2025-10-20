@@ -1,17 +1,18 @@
-package router
+package i18n
 
 import (
 	"fmt"
 	"os"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/metadata"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
 
 // ExtendedConfigFile extends ConfigFile to support multi-locale i18n
 type ExtendedConfigFile struct {
-	*ConfigFile
+	*interfaces.ConfigFile
 	MultiLocaleI18n map[string]map[string]string `yaml:"i18n"`
 }
 
@@ -64,24 +65,24 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedCo
 				zap.Int("locales_count", len(multiLocaleConfig.I18n)))
 
 			// Convert interfaces.AuthSettings back to router.AuthSettings for compatibility
-			authSettings := &AuthSettings{Type: AuthTypePublic}
+			authSettings := &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}
 			// Create a settings parser to handle auth settings
-			settingsParser := &MetadataSettingsParser{}
-			if parsedAuth := settingsParser.parseAuthSettings(multiLocaleConfig.Auth); parsedAuth != nil {
+			settingsParser := metadata.NewMetadataSettingsParser()
+			if parsedAuth := settingsParser.ParseAuthSettings(multiLocaleConfig.Auth); parsedAuth != nil {
 				// Simple conversion - just copy the type
 				switch parsedAuth.Type {
 				case interfaces.AuthTypePublic:
-					authSettings.Type = AuthTypePublic
+					authSettings.Type = interfaces.AuthTypePublic
 				case interfaces.AuthTypeUser:
-					authSettings.Type = AuthTypeUserRequired
+					authSettings.Type = interfaces.AuthTypeUser
 				case interfaces.AuthTypeAdmin:
-					authSettings.Type = AuthTypeAdminRequired
+					authSettings.Type = interfaces.AuthTypeAdmin
 				}
 			}
 
 			// Create extended config
 			extendedConfig := &ExtendedConfigFile{
-				ConfigFile: &ConfigFile{
+				ConfigFile: &interfaces.ConfigFile{
 					FilePath:         filePath,
 					TemplateFilePath: filePath[:len(filePath)-len(".yaml")] + ".templ",
 					RouteMetadata:    multiLocaleConfig.Route,
@@ -101,14 +102,14 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedCo
 	logger.Debug("Using simple YAML format", zap.String("file_path", filePath))
 
 	// Create a metadata parser to handle simple format
-	metadataParser := &MetadataParser{}
+	metadataParser := &metadata.MetadataParser{}
 	simpleConfig, err := metadataParser.ParseYAMLMetadata(filePath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Convert interfaces.ConfigFile back to router.ConfigFile for compatibility
-	routerConfig := &ConfigFile{
+	routerConfig := &interfaces.ConfigFile{
 		FilePath:         simpleConfig.FilePath,
 		TemplateFilePath: simpleConfig.TemplateFilePath,
 		RouteMetadata:    simpleConfig.RouteMetadata,
@@ -117,17 +118,17 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedCo
 		LayoutSettings:   simpleConfig.LayoutSettings,
 		ErrorSettings:    simpleConfig.ErrorSettings,
 		// Convert AuthSettings back
-		AuthSettings: &AuthSettings{Type: AuthTypePublic},
+		AuthSettings: &interfaces.AuthSettings{Type: interfaces.AuthTypePublic},
 	}
 
 	if simpleConfig.AuthSettings != nil {
 		switch simpleConfig.AuthSettings.Type {
 		case interfaces.AuthTypePublic:
-			routerConfig.AuthSettings.Type = AuthTypePublic
+			routerConfig.AuthSettings.Type = interfaces.AuthTypePublic
 		case interfaces.AuthTypeUser:
-			routerConfig.AuthSettings.Type = AuthTypeUserRequired
+			routerConfig.AuthSettings.Type = interfaces.AuthTypeUser
 		case interfaces.AuthTypeAdmin:
-			routerConfig.AuthSettings.Type = AuthTypeAdminRequired
+			routerConfig.AuthSettings.Type = interfaces.AuthTypeAdmin
 		}
 	}
 
@@ -148,40 +149,6 @@ func isValidLocaleCode(code string) bool {
 	}
 	return false
 }
-
-// // GetTranslationsForLocale extracts translations for a specific locale
-// func (ecf *ExtendedConfigFile) GetTranslationsForLocale(locale string) map[string]string {
-// 	if ecf.MultiLocaleI18n != nil {
-// 		if translations, exists := ecf.MultiLocaleI18n[locale]; exists {
-// 			return translations
-// 		}
-// 	}
-
-// 	// Fallback to simple format (assume it's English)
-// 	if locale == "en" && len(ecf.ConfigFile.I18nMappings) > 0 {
-// 		return ecf.ConfigFile.I18nMappings
-// 	}
-
-// 	return make(map[string]string)
-// }
-
-// // GetAvailableLocales returns all available locales in this config
-// func (ecf *ExtendedConfigFile) GetAvailableLocales() []string {
-// 	if ecf.MultiLocaleI18n != nil {
-// 		locales := make([]string, 0, len(ecf.MultiLocaleI18n))
-// 		for locale := range ecf.MultiLocaleI18n {
-// 			locales = append(locales, locale)
-// 		}
-// 		return locales
-// 	}
-
-// 	// Simple format defaults to English
-// 	if len(ecf.ConfigFile.I18nMappings) > 0 {
-// 		return []string{"en"}
-// 	}
-
-// 	return []string{}
-// }
 
 // HasMultiLocaleSupport checks if this config supports multiple locales
 func (ecf *ExtendedConfigFile) HasMultiLocaleSupport() bool {

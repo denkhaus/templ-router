@@ -163,6 +163,11 @@ func (cs *configService) GetDefaultAdminLastName() string {
 	return cs.config.Auth.DefaultAdminLastName
 }
 
+// Auth routes
+func (cs *configService) GetSignInRoute() string {
+	return cs.config.Auth.SignInRoute
+}
+
 // Auth redirect routes (only for success cases)
 func (cs *configService) GetSignInSuccessRoute() string {
 	return cs.config.Auth.SignInSuccessRoute

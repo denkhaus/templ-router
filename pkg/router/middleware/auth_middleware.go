@@ -4,14 +4,20 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
 
+const (
+	DefaultSigninRoute = "/login"
+)
+
 // authMiddleware handles authentication concerns separately (private implementation)
 type authMiddleware struct {
-	authService interfaces.AuthService
-	logger      *zap.Logger
+	authService   interfaces.AuthService
+	configService interfaces.ConfigService
+	logger        *zap.Logger
 }
 
 // AuthService interface for clean dependency
@@ -24,11 +30,13 @@ type authMiddleware struct {
 // NewAuthMiddleware creates a new auth middleware for DI
 func NewAuthMiddleware(i do.Injector) (AuthMiddlewareInterface, error) {
 	authService := do.MustInvoke[interfaces.AuthService](i)
+	configService := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &authMiddleware{
-		authService: authService,
-		logger:      logger,
+		authService:   authService,
+		configService: configService,
+		logger:        logger,
 	}, nil
 }
 
@@ -74,13 +82,35 @@ func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Reque
 		zap.String("path", r.URL.Path),
 		zap.String("auth_type", requirements.Type.String()))
 
+	// Determine redirect URL
+	var redirectURL string
 	if authResult.RedirectURL != "" {
-		http.Redirect(w, r, authResult.RedirectURL, http.StatusFound)
+		redirectURL = authResult.RedirectURL
 	} else {
-		am.logger.Warn("Auth-required page has no redirect_url configured",
-			zap.String("path", r.URL.Path),
-			zap.String("auth_type", requirements.Type.String()))
-		http.Error(w, authResult.ErrorMessage, http.StatusUnauthorized)
+		// Default to signin route from config
+		redirectURL = DefaultSigninRoute
+		if signinRoute := am.configService.GetSignInRoute(); signinRoute != "" {
+			redirectURL = i18n.LocalizeRouteIfRequired(r.Context(), signinRoute)
+		}
+	}
+
+	// Add return URL parameter so user can be redirected back after login
+	if redirectURL != "" {
+		if r.URL.RawQuery != "" {
+			redirectURL += "?return_to=" + r.URL.Path + "?" + r.URL.RawQuery
+		} else {
+			redirectURL += "?return_to=" + r.URL.Path
+		}
+
+		am.logger.Info("Redirecting unauthenticated user to signin",
+			zap.String("original_path", r.URL.Path),
+			zap.String("redirect_url", redirectURL))
+
+		http.Redirect(w, r, redirectURL, http.StatusFound)
+	} else {
+		am.logger.Warn("No signin route configured, falling back to error response",
+			zap.String("path", r.URL.Path))
+		http.Error(w, "Authentication required", http.StatusUnauthorized)
 	}
 }
 

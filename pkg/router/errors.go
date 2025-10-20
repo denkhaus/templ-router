@@ -5,6 +5,8 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+
+	"github.com/denkhaus/templ-router/pkg/router/metadata"
 )
 
 // ErrorTemplate represents an error.templ file for error page presentation
@@ -23,7 +25,7 @@ type ErrorTemplate struct {
 
 	// PrecedenceLevel is the level of precedence (closer templates override further ones)
 	PrecedenceLevel int
-	
+
 	// ErrorMessages contains mapping of error codes to specific messages
 	ErrorMessages map[int]string
 }
@@ -120,12 +122,12 @@ func ProcessErrorTemplates(templates []Template) []ErrorTemplate {
 // loadErrorMessagesFromConfig loads error messages from the YAML config file for this error template
 func loadErrorMessagesFromConfig(errorTemplate *ErrorTemplate) {
 	// Parse the YAML file if it exists
-	config, err := ParseYAMLMetadataForTemplate(errorTemplate.FilePath)
+	config, err := metadata.ParseYAMLMetadataForTemplate(errorTemplate.FilePath)
 	if err != nil || config == nil {
 		// If there's no config, use default messages
 		return
 	}
-	
+
 	// Extract error messages from the config
 	if errorSettings, exists := config.ErrorSettings.(map[interface{}]interface{}); exists {
 		if errorTypes, ok := errorSettings["error_types"].(map[interface{}]interface{}); ok {

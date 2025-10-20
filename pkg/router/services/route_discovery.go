@@ -37,10 +37,10 @@ func NewRouteDiscovery(i do.Injector) (router.RouteDiscovery, error) {
 }
 
 // DiscoverRoutes implements router.RouteDiscovery using generated template registry
-func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]router.Route, error) {
+func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Route, error) {
 	rd.logger.Debug("Discovering routes using generated templates", zap.String("scan_path", scanPath))
 
-	var routes []router.Route
+	var routes []interfaces.Route
 
 	// Get route-to-template mapping from template registry
 	routeMapping := rd.templateRegistry.GetRouteToTemplateMapping()
@@ -60,7 +60,7 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]router.Route, e
 		}
 
 		// Create route object
-		route := router.Route{
+		route := interfaces.Route{
 			Path:         routePattern,
 			TemplateFile: rd.generateTemplateFilePathFromPattern(routePattern),
 			IsDynamic:    strings.Contains(routePattern, "$"),

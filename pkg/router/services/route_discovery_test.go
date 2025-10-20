@@ -340,3 +340,6 @@ func (m *mockConfigService) IsProduction() bool { return false }
 func (m *mockConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
 func (m *mockConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
 func (m *mockConfigService) GetSignOutSuccessRoute() string { return "/" }
+
+// Auth routes
+func (m *mockConfigService) GetSignInRoute() string { return "/login" }

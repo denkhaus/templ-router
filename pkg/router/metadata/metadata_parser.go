@@ -1,4 +1,4 @@
-package router
+package metadata
 
 import (
 	"os"
@@ -25,7 +25,7 @@ func (mp *MetadataParser) convertSharedToRouterConfig(sharedConfig *shared.Confi
 		RouteMetadata:    sharedConfig.RouteMetadata,
 		I18nMappings:     sharedConfig.I18nMappings,
 		MultiLocaleI18n:  sharedConfig.MultiLocaleI18n,
-		AuthSettings:     settingsParser.parseAuthSettings(sharedConfig.AuthSettings),
+		AuthSettings:     settingsParser.ParseAuthSettings(sharedConfig.AuthSettings),
 		LayoutSettings:   sharedConfig.LayoutSettings,
 		ErrorSettings:    sharedConfig.ErrorSettings,
 		DynamicSettings:  settingsParser.parseDynamicSettings(sharedConfig.DynamicSettings),
@@ -62,27 +62,6 @@ func (mp *MetadataParser) ParseYAMLMetadataForTemplate(templatePath string) (*in
 	// Parse the YAML file
 	return mp.ParseYAMLMetadata(yamlPath)
 }
-
-// TODO: Why is this validation not implemented. This is an important meassure to keep metadata files clean
-// validateRootKeys validates that only allowed root keys are present in the config
-// func (mp *MetadataParser) validateRootKeys(rawConfig map[string]interface{}) error {
-// 	allowedKeys := map[string]bool{
-// 		"route":   true,
-// 		"auth":    true,
-// 		"i18n":    true,
-// 		"layout":  true,
-// 		"error":   true,
-// 		"dynamic": true,
-// 	}
-
-// 	for key := range rawConfig {
-// 		if !allowedKeys[key] {
-// 			return fmt.Errorf("unknown configuration key: %s", key)
-// 		}
-// 	}
-
-// 	return nil
-// }
 
 // ParseYAMLMetadataForTemplate is the legacy global function (DEPRECATED)
 // Use MetadataParser.ParseYAMLMetadataForTemplate instead

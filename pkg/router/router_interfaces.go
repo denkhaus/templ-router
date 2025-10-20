@@ -9,7 +9,7 @@ import (
 type RouterCore interface {
 	Initialize() error
 	RegisterRoutes(chiRouter *chi.Mux) error
-	GetRoutes() []Route
+	GetRoutes() []interfaces.Route
 	GetLayoutTemplates() []LayoutTemplate
 	GetErrorTemplates() []ErrorTemplate
 	GetMiddlewareSetup() MiddlewareSetup
@@ -19,7 +19,7 @@ type RouterCore interface {
 
 // RouteDiscovery interface for discovering routes, layouts, and error templates
 type RouteDiscovery interface {
-	DiscoverRoutes(scanPath string) ([]Route, error)
+	DiscoverRoutes(scanPath string) ([]interfaces.Route, error)
 	DiscoverLayouts(scanPath string) ([]LayoutTemplate, error)
 	DiscoverErrorTemplates(scanPath string) ([]ErrorTemplate, error)
 }

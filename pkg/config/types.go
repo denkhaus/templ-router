@@ -87,6 +87,9 @@ type AuthConfig struct {
 	DefaultAdminFirstName string `envconfig:"DEFAULT_ADMIN_FIRST_NAME" default:"Default"`
 	DefaultAdminLastName  string `envconfig:"DEFAULT_ADMIN_LAST_NAME" default:"Admin"`
 
+	// Auth routes
+	SignInRoute string `envconfig:"SIGNIN_ROUTE" default:"/login"`
+	
 	// Auth redirect routes (only for success cases)
 	SignInSuccessRoute  string `envconfig:"SIGNIN_SUCCESS_ROUTE" default:"/"`
 	SignUpSuccessRoute  string `envconfig:"SIGNUP_SUCCESS_ROUTE" default:"/"`

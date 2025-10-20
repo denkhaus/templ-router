@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -52,7 +53,7 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 	user, err := h.userStore.ValidateCredentialsFromRequest(r)
 	if err != nil {
 		h.logger.Warn("Login failed", zap.Error(err))
-		
+
 		// Always return JSON error response so form can display error to user
 		h.respondWithError(w, "Invalid credentials", http.StatusUnauthorized)
 		return
@@ -82,6 +83,7 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 	// Redirect to success route on successful login
 	successRoute := h.configService.GetSignInSuccessRoute()
 	if successRoute != "" {
+		successRoute := i18n.LocalizeRouteIfRequired(r.Context(), successRoute)
 		http.Redirect(w, r, successRoute, http.StatusSeeOther)
 		return
 	}
@@ -106,7 +108,7 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 	user, err := h.userStore.CreateUserFromRequest(r)
 	if err != nil {
 		h.logger.Warn("Signup failed", zap.Error(err))
-		
+
 		// Always return JSON error response so form can display error to user
 		h.respondWithError(w, "Failed to create user", http.StatusBadRequest)
 		return
@@ -119,6 +121,7 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 	// Redirect to success route on successful signup
 	successRoute := h.configService.GetSignUpSuccessRoute()
 	if successRoute != "" {
+		successRoute := i18n.LocalizeRouteIfRequired(r.Context(), successRoute)
 		http.Redirect(w, r, successRoute, http.StatusSeeOther)
 		return
 	}
@@ -161,6 +164,7 @@ func (h *authHandlersImpl) HandleSignOut(w http.ResponseWriter, r *http.Request)
 	// Redirect to success route on successful logout
 	successRoute := h.configService.GetSignOutSuccessRoute()
 	if successRoute != "" {
+		successRoute := i18n.LocalizeRouteIfRequired(r.Context(), successRoute)
 		http.Redirect(w, r, successRoute, http.StatusSeeOther)
 		return
 	}

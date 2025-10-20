@@ -1,70 +1,72 @@
 package id_
 
-import "github.com/denkhaus/templ-router/pkg/router"
+import (
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
+)
 
 templ Page(id string) {
 	<div class="max-w-4xl mx-auto">
 		<div class="bg-white rounded-lg shadow-lg p-8">
-			<h1 class="text-4xl font-bold text-gray-800 mb-6">{ router.T(ctx, "page_title") }</h1>
+			<h1 class="text-4xl font-bold text-gray-800 mb-6">{ i18n.T(ctx, "page_title") }</h1>
 			<div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-				<h2 class="text-lg font-semibold text-blue-800 mb-2">{ router.T(ctx, "dynamic_route_demo") }</h2>
-				<p class="text-blue-700">{ router.T(ctx, "dynamic_route_description") }</p>
+				<h2 class="text-lg font-semibold text-blue-800 mb-2">{ i18n.T(ctx, "dynamic_route_demo") }</h2>
+				<p class="text-blue-700">{ i18n.T(ctx, "dynamic_route_description") }</p>
 				<p class="text-blue-600 mt-2">
-					<strong>{ router.T(ctx, "current_product_id") }:</strong>
+					<strong>{ i18n.T(ctx, "current_product_id") }:</strong>
 					<code class="bg-blue-100 px-2 py-1 rounded">{ id }</code>
 				</p>
 			</div>
 			<div class="grid md:grid-cols-2 gap-8">
 				<div>
-					<h2 class="text-2xl font-semibold text-gray-800 mb-4">{ router.T(ctx, "product_information") }</h2>
+					<h2 class="text-2xl font-semibold text-gray-800 mb-4">{ i18n.T(ctx, "product_information") }</h2>
 					<div class="space-y-3">
 						<div class="flex justify-between">
-							<span class="font-medium text-gray-600">{ router.T(ctx, "product_id_label") }:</span>
+							<span class="font-medium text-gray-600">{ i18n.T(ctx, "product_id_label") }:</span>
 							<span class="text-gray-800">{ id }</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="font-medium text-gray-600">{ router.T(ctx, "product_name") }:</span>
+							<span class="font-medium text-gray-600">{ i18n.T(ctx, "product_name") }:</span>
 							<span class="text-gray-800">Premium Widget { id }</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="font-medium text-gray-600">{ router.T(ctx, "price") }:</span>
+							<span class="font-medium text-gray-600">{ i18n.T(ctx, "price") }:</span>
 							<span class="text-gray-800">$299.99</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="font-medium text-gray-600">{ router.T(ctx, "category") }:</span>
-							<span class="text-gray-800">{ router.T(ctx, "electronics") }</span>
+							<span class="font-medium text-gray-600">{ i18n.T(ctx, "category") }:</span>
+							<span class="text-gray-800">{ i18n.T(ctx, "electronics") }</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="font-medium text-gray-600">{ router.T(ctx, "status") }:</span>
-							<span class="text-green-600 font-medium">{ router.T(ctx, "in_stock") }</span>
+							<span class="font-medium text-gray-600">{ i18n.T(ctx, "status") }:</span>
+							<span class="text-green-600 font-medium">{ i18n.T(ctx, "in_stock") }</span>
 						</div>
 					</div>
 				</div>
 				<div>
-					<h2 class="text-2xl font-semibold text-gray-800 mb-4">{ router.T(ctx, "specifications") }</h2>
+					<h2 class="text-2xl font-semibold text-gray-800 mb-4">{ i18n.T(ctx, "specifications") }</h2>
 					<div class="space-y-3">
 						<div class="flex justify-between">
-							<span class="font-medium text-gray-600">{ router.T(ctx, "weight") }:</span>
+							<span class="font-medium text-gray-600">{ i18n.T(ctx, "weight") }:</span>
 							<span class="text-gray-800">1.2 kg</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="font-medium text-gray-600">{ router.T(ctx, "dimensions") }:</span>
+							<span class="font-medium text-gray-600">{ i18n.T(ctx, "dimensions") }:</span>
 							<span class="text-gray-800">25 x 15 x 8 cm</span>
 						</div>
 						<div class="flex justify-between">
-							<span class="font-medium text-gray-600">{ router.T(ctx, "warranty") }:</span>
-							<span class="text-gray-800">{ router.T(ctx, "2_years") }</span>
+							<span class="font-medium text-gray-600">{ i18n.T(ctx, "warranty") }:</span>
+							<span class="text-gray-800">{ i18n.T(ctx, "2_years") }</span>
 						</div>
 					</div>
 				</div>
 			</div>
 			<div class="mt-8">
-				<h2 class="text-2xl font-semibold text-gray-800 mb-4">{ router.T(ctx, "description") }</h2>
-				<p class="text-gray-600 leading-relaxed">{ router.T(ctx, "high_quality_product") }</p>
+				<h2 class="text-2xl font-semibold text-gray-800 mb-4">{ i18n.T(ctx, "description") }</h2>
+				<p class="text-gray-600 leading-relaxed">{ i18n.T(ctx, "high_quality_product") }</p>
 			</div>
 			<div class="mt-8 pt-6 border-t border-gray-200">
 				<p class="text-sm text-gray-500">
-					{ router.T(ctx, "viewing_product_for") }: <strong>{ router.T(ctx, "product") } { id }</strong>
+					{ i18n.T(ctx, "viewing_product_for") }: <strong>{ i18n.T(ctx, "product") } { id }</strong>
 				</p>
 			</div>
 		</div>

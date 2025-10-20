@@ -8,6 +8,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
 	"github.com/go-chi/chi/v5"
@@ -59,34 +60,37 @@ func (m *mockRouterConfigService) GetDefaultAdminPassword() string           { r
 func (m *mockRouterConfigService) GetDefaultAdminFirstName() string          { return "Admin" }
 func (m *mockRouterConfigService) GetDefaultAdminLastName() string           { return "User" }
 
+// Auth routes
+func (m *mockRouterConfigService) GetSignInRoute() string { return "/login" }
+
 // Auth redirect routes (only for success cases)
 func (m *mockRouterConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
 func (m *mockRouterConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
 func (m *mockRouterConfigService) GetSignOutSuccessRoute() string { return "/" }
-func (m *mockRouterConfigService) GetSMTPHost() string                       { return "" }
-func (m *mockRouterConfigService) GetSMTPPort() int                          { return 587 }
-func (m *mockRouterConfigService) GetSMTPUsername() string                   { return "" }
-func (m *mockRouterConfigService) GetSMTPPassword() string                   { return "" }
-func (m *mockRouterConfigService) IsSMTPTLSEnabled() bool                    { return true }
-func (m *mockRouterConfigService) GetFromEmail() string                      { return "noreply@example.com" }
-func (m *mockRouterConfigService) GetFromName() string                       { return "App" }
-func (m *mockRouterConfigService) GetReplyToEmail() string                   { return "" }
-func (m *mockRouterConfigService) IsEmailDummyModeEnabled() bool             { return true }
-func (m *mockRouterConfigService) GetCSRFSecret() string                     { return "secret" }
-func (m *mockRouterConfigService) IsCSRFSecure() bool                        { return false }
-func (m *mockRouterConfigService) IsCSRFHttpOnly() bool                      { return true }
-func (m *mockRouterConfigService) GetCSRFSameSite() string                   { return "strict" }
-func (m *mockRouterConfigService) IsRateLimitEnabled() bool                  { return false }
-func (m *mockRouterConfigService) GetRateLimitRequests() int                 { return 100 }
-func (m *mockRouterConfigService) IsHSTSEnabled() bool                       { return false }
-func (m *mockRouterConfigService) GetHSTSMaxAge() int                        { return 31536000 }
-func (m *mockRouterConfigService) GetLogLevel() string                       { return "info" }
-func (m *mockRouterConfigService) GetLogFormat() string                      { return "json" }
-func (m *mockRouterConfigService) GetLogOutput() string                      { return "stdout" }
-func (m *mockRouterConfigService) IsFileLoggingEnabled() bool                { return false }
-func (m *mockRouterConfigService) GetLogFilePath() string                    { return "" }
-func (m *mockRouterConfigService) IsDevelopment() bool                       { return true }
-func (m *mockRouterConfigService) IsProduction() bool                        { return false }
+func (m *mockRouterConfigService) GetSMTPHost() string            { return "" }
+func (m *mockRouterConfigService) GetSMTPPort() int               { return 587 }
+func (m *mockRouterConfigService) GetSMTPUsername() string        { return "" }
+func (m *mockRouterConfigService) GetSMTPPassword() string        { return "" }
+func (m *mockRouterConfigService) IsSMTPTLSEnabled() bool         { return true }
+func (m *mockRouterConfigService) GetFromEmail() string           { return "noreply@example.com" }
+func (m *mockRouterConfigService) GetFromName() string            { return "App" }
+func (m *mockRouterConfigService) GetReplyToEmail() string        { return "" }
+func (m *mockRouterConfigService) IsEmailDummyModeEnabled() bool  { return true }
+func (m *mockRouterConfigService) GetCSRFSecret() string          { return "secret" }
+func (m *mockRouterConfigService) IsCSRFSecure() bool             { return false }
+func (m *mockRouterConfigService) IsCSRFHttpOnly() bool           { return true }
+func (m *mockRouterConfigService) GetCSRFSameSite() string        { return "strict" }
+func (m *mockRouterConfigService) IsRateLimitEnabled() bool       { return false }
+func (m *mockRouterConfigService) GetRateLimitRequests() int      { return 100 }
+func (m *mockRouterConfigService) IsHSTSEnabled() bool            { return false }
+func (m *mockRouterConfigService) GetHSTSMaxAge() int             { return 31536000 }
+func (m *mockRouterConfigService) GetLogLevel() string            { return "info" }
+func (m *mockRouterConfigService) GetLogFormat() string           { return "json" }
+func (m *mockRouterConfigService) GetLogOutput() string           { return "stdout" }
+func (m *mockRouterConfigService) IsFileLoggingEnabled() bool     { return false }
+func (m *mockRouterConfigService) GetLogFilePath() string         { return "" }
+func (m *mockRouterConfigService) IsDevelopment() bool            { return true }
+func (m *mockRouterConfigService) IsProduction() bool             { return false }
 
 type mockRouterAssetsService struct{}
 
@@ -115,8 +119,8 @@ func (m *mockRouterTemplateRegistry) GetTemplateByRoute(route string) (templ.Com
 
 type mockRouteDiscovery struct{}
 
-func (m *mockRouteDiscovery) DiscoverRoutes(scanPath string) ([]Route, error) {
-	return []Route{
+func (m *mockRouteDiscovery) DiscoverRoutes(scanPath string) ([]interfaces.Route, error) {
+	return []interfaces.Route{
 		{Path: "/", TemplateFile: "app/page.templ", IsDynamic: false},
 		{Path: "/{locale}", TemplateFile: "app/locale_/page.templ", IsDynamic: true},
 	}, nil
@@ -215,14 +219,14 @@ func (m *mockI18nService) GetCurrentLocale(r *http.Request) string {
 }
 
 func (m *mockI18nService) CreateContext(ctx context.Context, templatePath string, locale string) context.Context {
-	i18nData := &I18nData{
+	i18nData := &i18n.I18nData{
 		Locale:          locale,
 		CurrentTemplate: templatePath,
 		Translations:    make(map[string]string),
 		FallbackLocale:  "en",
 		Logger:          zap.NewNop(),
 	}
-	return context.WithValue(ctx, I18nDataKey, i18nData)
+	return context.WithValue(ctx, i18n.I18nDataKey, i18nData)
 }
 
 func (m *mockI18nService) ExtractLocale(r *http.Request) string {
@@ -554,7 +558,7 @@ func TestConvertToInterfaceRoutes(t *testing.T) {
 	}
 
 	// Create test routes
-	testRoutes := []Route{
+	testRoutes := []interfaces.Route{
 		{Path: "/test", TemplateFile: "test.templ", IsDynamic: false},
 		{Path: "/dynamic/{id}", TemplateFile: "dynamic.templ", IsDynamic: true},
 	}

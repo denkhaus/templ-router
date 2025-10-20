@@ -33,7 +33,7 @@ func startupClean(ctx context.Context) error {
 	container := di.NewContainer()
 	defer container.Shutdown()
 
-	container.RegisterRouterServices()
+	container.RegisterRouterServices("TR")
 	injector := container.GetInjector()
 
 	templateRegistry, err := templates.NewRegistry(injector)
