@@ -16,19 +16,26 @@ import (
 // inMemmorySessionStoreImpl provides a default in-memory session store implementation
 // Users can replace this with Redis, database-backed, or other implementations
 type inMemmorySessionStoreImpl struct {
-	logger   *zap.Logger
-	sessions map[string]*interfaces.Session
-	mutex    sync.RWMutex
+	logger        *zap.Logger
+	sessions      map[string]*interfaces.Session
+	mutex         sync.RWMutex
+	configService interfaces.ConfigService
+	sessionExpiry time.Duration
+	cookieName    string
 }
 
 // NewInMemorySessionStore creates a new default session store for DI
 func NewInMemorySessionStore(i do.Injector) (interfaces.SessionStore, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
+	configService := do.MustInvoke[interfaces.ConfigService](i)
 
 	store := &inMemmorySessionStoreImpl{
-		logger:   logger,
-		sessions: make(map[string]*interfaces.Session),
-		mutex:    sync.RWMutex{},
+		logger:        logger,
+		sessions:      make(map[string]*interfaces.Session),
+		mutex:         sync.RWMutex{},
+		configService: configService,
+		cookieName:    configService.GetSessionCookieName(),
+		sessionExpiry: configService.GetSessionExpiry(),
 	}
 
 	// Start cleanup routine for expired sessions
@@ -40,7 +47,7 @@ func NewInMemorySessionStore(i do.Injector) (interfaces.SessionStore, error) {
 // GetSession retrieves a session from the request
 func (s *inMemmorySessionStoreImpl) GetSession(req *http.Request) (*interfaces.Session, error) {
 	// Get session ID from cookie
-	cookie, err := req.Cookie("session_id")
+	cookie, err := req.Cookie(s.cookieName)
 	if err != nil {
 		return nil, fmt.Errorf("no session cookie found")
 	}
@@ -75,7 +82,7 @@ func (s *inMemmorySessionStoreImpl) CreateSession(userID string) (*interfaces.Se
 		UserID:    userID,
 		Valid:     true,
 		CreatedAt: now,
-		ExpiresAt: now.Add(24 * time.Hour),
+		ExpiresAt: now.Add(s.sessionExpiry),
 	}
 
 	s.mutex.Lock()
@@ -83,7 +90,7 @@ func (s *inMemmorySessionStoreImpl) CreateSession(userID string) (*interfaces.Se
 	s.mutex.Unlock()
 
 	s.logger.Info("Session created",
-		zap.String("session_id", sessionID),
+		zap.String(s.cookieName, sessionID),
 		zap.String("user_id", userID))
 
 	return session, nil
@@ -95,7 +102,7 @@ func (s *inMemmorySessionStoreImpl) DeleteSession(sessionID string) error {
 	delete(s.sessions, sessionID)
 	s.mutex.Unlock()
 
-	s.logger.Info("Session deleted", zap.String("session_id", sessionID))
+	s.logger.Info("Session deleted", zap.String(s.cookieName, sessionID))
 	return nil
 }
 

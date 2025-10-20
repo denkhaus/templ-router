@@ -50,13 +50,12 @@ func (c *Container) RegisterRouterServices() {
 
 	// Register stores - constructors already return interfaces! (pluggable)
 	// Session store stays in router (user-type agnostic)
-	do.Provide(c.injector, services.NewInMemorySessionStore)
+	do.Provide(c.injector, auth.NewInMemorySessionStore)
 
 	// Internal services (these can remain concrete for now)
 	do.Provide(c.injector, services.NewInMemoryTranslationStore)
 
 	do.Provide(c.injector, auth.NewAuthHandlers)
-
 	do.Provide(c.injector, services.NewAuthService)
 	do.Provide(c.injector, services.NewI18nService)
 

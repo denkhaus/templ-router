@@ -45,7 +45,10 @@ func (acm *AuthContextMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		acm.logger.Info("Session found", zap.String("session_id", session.ID), zap.String("user_id", session.UserID))
+		acm.logger.Info("Session found",
+			zap.String("session_id", session.ID),
+			zap.String("user_id", session.UserID),
+		)
 
 		// Get user from session
 		user, err := acm.userStore.GetUserByID(session.UserID)
