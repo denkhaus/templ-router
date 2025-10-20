@@ -58,6 +58,11 @@ func (m *mockRouterConfigService) GetDefaultAdminEmail() string              { r
 func (m *mockRouterConfigService) GetDefaultAdminPassword() string           { return "password" }
 func (m *mockRouterConfigService) GetDefaultAdminFirstName() string          { return "Admin" }
 func (m *mockRouterConfigService) GetDefaultAdminLastName() string           { return "User" }
+
+// Auth redirect routes (only for success cases)
+func (m *mockRouterConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
+func (m *mockRouterConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
+func (m *mockRouterConfigService) GetSignOutSuccessRoute() string { return "/" }
 func (m *mockRouterConfigService) GetSMTPHost() string                       { return "" }
 func (m *mockRouterConfigService) GetSMTPPort() int                          { return 587 }
 func (m *mockRouterConfigService) GetSMTPUsername() string                   { return "" }

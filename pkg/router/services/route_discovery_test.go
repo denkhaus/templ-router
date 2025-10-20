@@ -335,3 +335,8 @@ func (m *mockConfigService) IsSessionHttpOnly() bool { return true }
 func (m *mockConfigService) IsCSRFHttpOnly() bool { return true }
 func (m *mockConfigService) IsDevelopment() bool { return true }
 func (m *mockConfigService) IsProduction() bool { return false }
+
+// Auth redirect routes (only for success cases)
+func (m *mockConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
+func (m *mockConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
+func (m *mockConfigService) GetSignOutSuccessRoute() string { return "/" }

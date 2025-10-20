@@ -14,20 +14,24 @@ type configService struct {
 }
 
 // NewConfigService creates a new config service for DI
-func NewConfigService(i do.Injector) (interfaces.ConfigService, error) {
-	var cfg configImpl
-	if err := envconfig.Process("TR", &cfg); err != nil {
-		return nil, fmt.Errorf("failed to load configuration: %w", err)
+func NewConfigService(envVarPraefix string) func(i do.Injector) (interfaces.ConfigService, error) {
+	return func(i do.Injector) (interfaces.ConfigService, error) {
+		var cfg configImpl
+		if err := envconfig.Process("TR", &cfg); err != nil {
+			return nil, fmt.Errorf("failed to load configuration: %w", err)
+		}
+
+		if err := cfg.Validate(); err != nil {
+			return nil, fmt.Errorf("configuration validation failed: %w", err)
+		}
+
+		if cfg.Config.PrintSummary {
+			// Log configuration summary
+			cfg.LogSummary()
+		}
+
+		return &configService{
+			config: &cfg,
+		}, nil
 	}
-
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("configuration validation failed: %w", err)
-	}
-
-	// Log configuration summary
-	cfg.LogSummary()
-
-	return &configService{
-		config: &cfg,
-	}, nil
 }

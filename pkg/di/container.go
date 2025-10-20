@@ -40,13 +40,13 @@ func (c *Container) RegisterApplicationServices(options ...ApplicationOption) {
 }
 
 // RegisterRouterServices registers all router services (without template dependencies)
-func (c *Container) RegisterRouterServices() {
+func (c *Container) RegisterRouterServices(configPraefix string) {
 	// Register logger
 	do.Provide(c.injector, logger.NewService)
 
 	// Register configuration
 	// this should not be exposed. use config.NewConfigService instead
-	do.Provide(c.injector, config.NewConfigService)
+	do.Provide(c.injector, config.NewConfigService(configPraefix))
 
 	// Register stores - constructors already return interfaces! (pluggable)
 	// Session store stays in router (user-type agnostic)

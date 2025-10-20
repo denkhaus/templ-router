@@ -323,3 +323,8 @@ func CreateTestContainer() do.Injector {
 
 	return injector
 }
+
+// Add missing methods to MockConfigService for auth redirect routes
+func (m *MockConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
+func (m *MockConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
+func (m *MockConfigService) GetSignOutSuccessRoute() string { return "/" }

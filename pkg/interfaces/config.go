@@ -55,6 +55,11 @@ type ConfigService interface {
 	GetDefaultAdminFirstName() string
 	GetDefaultAdminLastName() string
 
+	// Auth redirect routes (only for success cases)
+	GetSignInSuccessRoute() string
+	GetSignUpSuccessRoute() string
+	GetSignOutSuccessRoute() string
+
 	// Security configuration
 	GetCSRFSecret() string
 	IsCSRFSecure() bool

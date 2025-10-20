@@ -524,3 +524,7 @@ func TestConfigServiceInterfaceCompliance(t *testing.T) {
 	_ = config.GetSMTPHost()
 	_ = config.IsDevelopment()
 }
+// Auth redirect routes (only for success cases)
+func (m *MockConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
+func (m *MockConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
+func (m *MockConfigService) GetSignOutSuccessRoute() string { return "/" }

@@ -33,6 +33,9 @@ type configImpl struct {
 
 	// Environment configuration
 	Environment EnvironmentConfig `envconfig:"ENVIRONMENT"`
+
+	// Config Configuration
+	Config ConfigConfig `envconfig:"CONFIG"`
 }
 
 // ServerConfig holds server-related configuration
@@ -44,6 +47,10 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration `envconfig:"WRITE_TIMEOUT" default:"30s"`
 	IdleTimeout     time.Duration `envconfig:"IDLE_TIMEOUT" default:"120s"`
 	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
+}
+
+type ConfigConfig struct {
+	PrintSummary bool `envconfig:"PRINT_SUMMARY" default:"false"`
 }
 
 // DatabaseConfig holds database-related configuration
@@ -79,6 +86,11 @@ type AuthConfig struct {
 	DefaultAdminPassword  string `envconfig:"DEFAULT_ADMIN_PASSWORD" default:"admin123"`
 	DefaultAdminFirstName string `envconfig:"DEFAULT_ADMIN_FIRST_NAME" default:"Default"`
 	DefaultAdminLastName  string `envconfig:"DEFAULT_ADMIN_LAST_NAME" default:"Admin"`
+
+	// Auth redirect routes (only for success cases)
+	SignInSuccessRoute  string `envconfig:"SIGNIN_SUCCESS_ROUTE" default:"/"`
+	SignUpSuccessRoute  string `envconfig:"SIGNUP_SUCCESS_ROUTE" default:"/"`
+	SignOutSuccessRoute string `envconfig:"SIGNOUT_SUCCESS_ROUTE" default:"/"`
 }
 
 // EmailConfig holds email-related configuration

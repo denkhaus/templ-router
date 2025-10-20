@@ -52,6 +52,8 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 	user, err := h.userStore.ValidateCredentialsFromRequest(r)
 	if err != nil {
 		h.logger.Warn("Login failed", zap.Error(err))
+		
+		// Always return JSON error response so form can display error to user
 		h.respondWithError(w, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
@@ -77,7 +79,14 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 		zap.String("user_id", user.GetID()),
 		zap.String("email", user.GetEmail()))
 
-	// Return JSON response (no redirect - let frontend handle navigation)
+	// Redirect to success route on successful login
+	successRoute := h.configService.GetSignInSuccessRoute()
+	if successRoute != "" {
+		http.Redirect(w, r, successRoute, http.StatusSeeOther)
+		return
+	}
+
+	// Fallback to JSON response if no redirect route configured
 	h.respondWithSuccess(w, map[string]interface{}{
 		"success": true,
 		"user_id": user.GetID(),
@@ -97,6 +106,8 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 	user, err := h.userStore.CreateUserFromRequest(r)
 	if err != nil {
 		h.logger.Warn("Signup failed", zap.Error(err))
+		
+		// Always return JSON error response so form can display error to user
 		h.respondWithError(w, "Failed to create user", http.StatusBadRequest)
 		return
 	}
@@ -105,7 +116,14 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 		zap.String("user_id", user.GetID()),
 		zap.String("email", user.GetEmail()))
 
-	// Return JSON response
+	// Redirect to success route on successful signup
+	successRoute := h.configService.GetSignUpSuccessRoute()
+	if successRoute != "" {
+		http.Redirect(w, r, successRoute, http.StatusSeeOther)
+		return
+	}
+
+	// Fallback to JSON response if no redirect route configured
 	h.respondWithSuccess(w, map[string]interface{}{
 		"success": true,
 		"user_id": user.GetID(),
@@ -140,7 +158,14 @@ func (h *authHandlersImpl) HandleSignOut(w http.ResponseWriter, r *http.Request)
 
 	h.logger.Info("User logged out successfully")
 
-	// Return JSON response
+	// Redirect to success route on successful logout
+	successRoute := h.configService.GetSignOutSuccessRoute()
+	if successRoute != "" {
+		http.Redirect(w, r, successRoute, http.StatusSeeOther)
+		return
+	}
+
+	// Fallback to JSON response if no redirect route configured
 	h.respondWithSuccess(w, map[string]interface{}{
 		"success": true,
 		"message": "Logout successful",

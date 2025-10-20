@@ -433,3 +433,7 @@ func TestNewService_InterfaceCompliance(t *testing.T) {
 
 	logger.Sync()
 }
+// Auth redirect routes (only for success cases)
+func (m *mockLoggerConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
+func (m *mockLoggerConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
+func (m *mockLoggerConfigService) GetSignOutSuccessRoute() string { return "/" }

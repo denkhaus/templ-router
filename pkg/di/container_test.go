@@ -52,7 +52,7 @@ func TestRegisterRouterServices(t *testing.T) {
 	)
 	
 	// Should not panic - default AuthHandlers are automatically available
-	container.RegisterRouterServices()
+	container.RegisterRouterServices("TR")
 	
 	// Verify logger is registered and can be retrieved
 	logger := container.GetLogger()
@@ -76,7 +76,7 @@ func TestGetLogger(t *testing.T) {
 		WithUserStore(mockUserStore),
 		// Note: Using default AuthHandlers from container
 	)
-	container.RegisterRouterServices()
+	container.RegisterRouterServices("TR")
 	
 	logger := container.GetLogger()
 	if logger == nil {
@@ -103,7 +103,7 @@ func TestGetRouter(t *testing.T) {
 		WithUserStore(mockUserStore),
 		// Note: Using default AuthHandlers from container
 	)
-	container.RegisterRouterServices()
+	container.RegisterRouterServices("TR")
 	
 	router := container.GetRouter()
 	if router == nil {
@@ -124,7 +124,7 @@ func TestShutdown(t *testing.T) {
 		WithUserStore(mockUserStore),
 		// Note: Using default AuthHandlers from container
 	)
-	container.RegisterRouterServices()
+	container.RegisterRouterServices("TR")
 	
 	err := container.Shutdown()
 	if err != nil {
