@@ -22,7 +22,7 @@ type templateRegistryImpl struct {
 
 // NewRegistry creates a new template registry for DI
 func NewRegistry(i do.Injector) (interfaces.TemplateRegistry, error) {
-	return &templateRegistryImpl{
+	registry := &templateRegistryImpl{
 		templates: map[string]interface{}{
 {{- range .Templates}}
 			"{{.TemplateKey}}": {{.PackageAlias}}.{{.FunctionName}},
@@ -43,7 +43,9 @@ func NewRegistry(i do.Injector) (interfaces.TemplateRegistry, error) {
 {{- end}}
 {{- end}}
 		},
-	}, nil
+	}
+	
+	return registry, nil
 }
 
 // GetTemplate retrieves a template component by key

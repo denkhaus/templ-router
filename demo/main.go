@@ -59,7 +59,9 @@ func startupClean(ctx context.Context) error {
 		di.WithUserStore(userStore),
 	)
 
-	do.Provide(container.GetInjector(), dataservices.NewUserDataService)
+	// Register UserDataService as named dependency for DataService resolution
+	// Use short name without package prefix for cleaner naming
+	do.ProvideNamed(container.GetInjector(), "UserDataService", dataservices.NewUserDataService)
 
 	// Get logger from container
 	logger := container.GetLogger()

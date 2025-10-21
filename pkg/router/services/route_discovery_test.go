@@ -156,6 +156,14 @@ func (m *mockTemplateRegistry) GetTemplateByRoute(route string) (templ.Component
 	return nil, nil
 }
 
+func (m *mockTemplateRegistry) RequiresDataService(key string) bool {
+	return false
+}
+
+func (m *mockTemplateRegistry) GetDataServiceInfo(key string) (interfaces.DataServiceInfo, bool) {
+	return interfaces.DataServiceInfo{}, false
+}
+
 func createTestContainer() do.Injector {
 	injector := do.New()
 	

@@ -23,6 +23,11 @@ type Route struct {
 
 	// Security
 	AuthSettings *AuthSettings `json:"auth_settings,omitempty"`
+	
+	// Data Service Integration
+	RequiresDataService  bool   `json:"requires_data_service,omitempty"`
+	DataServiceInterface string `json:"data_service_interface,omitempty"`
+	DataParameterType    string `json:"data_parameter_type,omitempty"`
 }
 
 // LayoutTemplate represents a layout template

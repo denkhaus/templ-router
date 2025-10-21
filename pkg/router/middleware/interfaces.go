@@ -58,6 +58,11 @@ type TemplateMiddlewareInterface interface {
 	Handle(route interfaces.Route, params map[string]string) http.Handler
 }
 
+// DataServiceMiddlewareInterface handles data service resolution middleware
+type DataServiceMiddlewareInterface interface {
+	ResolveTemplateData(next http.Handler) http.Handler
+}
+
 // FileSystemChecker provides filesystem operations for library-agnostic file access
 type FileSystemChecker interface {
 	FileExists(path string) bool

@@ -59,13 +59,24 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Rout
 			continue
 		}
 
+		// Check if template requires data service
+		requiresDataService := rd.templateRegistry.RequiresDataService(templateKey)
+		var dataServiceInterface string
+		if requiresDataService {
+			if dataServiceInfo, exists := rd.templateRegistry.GetDataServiceInfo(templateKey); exists {
+				dataServiceInterface = dataServiceInfo.InterfaceType
+			}
+		}
+
 		// Create route object
 		route := interfaces.Route{
-			Path:         routePattern,
-			TemplateFile: rd.generateTemplateFilePathFromPattern(routePattern),
-			IsDynamic:    strings.Contains(routePattern, "$"),
-			Handler:      rd.generateHandlerName(routePattern),
-			Precedence:   rd.calculateRoutePrecedence(routePattern),
+			Path:                 routePattern,
+			TemplateFile:         rd.generateTemplateFilePathFromPattern(routePattern),
+			IsDynamic:            strings.Contains(routePattern, "$"),
+			Handler:              rd.generateHandlerName(routePattern),
+			Precedence:           rd.calculateRoutePrecedence(routePattern),
+			RequiresDataService:  requiresDataService,
+			DataServiceInterface: dataServiceInterface,
 		}
 
 		routes = append(routes, route)
@@ -74,7 +85,9 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Rout
 			zap.String("pattern", routePattern),
 			zap.String("template", templateKey),
 			zap.String("file", route.TemplateFile),
-			zap.Bool("dynamic", route.IsDynamic))
+			zap.Bool("dynamic", route.IsDynamic),
+			zap.Bool("requires_data_service", requiresDataService),
+			zap.String("data_service_interface", dataServiceInterface))
 	}
 
 	rd.logger.Info("Route discovery completed using template registry",

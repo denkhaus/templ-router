@@ -117,6 +117,14 @@ func (m *mockRouterTemplateRegistry) GetTemplateByRoute(route string) (templ.Com
 	return nil, nil
 }
 
+func (m *mockRouterTemplateRegistry) RequiresDataService(key string) bool {
+	return false
+}
+
+func (m *mockRouterTemplateRegistry) GetDataServiceInfo(key string) (interfaces.DataServiceInfo, bool) {
+	return interfaces.DataServiceInfo{}, false
+}
+
 type mockRouteDiscovery struct{}
 
 func (m *mockRouteDiscovery) DiscoverRoutes(scanPath string) ([]interfaces.Route, error) {

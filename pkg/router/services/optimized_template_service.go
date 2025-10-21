@@ -197,6 +197,19 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 		return component, nil
 	}
 
+	// Handle DataService templates (e.g., func(*dataservices.UserData) templ.Component)
+	// This should NOT be called directly by OptimizedTemplateService
+	// DataService templates are handled by DataServiceMiddleware
+	if _, ok := result.(func(interface{}) templ.Component); ok {
+		ots.logger.Warn("DataService template detected - should be handled by DataServiceMiddleware",
+			zap.String("route", routePath),
+			zap.String("template_uuid", templateUUID),
+			zap.String("result_type", fmt.Sprintf("%T", result)))
+		
+		// Return error to indicate this should be handled by DataServiceMiddleware
+		return nil, fmt.Errorf("template requires data service - should be handled by DataServiceMiddleware")
+	}
+
 	// Handle direct components (fallback)
 	if component, ok := result.(templ.Component); ok {
 		ots.logger.Debug("Direct component executed",

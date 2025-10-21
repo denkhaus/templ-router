@@ -202,9 +202,16 @@ func (rr *routeRegistrar) registerLocaleSpecificRoutes(route interfaces.Route) e
 	for _, locale := range validLocales {
 		// Create locale-specific route
 		localeRoute := interfaces.Route{
-			Path:         strings.ReplaceAll(route.Path, "$locale", locale),
-			TemplateFile: route.TemplateFile,
-			IsDynamic:    route.IsDynamic,
+			Path:                 strings.ReplaceAll(route.Path, "$locale", locale),
+			TemplateFile:         route.TemplateFile,
+			IsDynamic:            route.IsDynamic,
+			Handler:              route.Handler,
+			Precedence:           route.Precedence,
+			Locale:               locale,
+			AuthSettings:         route.AuthSettings,
+			RequiresDataService:  route.RequiresDataService,
+			DataServiceInterface: route.DataServiceInterface,
+			DataParameterType:    route.DataParameterType,
 		}
 
 		// Convert pattern for Chi router

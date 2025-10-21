@@ -91,6 +91,18 @@ func (m *MockTemplateRegistry) SetShouldError(shouldError bool) {
 	m.shouldError = shouldError
 }
 
+// RequiresDataService checks if a template requires a data service
+func (m *MockTemplateRegistry) RequiresDataService(key string) bool {
+	// For testing, return false by default
+	return false
+}
+
+// GetDataServiceInfo retrieves data service information for a template
+func (m *MockTemplateRegistry) GetDataServiceInfo(key string) (DataServiceInfo, bool) {
+	// For testing, return empty info
+	return DataServiceInfo{}, false
+}
+
 // Tests for TemplateRegistry interface
 func TestTemplateRegistry_GetTemplate(t *testing.T) {
 	registry := NewMockTemplateRegistry()

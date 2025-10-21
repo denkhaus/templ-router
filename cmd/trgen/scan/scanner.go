@@ -94,8 +94,9 @@ func isDataServiceType(paramType gotypes.Type, pkg *packages.Package) (bool, str
 			}
 		}
 		
-		// Construct the full service interface name
-		fullServiceInterface := servicePackage + "." + serviceInterfaceName
+		// Use only the short service interface name (without package prefix)
+		// This makes the naming shorter and more generic
+		shortServiceInterface := serviceInterfaceName
 		
 		// For now, we assume it's a data service if it matches our naming patterns
 		// In a more sophisticated implementation, we could try to resolve and check
@@ -106,7 +107,7 @@ func isDataServiceType(paramType gotypes.Type, pkg *packages.Package) (bool, str
 						strings.Contains(packagePath, "dataservices") ||
 						strings.Contains(packagePath, "data")
 		
-		return isDataService, fullServiceInterface, paramTypeStr
+		return isDataService, shortServiceInterface, paramTypeStr
 	}
 	
 	return false, "", paramTypeStr
