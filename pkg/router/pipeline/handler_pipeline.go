@@ -61,18 +61,24 @@ func (hp *HandlerPipeline) BuildHandler(config PipelineConfig) http.Handler {
 		zap.String("template", config.Route.TemplateFile),
 		zap.Bool("requires_data_service", config.Route.RequiresDataService))
 
-	// Start with the template handler (innermost)
-	handler := hp.templateMiddleware.Handle(config.Route, config.Params)
-
-	// Add data service middleware before template middleware if route requires data service
+	// Start with the innermost handler
+	var handler http.Handler
+	
+	// For data service routes, start with data service middleware (innermost)
 	if config.Route.RequiresDataService {
 		hp.logger.Debug("Adding data service middleware to pipeline",
 			zap.String("route", config.Route.Path),
 			zap.String("data_service_interface", config.Route.DataServiceInterface))
 		
-		// Wrap handler to set template_key in context before data service middleware
-		handler = hp.wrapWithTemplateKeyContext(handler, config.Route)
-		handler = hp.dataServiceMiddleware.ResolveTemplateData(handler)
+		// Start with template handler, then wrap with data service middleware
+		templateHandler := hp.templateMiddleware.Handle(config.Route, config.Params)
+		
+		// Wrap with template_key context, then data service middleware
+		templateHandler = hp.wrapWithTemplateKeyContext(templateHandler, config.Route)
+		handler = hp.dataServiceMiddleware.ResolveTemplateData(templateHandler)
+	} else {
+		// For non-data service routes, just use template middleware
+		handler = hp.templateMiddleware.Handle(config.Route, config.Params)
 	}
 
 	// Wrap with i18n middleware

@@ -173,9 +173,11 @@ func (crc *cleanRouterCore) convertToInterfaceRoutes(routes []interfaces.Route) 
 
 	for i, route := range routes {
 		interfaceRoutes[i] = interfaces.Route{
-			Path:         route.Path,
-			TemplateFile: route.TemplateFile,
-			IsDynamic:    route.IsDynamic,
+			Path:                 route.Path,
+			TemplateFile:         route.TemplateFile,
+			IsDynamic:            route.IsDynamic,
+			RequiresDataService:  route.RequiresDataService,
+			DataServiceInterface: route.DataServiceInterface,
 		}
 	}
 
