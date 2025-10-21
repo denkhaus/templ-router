@@ -305,13 +305,24 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 		return nil, fmt.Errorf("failed to resolve data service %s: %w", dataServiceInfo.InterfaceType, err)
 	}
 
-	// Call GetData method on the service using reflection
+	// Call specific method based on data type, fallback to GetData
 	serviceValue := reflect.ValueOf(dataService)
-	getDataMethod := serviceValue.MethodByName("GetData")
+	methodName := deriveMethodNameFromDataType(dataServiceInfo.ParameterType)
+	getDataMethod := serviceValue.MethodByName(methodName)
+	
+	// Fallback to GetData if specific method doesn't exist
+	if !getDataMethod.IsValid() {
+		getDataMethod = serviceValue.MethodByName("GetData")
+		methodName = "GetData"
+	}
 	
 	if !getDataMethod.IsValid() {
-		return nil, fmt.Errorf("GetData method not found on data service")
+		return nil, fmt.Errorf("neither %s nor GetData method found on data service", methodName)
 	}
+	
+	ots.logger.Debug("Using data service method",
+		zap.String("method_name", methodName),
+		zap.String("data_service_interface", dataServiceInfo.InterfaceType))
 
 	// Prepare arguments: ctx (empty for now), params
 	args := []reflect.Value{
@@ -362,6 +373,19 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 		zap.String("template_uuid", templateUUID))
 
 	return component, nil
+}
+
+// deriveMethodNameFromDataType converts "*dataservices.UserData" to "GetUserData"
+func deriveMethodNameFromDataType(parameterType string) string {
+	// Extract type name from "*github.com/path/dataservices.UserData"
+	parts := strings.Split(parameterType, ".")
+	if len(parts) > 0 {
+		typeName := parts[len(parts)-1]
+		// Remove pointer prefix if present
+		typeName = strings.TrimPrefix(typeName, "*")
+		return "Get" + typeName
+	}
+	return "GetData" // fallback
 }
 
 // ClearCache clears the template cache (useful for development)

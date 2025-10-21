@@ -20,6 +20,7 @@ type UserData struct {
 // Uses standardized GetData method for all DataServices
 type UserDataService interface {
 	GetData(ctx context.Context, params map[string]string) (*UserData, error)
+	GetUserData(ctx context.Context, params map[string]string) (*UserData, error)
 }
 
 // userDataServiceImpl is the concrete implementation
@@ -65,6 +66,43 @@ func (s *userDataServiceImpl) GetData(ctx context.Context, params map[string]str
 		userData.Name = "Utilisateur Demo DataService"
 		userData.Email = "demo@exemple.fr"
 		userData.Role = "Utilisateur Test"
+	}
+
+	return userData, nil
+}
+
+// GetUserData is the new specific method that should be called instead of GetData
+func (s *userDataServiceImpl) GetUserData(ctx context.Context, params map[string]string) (*UserData, error) {
+	// Same logic as GetData but with a different method name to test our implementation
+	locale := params["locale"]
+	if locale == "" {
+		locale = "en"
+	}
+
+	// Return demo data for the test page with a marker to show this method was called
+	userData := &UserData{
+		ID:       "specific-method-user",
+		Name:     "GetUserData Method Called!",
+		Email:    "getuserdata@example.com",
+		Role:     "Specific Method User",
+		Projects: 5,
+		Tasks:    25,
+	}
+
+	// Add some variation based on locale
+	switch locale {
+	case "de":
+		userData.Name = "GetUserData Methode aufgerufen!"
+		userData.Email = "getuserdata@beispiel.de"
+		userData.Role = "Spezifische Methode Benutzer"
+	case "es":
+		userData.Name = "Metodo GetUserData llamado!"
+		userData.Email = "getuserdata@ejemplo.es"
+		userData.Role = "Usuario Metodo Especifico"
+	case "fr":
+		userData.Name = "Methode GetUserData appelee!"
+		userData.Email = "getuserdata@exemple.fr"
+		userData.Role = "Utilisateur Methode Specifique"
 	}
 
 	return userData, nil
