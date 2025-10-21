@@ -20,7 +20,9 @@ import (
 
 // main demonstrates the new clean architecture
 func main() {
-	startupClean(context.Background())
+	if err := startupClean(context.Background()); err != nil {
+		panic(fmt.Sprintf("Failed to start application: %v", err))
+	}
 }
 
 func startupClean(ctx context.Context) error {
@@ -125,8 +127,8 @@ func startupClean(ctx context.Context) error {
 	logRouteInformation(cleanRouter, logger)
 
 	// Start server
-	logger.Info("Starting Clean Architecture Demo Server on :8084")
-	if err := http.ListenAndServe(":8084", mux); err != nil {
+	logger.Info("Starting Clean Architecture Demo Server on 0.0.0.0:8084")
+	if err := http.ListenAndServe("0.0.0.0:8084", mux); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
 

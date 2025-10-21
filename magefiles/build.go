@@ -11,32 +11,34 @@ import (
 type Build mg.Namespace
 
 // TailwindClean builds Tailwind CSS
-func (Build) TailwindClean() error {
+func (p Build) TailwindClean() error {
 	fmt.Println("Building Tailwind CSS...")
 	return sh.RunV("npx", "@tailwindcss/cli", "-i", "./demo/assets/css/input.css", "-o", "./demo/assets/css/output.css")
 }
 
 // TailwindWatch builds Tailwind CSS in watch mode
-func (Build) TailwindWatch() error {
+func (p Build) TailwindWatch() error {
 	fmt.Println("Watching Tailwind CSS...")
 	return sh.RunV("npx", "@tailwindcss/cli", "-i", "./demo/assets/css/input.css", "-o", "./demo/assets/css/output.css", "--watch")
 }
 
 // TemplWatch runs templ generation in watch mode
-func (Build) TemplWatch() error {
+func (p Build) TemplWatch() error {
 	fmt.Println("Watching Templ files...")
 	return sh.RunV("templ", "generate", "--watch", "--proxy=http://localhost:8090", "--open-browser=false")
 }
 
 // TemplGenerate generates Templ templates
-func (Build) TemplGenerate() error {
+func (p Build) TemplGenerate() error {
+	mg.Deps(Templ.Install)
+
 	fmt.Println("Generating Templ templates...")
 	return sh.RunV("templ", "generate")
 }
 
-func (Build) RegistryGenerate() error {
+func (p Build) RegistryGenerate() error {
 
-	mg.Deps((Generator{}).Install)
+	mg.Deps(p.TemplGenerate, Generator.Install)
 
 	fmt.Println("Generating template registry...")
 	// Generate templates
