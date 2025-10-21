@@ -12,10 +12,24 @@ import (
 // ValidateTemplatePath validates that the template file is in the correct location
 func ValidateTemplatePath(filePath string, config types.Config) error {
 	rootDir := config.ScanPath
-	// Basic validation - ensure it's a _templ.go file in the configured root directory
-	if !strings.Contains(filePath, "/"+rootDir+"/") && !strings.HasSuffix(filepath.Dir(filePath), "/"+rootDir) {
+	
+	// Convert to absolute paths for comparison
+	absRootDir, err := filepath.Abs(rootDir)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for root dir: %w", err)
+	}
+	
+	absFilePath, err := filepath.Abs(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to get absolute path for file: %w", err)
+	}
+	
+	// Check if file is within the root directory or its subdirectories
+	relPath, err := filepath.Rel(absRootDir, absFilePath)
+	if err != nil || strings.HasPrefix(relPath, "..") {
 		return fmt.Errorf("template file %s is not in the %s directory", filePath, rootDir)
 	}
+	
 	return nil
 }
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/denkhaus/templ-router/demo/assets"
 	"github.com/denkhaus/templ-router/demo/generated/templates"
+	"github.com/denkhaus/templ-router/demo/pkg/dataservices"
 	"github.com/denkhaus/templ-router/demo/pkg/services"
 	"github.com/denkhaus/templ-router/pkg/di"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
@@ -57,6 +58,8 @@ func startupClean(ctx context.Context) error {
 		di.WithAssetsService(assetsService),
 		di.WithUserStore(userStore),
 	)
+
+	do.Provide(container.GetInjector(), dataservices.NewUserDataService)
 
 	// Get logger from container
 	logger := container.GetLogger()

@@ -17,6 +17,7 @@ import (
 type templateRegistryImpl struct {
 	templates    map[string]interface{}
 	routeMapping map[string]string
+	dataServices map[string]interfaces.DataServiceInfo
 }
 
 // NewRegistry creates a new template registry for DI
@@ -30,6 +31,16 @@ func NewRegistry(i do.Injector) (interfaces.TemplateRegistry, error) {
 		routeMapping: map[string]string{
 {{- range .Templates}}
 			"{{.RoutePattern}}": "{{.TemplateKey}}",
+{{- end}}
+		},
+		dataServices: map[string]interfaces.DataServiceInfo{
+{{- range .Templates}}
+{{- if .RequiresDataService}}
+			"{{.TemplateKey}}": {
+				InterfaceType: "{{.DataServiceInterface}}",
+				ParameterType: "{{.DataParameterType}}",
+			},
+{{- end}}
 {{- end}}
 		},
 	}, nil
@@ -93,4 +104,16 @@ func (r *templateRegistryImpl) GetTemplateByRoute(route string) (templ.Component
 		return r.GetTemplate(templateKey)
 	}
 	return nil, fmt.Errorf("no template found for route: %s", route)
+}
+
+// RequiresDataService checks if a template requires a data service
+func (r *templateRegistryImpl) RequiresDataService(key string) bool {
+	_, exists := r.dataServices[key]
+	return exists
+}
+
+// GetDataServiceInfo retrieves data service information for a template
+func (r *templateRegistryImpl) GetDataServiceInfo(key string) (interfaces.DataServiceInfo, bool) {
+	info, exists := r.dataServices[key]
+	return info, exists
 }

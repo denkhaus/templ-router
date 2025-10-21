@@ -35,8 +35,14 @@ func NewService(injector do.Injector) (interfaces.AssetsService, error) {
 	}
 
 	info, err := os.Stat(assetsPath)
-	if os.IsNotExist(err) || !info.IsDir() {
-		return nil, fmt.Errorf("assets directory %q does not exist or is no directory", assetsPath)
+	if os.IsNotExist(err) {
+		return nil, fmt.Errorf("assets directory %q does not exist", assetsPath)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to stat assets directory %q: %w", assetsPath, err)
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("assets path %q is not a directory", assetsPath)
 	}
 
 	logger.Info("assets service successfull initialized",

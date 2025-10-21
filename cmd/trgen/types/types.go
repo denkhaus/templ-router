@@ -19,6 +19,11 @@ type TemplateInfo struct {
 	PackageAlias string
 	ImportPath   string
 	HumanName    string // Human-readable name for documentation
+	
+	// Data Service Integration
+	RequiresDataService  bool   // true if template has data parameter
+	DataServiceInterface string // e.g., "dataservices.UserDataService"
+	DataParameterType    string // e.g., "*dataservices.UserData"
 }
 
 // ImportInfo represents an import statement with alias

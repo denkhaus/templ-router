@@ -67,42 +67,81 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 	dir := filepath.Dir(filePath)
 	rootDir := config.ScanPath // Use configurable root directory
 
-	// Extract relative path from scan directory
-
-	// Extract relative path from configurable root directory
-	// GENERIC APPROACH: Work with the actual working directory and scan path
-	// to determine the relative path regardless of project structure
-	
-	// Convert to forward slashes for consistent handling
-	dir = filepath.ToSlash(dir)
-	
-	// The key insight: we need to find where the scan path ends in the file path
-	// and extract everything after that point, regardless of the absolute path structure
-	
-	// Split the directory path into parts
-	dirParts := strings.Split(dir, "/")
-	
-	// Find the rightmost occurrence of the scan path in the directory parts
-	// This handles cases like: /any/path/structure/scanPath/sub/dirs
-	var scanPathIndex = -1
-	for i := len(dirParts) - 1; i >= 0; i-- {
-		if dirParts[i] == rootDir {
-			scanPathIndex = i
-			break
+	// Convert to absolute paths for proper comparison
+	absScanPath, err := filepath.Abs(rootDir)
+	if err != nil {
+		// Fallback to original logic
+		dir = filepath.ToSlash(dir)
+		dirParts := strings.Split(dir, "/")
+		var scanPathIndex = -1
+		for i := len(dirParts) - 1; i >= 0; i-- {
+			if dirParts[i] == rootDir {
+				scanPathIndex = i
+				break
+			}
 		}
-	}
-	
-	
-	if scanPathIndex == -1 {
-		// Scan path not found in directory - this shouldn't happen in normal operation
-		// Keep original dir for now, but this might indicate a configuration issue
-	} else if scanPathIndex == len(dirParts)-1 {
-		// The scan path is the last part - we're in the root scan directory
-		dir = ""
+		
+		if scanPathIndex == -1 {
+			// Keep original dir
+		} else if scanPathIndex == len(dirParts)-1 {
+			dir = ""
+		} else {
+			relativeParts := dirParts[scanPathIndex+1:]
+			dir = strings.Join(relativeParts, "/")
+		}
 	} else {
-		// Extract everything after the scan path
-		relativeParts := dirParts[scanPathIndex+1:]
-		dir = strings.Join(relativeParts, "/")
+		absDir, err := filepath.Abs(dir)
+		if err != nil {
+			// Fallback to original logic
+			dir = filepath.ToSlash(dir)
+			dirParts := strings.Split(dir, "/")
+			var scanPathIndex = -1
+			for i := len(dirParts) - 1; i >= 0; i-- {
+				if dirParts[i] == rootDir {
+					scanPathIndex = i
+					break
+				}
+			}
+			
+			if scanPathIndex == -1 {
+				// Keep original dir
+			} else if scanPathIndex == len(dirParts)-1 {
+				dir = ""
+			} else {
+				relativeParts := dirParts[scanPathIndex+1:]
+				dir = strings.Join(relativeParts, "/")
+			}
+		} else {
+			// Calculate relative path from scan path to template directory
+			relativeDir, err := filepath.Rel(absScanPath, absDir)
+			if err != nil || strings.HasPrefix(relativeDir, "..") {
+				// Fallback to original logic
+				dir = filepath.ToSlash(dir)
+				dirParts := strings.Split(dir, "/")
+				var scanPathIndex = -1
+				for i := len(dirParts) - 1; i >= 0; i-- {
+					if dirParts[i] == rootDir {
+						scanPathIndex = i
+						break
+					}
+				}
+				
+				if scanPathIndex == -1 {
+					// Keep original dir
+				} else if scanPathIndex == len(dirParts)-1 {
+					dir = ""
+				} else {
+					relativeParts := dirParts[scanPathIndex+1:]
+					dir = strings.Join(relativeParts, "/")
+				}
+			} else {
+				// Use the calculated relative path
+				dir = filepath.ToSlash(relativeDir)
+				if dir == "." {
+					dir = ""
+				}
+			}
+		}
 	}
 
 	if dir == "" || dir == "." || dir == rootDir {
@@ -171,16 +210,8 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 	dir := filepath.Dir(filePath)
 	dir = filepath.ToSlash(dir)
 
-	// CRITICAL: We need to extract the full relative path from the module root,
-	// not just from the scan path. The import path must be relative to where
-	// the go.mod file is located.
-	
-	// SIMPLIFIED APPROACH: The module name already contains the correct base path
-	// We just need to add the scan path and any subdirectories
-	
+	// Find the scan path in the directory path
 	pathParts := strings.Split(dir, "/")
-	
-	// Find the scan path in the directory
 	var scanPathIndex = -1
 	for i := len(pathParts) - 1; i >= 0; i-- {
 		if pathParts[i] == rootDir {
@@ -190,27 +221,25 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 	}
 	
 	var importPath string
+	
 	if scanPathIndex == -1 {
-		// Fallback if scan path not found
+		// Scan path not found in directory - use base import path
+		importPath = moduleName + "/" + rootDir
+	} else if scanPathIndex == len(pathParts)-1 {
+		// File is directly in the scan path directory
 		importPath = moduleName + "/" + rootDir
 	} else {
-		if scanPathIndex == len(pathParts)-1 {
-			// We're in the root scan directory
-			importPath = moduleName + "/" + rootDir
-		} else {
-			// We're in a subdirectory of the scan path
-			subParts := pathParts[scanPathIndex+1:]
-			importPath = moduleName + "/" + rootDir + "/" + strings.Join(subParts, "/")
-		}
-	}
-	
-	// CRITICAL FIX: We also need to extract the correct package name from the file path
-	// The package name should be the last directory in the path, not always the scan path
-	if scanPathIndex != -1 && scanPathIndex < len(pathParts)-1 {
-		// We're in a subdirectory - the package name is the last directory
+		// File is in a subdirectory of the scan path
+		subParts := pathParts[scanPathIndex+1:]
+		importPath = moduleName + "/" + rootDir + "/" + strings.Join(subParts, "/")
+		
+		// Update package name to be the last directory in the path
 		rawPackageName := pathParts[len(pathParts)-1]
 		packageName = sanitizePackageName(rawPackageName)
 	}
+	
+	// Clean up any "./" in the path
+	importPath = strings.ReplaceAll(importPath, "/./", "/")
 
 	return packageName, importPath
 }
