@@ -11,7 +11,8 @@ type Config struct {
 
 // TemplateInfo holds information about a discovered template
 type TemplateInfo struct {
-	FilePath     string
+	FilePath     string // Absolute path to the Go file
+	TemplatePath string // Relative template path (e.g., "demo/app/locale_/test/page.templ")
 	FunctionName string
 	TemplateKey  string
 	RoutePattern string

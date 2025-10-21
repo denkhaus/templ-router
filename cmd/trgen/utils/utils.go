@@ -197,7 +197,7 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 
 // getLocalPackageInfo handles local packages generically
 func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (string, string) {
-	rootDir := config.ScanPath
+	rootDir := strings.TrimPrefix(config.ScanPath, "./") // Clean scan path
 
 	// Parse the file to get package declaration
 	fset := token.NewFileSet()
@@ -210,31 +210,51 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 	dir := filepath.Dir(filePath)
 	dir = filepath.ToSlash(dir)
 
-	// Find the scan path in the directory path
-	pathParts := strings.Split(dir, "/")
-	var scanPathIndex = -1
-	for i := len(pathParts) - 1; i >= 0; i-- {
-		if pathParts[i] == rootDir {
-			scanPathIndex = i
-			break
-		}
+	// Find the last occurrence of the scan path in the directory
+	// This ensures we get the correct scan path even if it appears multiple times
+	scanPathPattern := "/" + rootDir
+	lastIndex := strings.LastIndex(dir, scanPathPattern)
+	
+	if lastIndex == -1 {
+		// Scan path not found - use base import path
+		return packageName, moduleName + "/" + rootDir
 	}
 	
-	var importPath string
-	
-	if scanPathIndex == -1 {
-		// Scan path not found in directory - use base import path
-		importPath = moduleName + "/" + rootDir
-	} else if scanPathIndex == len(pathParts)-1 {
+	// Check if this is the end of the path (file directly in scan path)
+	afterScanPath := dir[lastIndex+len(scanPathPattern):]
+	if afterScanPath == "" {
 		// File is directly in the scan path directory
-		importPath = moduleName + "/" + rootDir
+		return packageName, moduleName + "/" + rootDir
+	}
+	
+	// Check if the next character is a "/" (indicating a subdirectory)
+	if !strings.HasPrefix(afterScanPath, "/") {
+		// This might be a false match (e.g., "app" in "webapp")
+		// Look for the pattern with slashes
+		scanPathWithSlash := "/" + rootDir + "/"
+		realIndex := strings.LastIndex(dir, scanPathWithSlash)
+		if realIndex == -1 {
+			// No proper scan path found
+			return packageName, moduleName + "/" + rootDir
+		}
+		afterScanPath = dir[realIndex+len(scanPathWithSlash):]
 	} else {
-		// File is in a subdirectory of the scan path
-		subParts := pathParts[scanPathIndex+1:]
-		importPath = moduleName + "/" + rootDir + "/" + strings.Join(subParts, "/")
-		
-		// Update package name to be the last directory in the path
-		rawPackageName := pathParts[len(pathParts)-1]
+		// Remove the leading "/"
+		afterScanPath = afterScanPath[1:]
+	}
+	
+	if afterScanPath == "" {
+		// File is directly in the scan path directory
+		return packageName, moduleName + "/" + rootDir
+	}
+	
+	// File is in a subdirectory - build the full import path
+	importPath := moduleName + "/" + rootDir + "/" + afterScanPath
+	
+	// Update package name to be the last directory in the path
+	subParts := strings.Split(afterScanPath, "/")
+	if len(subParts) > 0 {
+		rawPackageName := subParts[len(subParts)-1]
 		packageName = sanitizePackageName(rawPackageName)
 	}
 	

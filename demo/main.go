@@ -149,6 +149,8 @@ func logRouteInformation(cleanRouter router.RouterCore, logger *zap.Logger) {
 		logger.Info("Route registered",
 			zap.String("path", route.Path),
 			zap.String("template", route.TemplateFile),
-			zap.Bool("dynamic", route.IsDynamic))
+			zap.Bool("dynamic", route.IsDynamic),
+			zap.Bool("requires_data_service", route.RequiresDataService),
+			zap.String("data_service_interface", route.DataServiceInterface))
 	}
 }

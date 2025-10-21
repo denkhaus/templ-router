@@ -68,6 +68,13 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Rout
 			}
 		}
 
+		// Debug logging for DataService detection
+		rd.logger.Info("Route discovery DataService check",
+			zap.String("route", routePattern),
+			zap.String("template_key", templateKey),
+			zap.Bool("requires_data_service", requiresDataService),
+			zap.String("data_service_interface", dataServiceInterface))
+
 		// Create route object
 		route := interfaces.Route{
 			Path:                 routePattern,
@@ -81,13 +88,13 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Rout
 
 		routes = append(routes, route)
 
-		rd.logger.Debug("Route discovered from template registry",
+		rd.logger.Info("Route discovered from template registry",
 			zap.String("pattern", routePattern),
 			zap.String("template", templateKey),
 			zap.String("file", route.TemplateFile),
 			zap.Bool("dynamic", route.IsDynamic),
-			zap.Bool("requires_data_service", requiresDataService),
-			zap.String("data_service_interface", dataServiceInterface))
+			zap.Bool("requires_data_service", route.RequiresDataService),
+			zap.String("data_service_interface", route.DataServiceInterface))
 	}
 
 	rd.logger.Info("Route discovery completed using template registry",

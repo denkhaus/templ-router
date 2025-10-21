@@ -9,6 +9,7 @@ import (
 	"github.com/denkhaus/templ-router/cmd/trgen/types"
 	"github.com/denkhaus/templ-router/cmd/trgen/utils"
 	"github.com/denkhaus/templ-router/cmd/trgen/validate"
+	"github.com/denkhaus/templ-router/pkg/shared"
 
 	"github.com/google/uuid"
 	"golang.org/x/tools/go/packages"
@@ -257,8 +258,12 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		// Create package alias
 		packageAlias := utils.CreatePackageAlias(packageName, importPath, config)
 
+		// Convert absolute file path to relative template path
+		templatePath := convertToTemplatePath(filePath, config)
+
 		templateInfo := types.TemplateInfo{
 			FilePath:     filePath,
+			TemplatePath: templatePath,
 			FunctionName: functionName,
 			PackageName:  packageName,
 			PackageAlias: packageAlias,
@@ -300,6 +305,46 @@ func ScanSpecificPackage(config types.Config) ([]types.TemplateInfo, error) {
 
 	fmt.Printf("Found %d templates in package %s\n", len(filteredTemplates), config.PackageName)
 	return filteredTemplates, nil
+}
+
+// convertToTemplatePath converts absolute Go file path to relative template path
+// e.g., "/home/user/project/demo/app/locale_/test/page_templ.go" -> "app/locale_/test/page.templ"
+func convertToTemplatePath(filePath string, config types.Config) string {
+	// Clean the scan path to handle relative paths like "./app"
+	cleanScanPath := strings.TrimPrefix(config.ScanPath, "./")
+	
+	// Find the LAST occurrence of "/scanPath/" to get the correct one
+	searchPattern := "/" + cleanScanPath + "/"
+	lastIndex := strings.LastIndex(filePath, searchPattern)
+	
+	if lastIndex >= 0 {
+		// Extract from the scan path onwards
+		relativeFromScanPath := filePath[lastIndex+1:] // +1 to skip the leading "/"
+		// Convert to template path
+		if strings.HasSuffix(relativeFromScanPath, "_templ.go") {
+			relativeFromScanPath = strings.TrimSuffix(relativeFromScanPath, "_templ.go") + ".templ"
+		}
+		return relativeFromScanPath
+	}
+	
+	// Fallback: just remove _templ.go and add .templ
+	relativePath := strings.TrimPrefix(filePath, config.ScanPath)
+	relativePath = strings.TrimPrefix(relativePath, "/")
+	
+	// Convert from Go file to template file
+	if strings.HasSuffix(relativePath, "_templ.go") {
+		relativePath = strings.TrimSuffix(relativePath, "_templ.go") + ".templ"
+	}
+	
+	return relativePath
+}
+
+// generateUniqueTemplateKey generates a unique key for each template function
+// This ensures that multiple functions in the same file get different keys
+func generateUniqueTemplateKey(templatePath, functionName string) string {
+	// Combine template path and function name for uniqueness
+	combined := templatePath + "#" + functionName
+	return shared.GenerateTemplateKey(combined)
 }
 
 // scanAllTemplates is the original scanTemplates function renamed

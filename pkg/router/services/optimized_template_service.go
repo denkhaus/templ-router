@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"sync"
 
@@ -200,7 +201,7 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 	// Handle DataService templates (e.g., func(*dataservices.UserData) templ.Component)
 	// This should NOT be called directly by OptimizedTemplateService
 	// DataService templates are handled by DataServiceMiddleware
-	if _, ok := result.(func(interface{}) templ.Component); ok {
+	if ots.isDataServiceTemplate(result) {
 		ots.logger.Warn("DataService template detected - should be handled by DataServiceMiddleware",
 			zap.String("route", routePath),
 			zap.String("template_uuid", templateUUID),
@@ -224,6 +225,43 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 		zap.String("result_type", fmt.Sprintf("%T", result)))
 
 	return nil, middleware.ErrTemplateNotFound
+}
+
+// isDataServiceTemplate checks if the result is a DataService template function
+// DataService templates have signature: func(*SomeDataType) templ.Component
+func (ots *OptimizedTemplateService) isDataServiceTemplate(result interface{}) bool {
+	resultType := reflect.TypeOf(result)
+	
+	// Must be a function
+	if resultType.Kind() != reflect.Func {
+		return false
+	}
+	
+	// Must have exactly 1 input parameter and 1 output parameter
+	if resultType.NumIn() != 1 || resultType.NumOut() != 1 {
+		return false
+	}
+	
+	// Input parameter must be a pointer to a struct (DataService data type)
+	inputType := resultType.In(0)
+	if inputType.Kind() != reflect.Ptr {
+		return false
+	}
+	
+	// The pointer must point to a struct
+	if inputType.Elem().Kind() != reflect.Struct {
+		return false
+	}
+	
+	// Output must be templ.Component
+	outputType := resultType.Out(0)
+	// Check if output implements templ.Component interface
+	templComponentType := reflect.TypeOf((*templ.Component)(nil)).Elem()
+	if !outputType.Implements(templComponentType) {
+		return false
+	}
+	
+	return true
 }
 
 // convertLayoutPathToRoute converts layout path to route pattern (fail-fast)

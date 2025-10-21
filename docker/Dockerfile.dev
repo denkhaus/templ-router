@@ -42,7 +42,7 @@ RUN mage generator:install
 
 RUN cd demo && npm install
 # Generate Templ code using trgen
-RUN trgen --scan-path demo/app --module-name github.com/denkhaus/templ-router
+RUN cd demo && trgen --scan-path ./app --module-name github.com/denkhaus/templ-router/demo
 
 # Build Tailwind CSS
 RUN mage build:tailwindClean

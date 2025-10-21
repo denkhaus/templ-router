@@ -18,6 +18,7 @@ services:
       # Node.js cache for faster npm installs
       - node-modules-cache:/app/demo/node_modules
     environment:
+      - TR_LOGGING_LEVEL=debug
       - GOCACHE=/home/user/.cache/go-build
       - GOMODCACHE=/go/pkg/mod
       - HOME=/home/user

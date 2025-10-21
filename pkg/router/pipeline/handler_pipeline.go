@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
@@ -16,6 +17,7 @@ type HandlerPipeline struct {
 	i18nMiddleware        middleware.I18nMiddlewareInterface
 	templateMiddleware    middleware.TemplateMiddlewareInterface
 	dataServiceMiddleware middleware.DataServiceMiddlewareInterface
+	templateRegistry      interfaces.TemplateRegistry
 	logger                *zap.Logger
 }
 
@@ -38,6 +40,7 @@ func NewHandlerPipeline(i do.Injector) (*HandlerPipeline, error) {
 	i18nMiddleware := do.MustInvoke[middleware.I18nMiddlewareInterface](i)
 	templateMiddleware := do.MustInvoke[middleware.TemplateMiddlewareInterface](i)
 	dataServiceMiddleware := do.MustInvoke[middleware.DataServiceMiddlewareInterface](i)
+	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &HandlerPipeline{
@@ -45,6 +48,7 @@ func NewHandlerPipeline(i do.Injector) (*HandlerPipeline, error) {
 		i18nMiddleware:        i18nMiddleware,
 		templateMiddleware:    templateMiddleware,
 		dataServiceMiddleware: dataServiceMiddleware,
+		templateRegistry:      templateRegistry,
 		logger:                logger,
 	}, nil
 
@@ -65,6 +69,9 @@ func (hp *HandlerPipeline) BuildHandler(config PipelineConfig) http.Handler {
 		hp.logger.Debug("Adding data service middleware to pipeline",
 			zap.String("route", config.Route.Path),
 			zap.String("data_service_interface", config.Route.DataServiceInterface))
+		
+		// Wrap handler to set template_key in context before data service middleware
+		handler = hp.wrapWithTemplateKeyContext(handler, config.Route)
 		handler = hp.dataServiceMiddleware.ResolveTemplateData(handler)
 	}
 
@@ -100,6 +107,34 @@ func (hp *HandlerPipeline) resolveAuthSettings(config PipelineConfig) *interface
 	hp.logger.Debug("Using default public auth settings",
 		zap.String("route", config.Route.Path))
 	return &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}
+}
+
+// wrapWithTemplateKeyContext wraps a handler to set template_key in context
+func (hp *HandlerPipeline) wrapWithTemplateKeyContext(next http.Handler, route interfaces.Route) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		
+		// Get route-to-template mapping from template registry
+		routeMapping := hp.templateRegistry.GetRouteToTemplateMapping()
+		
+		// Try to find template key for this route
+		templateKey, found := routeMapping[route.Path]
+		if found {
+			hp.logger.Debug("Setting template_key in context",
+				zap.String("route", route.Path),
+				zap.String("template_key", templateKey))
+			
+			// Add template_key to context
+			ctx = context.WithValue(ctx, "template_key", templateKey)
+			r = r.WithContext(ctx)
+		} else {
+			hp.logger.Warn("Could not resolve template_key for route",
+				zap.String("route", route.Path),
+				zap.String("template_file", route.TemplateFile))
+		}
+		
+		next.ServeHTTP(w, r)
+	})
 }
 
 // BuildHandlerFunc creates an http.HandlerFunc using the pipeline

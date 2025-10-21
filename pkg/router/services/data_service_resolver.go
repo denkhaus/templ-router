@@ -64,8 +64,9 @@ func (r *dataServiceResolverImpl) resolveNamedDataService(serviceName string) (i
 	// The serviceName is already the short name (e.g., "UserDataService")
 	// No need to extract anything since we optimized the scanner
 	
-	// Use do.InvokeNamed to resolve the service by name
-	service, err := do.InvokeNamed[interfaces.DataService[any]](r.injector, serviceName)
+	// Use do.InvokeNamed with interface{} to resolve any service type by name
+	// This allows us to resolve services that don't implement a common interface
+	service, err := do.InvokeNamed[interface{}](r.injector, serviceName)
 	if err != nil {
 		return nil, fmt.Errorf("failed to resolve DataService '%s': %w", serviceName, err)
 	}

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 {{- range .Imports}}
 	{{.Alias}} "{{.Path}}"
@@ -25,18 +26,18 @@ func NewRegistry(i do.Injector) (interfaces.TemplateRegistry, error) {
 	registry := &templateRegistryImpl{
 		templates: map[string]interface{}{
 {{- range .Templates}}
-			"{{.TemplateKey}}": {{.PackageAlias}}.{{.FunctionName}},
+			shared.GenerateTemplateKey("{{.TemplatePath}}#{{.FunctionName}}"): {{.PackageAlias}}.{{.FunctionName}},
 {{- end}}
 		},
 		routeMapping: map[string]string{
 {{- range .Templates}}
-			"{{.RoutePattern}}": "{{.TemplateKey}}",
+			"{{.RoutePattern}}": shared.GenerateTemplateKey("{{.TemplatePath}}#{{.FunctionName}}"),
 {{- end}}
 		},
 		dataServices: map[string]interfaces.DataServiceInfo{
 {{- range .Templates}}
 {{- if .RequiresDataService}}
-			"{{.TemplateKey}}": {
+			shared.GenerateTemplateKey("{{.TemplatePath}}#{{.FunctionName}}"): {
 				InterfaceType: "{{.DataServiceInterface}}",
 				ParameterType: "{{.DataParameterType}}",
 			},
