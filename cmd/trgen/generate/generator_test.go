@@ -23,6 +23,7 @@ func TestGenerateRegistry(t *testing.T) {
 			RoutePattern: "/",
 			TemplateKey:  "test-key-1",
 			FilePath:     "/test/app/page_templ.go",
+			TemplatePath: "app/page.templ",
 			HumanName:    "Page",
 		},
 		{
@@ -33,6 +34,7 @@ func TestGenerateRegistry(t *testing.T) {
 			RoutePattern: "/layout",
 			TemplateKey:  "test-key-2",
 			FilePath:     "/test/app/layout_templ.go",
+			TemplatePath: "app/layout.templ",
 			HumanName:    "Layout",
 		},
 		{
@@ -43,6 +45,7 @@ func TestGenerateRegistry(t *testing.T) {
 			RoutePattern: "/error-demo",
 			TemplateKey:  "test-key-3",
 			FilePath:     "/test/app/error-demo/page_templ.go",
+			TemplatePath: "app/error-demo/page.templ",
 			HumanName:    "error-demo.Page",
 		},
 	}
@@ -89,11 +92,11 @@ func TestGenerateRegistry(t *testing.T) {
 		}
 	}
 
-	// Check template mappings
+	// Check template mappings (using shared.GenerateTemplateKey)
 	expectedMappings := []string{
-		`"test-key-1": app.Page,`,
-		`"test-key-2": app.Layout,`,
-		`"test-key-3": errordemo.Page,`,
+		`shared.GenerateTemplateKey("app/page.templ#Page"): app.Page,`,
+		`shared.GenerateTemplateKey("app/layout.templ#Layout"): app.Layout,`,
+		`shared.GenerateTemplateKey("app/error-demo/page.templ#Page"): errordemo.Page,`,
 	}
 	for _, mapping := range expectedMappings {
 		if !strings.Contains(contentStr, mapping) {
@@ -101,11 +104,11 @@ func TestGenerateRegistry(t *testing.T) {
 		}
 	}
 
-	// Check route mappings
+	// Check route mappings (using shared.GenerateTemplateKey)
 	expectedRoutes := []string{
-		`"/": "test-key-1",`,
-		`"/layout": "test-key-2",`,
-		`"/error-demo": "test-key-3",`,
+		`"/": shared.GenerateTemplateKey("app/page.templ#Page"),`,
+		`"/layout": shared.GenerateTemplateKey("app/layout.templ#Layout"),`,
+		`"/error-demo": shared.GenerateTemplateKey("app/error-demo/page.templ#Page"),`,
 	}
 	for _, route := range expectedRoutes {
 		if !strings.Contains(contentStr, route) {
