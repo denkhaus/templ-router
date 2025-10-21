@@ -65,28 +65,23 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 		tm.logger.Debug("Rendering template",
 			zap.String("template", route.TemplateFile),
 			zap.String("path", route.Path),
-			zap.Any("params", params))
+			zap.Any("params", params),
+			zap.Bool("requires_data_service", route.RequiresDataService),
+			zap.String("data_service_interface", route.DataServiceInterface))
 
-		// Check if DataServiceMiddleware already resolved the component
+		// Render the page component (TemplateService now handles DataService templates directly)
 		var component templ.Component
 		var err error
 		
-		if resolvedComponent, hasResolved := GetResolvedComponent(ctx); hasResolved {
-			tm.logger.Debug("Using component resolved by DataServiceMiddleware",
-				zap.String("route", route.Path))
-			component = resolvedComponent
-		} else {
-			// Render the page component normally (no data service required)
-			component, err = tm.templateService.RenderComponent(route, ctx, params)
-			if err != nil {
-				tm.logger.Error("Template rendering failed",
-					zap.String("route", route.Path),
-					zap.String("template", route.TemplateFile),
-					zap.Error(err))
+		component, err = tm.templateService.RenderComponent(route, ctx, params)
+		if err != nil {
+			tm.logger.Error("Template rendering failed",
+				zap.String("route", route.Path),
+				zap.String("template", route.TemplateFile),
+				zap.Error(err))
 
-				// Render error component
-				component = tm.errorService.CreateErrorComponent(err.Error(), route.Path)
-			}
+			// Render error component
+			component = tm.errorService.CreateErrorComponent(err.Error(), route.Path)
 		}
 
 		// Wrap in layout if available

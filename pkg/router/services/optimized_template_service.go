@@ -29,12 +29,16 @@ type OptimizedTemplateService struct {
 
 	// Route converter for dynamic route handling
 	routeConverter RouteConverter
+	
+	// DataService resolver for DataService templates
+	dataResolver interfaces.DataServiceResolver
 }
 
 // NewOptimizedTemplateService creates the unified template service
 func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
+	dataResolver := do.MustInvoke[interfaces.DataServiceResolver](i)
 
 	// Create route converter for dynamic route handling
 	routeConverter, err := NewRouteConverter(i)
@@ -46,6 +50,7 @@ func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, err
 		logger:           logger,
 		templateRegistry: templateRegistry,
 		routeConverter:   routeConverter,
+		dataResolver:     dataResolver,
 	}, nil
 }
 
@@ -199,16 +204,14 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 	}
 
 	// Handle DataService templates (e.g., func(*dataservices.UserData) templ.Component)
-	// This should NOT be called directly by OptimizedTemplateService
-	// DataService templates are handled by DataServiceMiddleware
 	if ots.isDataServiceTemplate(result) {
-		ots.logger.Warn("DataService template detected - should be handled by DataServiceMiddleware",
+		ots.logger.Debug("DataService template detected - resolving data",
 			zap.String("route", routePath),
 			zap.String("template_uuid", templateUUID),
 			zap.String("result_type", fmt.Sprintf("%T", result)))
 		
-		// Return error to indicate this should be handled by DataServiceMiddleware
-		return nil, fmt.Errorf("template requires data service - should be handled by DataServiceMiddleware")
+		// Resolve DataService template directly in TemplateService
+		return ots.executeDataServiceTemplate(result, params, routePath, templateUUID)
 	}
 
 	// Handle direct components (fallback)
@@ -282,6 +285,83 @@ func (ots *OptimizedTemplateService) convertLayoutPathToRoute(layoutPath string)
 	}
 
 	return "/" + routeName
+}
+
+// executeDataServiceTemplate handles DataService template execution
+func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc interface{}, params map[string]string, routePath, templateUUID string) (templ.Component, error) {
+	// Get DataService info from template registry
+	dataServiceInfo, exists := ots.templateRegistry.GetDataServiceInfo(templateUUID)
+	if !exists {
+		return nil, fmt.Errorf("template %s requires data service but no info found", templateUUID)
+	}
+
+	ots.logger.Debug("Resolving DataService",
+		zap.String("route", routePath),
+		zap.String("data_service_interface", dataServiceInfo.InterfaceType))
+
+	// Resolve data service from DI
+	dataService, err := ots.dataResolver.ResolveDataService(dataServiceInfo.InterfaceType)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve data service %s: %w", dataServiceInfo.InterfaceType, err)
+	}
+
+	// Call GetData method on the service using reflection
+	serviceValue := reflect.ValueOf(dataService)
+	getDataMethod := serviceValue.MethodByName("GetData")
+	
+	if !getDataMethod.IsValid() {
+		return nil, fmt.Errorf("GetData method not found on data service")
+	}
+
+	// Prepare arguments: ctx (empty for now), params
+	args := []reflect.Value{
+		reflect.ValueOf(context.Background()),
+		reflect.ValueOf(params),
+	}
+
+	// Call the method
+	results := getDataMethod.Call(args)
+	if len(results) != 2 {
+		return nil, fmt.Errorf("GetData method should return (data, error)")
+	}
+
+	// Check for error
+	if !results[1].IsNil() {
+		err := results[1].Interface().(error)
+		return nil, err
+	}
+
+	data := results[0].Interface()
+
+	// Call template function with data using reflection
+	funcValue := reflect.ValueOf(templateFunc)
+	
+	if funcValue.Kind() != reflect.Func {
+		return nil, fmt.Errorf("template is not a function")
+	}
+
+	// Prepare arguments: data
+	templateArgs := []reflect.Value{
+		reflect.ValueOf(data),
+	}
+
+	// Call the function
+	templateResults := funcValue.Call(templateArgs)
+	if len(templateResults) != 1 {
+		return nil, fmt.Errorf("template function should return one value")
+	}
+
+	// Convert result to templ.Component
+	component, ok := templateResults[0].Interface().(templ.Component)
+	if !ok {
+		return nil, fmt.Errorf("template function did not return templ.Component")
+	}
+
+	ots.logger.Debug("DataService template executed successfully",
+		zap.String("route", routePath),
+		zap.String("template_uuid", templateUUID))
+
+	return component, nil
 }
 
 // ClearCache clears the template cache (useful for development)

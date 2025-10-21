@@ -67,7 +67,6 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 	do.Provide(c.injector, services.NewDataServiceResolver)
 	
 	// Template Data Service for data-driven templates
-	do.Provide(c.injector, services.NewTemplateDataService)
 
 	// UNIFIED VALIDATION ARCHITECTURE - Orchestrated Validation Logic
 	do.Provide(c.injector, services.NewValidationOrchestrator)
@@ -81,7 +80,6 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 	do.Provide(c.injector, middleware.NewAuthMiddleware)
 	do.Provide(c.injector, middleware.NewI18nMiddleware)
 	do.Provide(c.injector, middleware.NewTemplateMiddleware)
-	do.Provide(c.injector, middleware.NewDataServiceMiddleware)
 
 	do.Provide(c.injector, pipeline.NewHandlerPipeline)
 	do.Provide(c.injector, services.NewRouteDiscovery)

@@ -19,7 +19,6 @@ type MiddlewareSetup interface {
 	GetAuthMiddleware() middleware.AuthMiddlewareInterface
 	GetI18nMiddleware() middleware.I18nMiddlewareInterface
 	GetTemplateMiddleware() middleware.TemplateMiddlewareInterface
-	GetDataServiceMiddleware() middleware.DataServiceMiddlewareInterface
 	ConfigureMiddlewareChain(route interfaces.Route, authSettings interface{}) []interface{}
 	ValidateMiddlewareSetup() error
 }
@@ -35,10 +34,9 @@ type middlewareSetup struct {
 	errorService    interfaces.ErrorService
 
 	// Middleware components
-	authMiddleware        middleware.AuthMiddlewareInterface
-	i18nMiddleware        middleware.I18nMiddlewareInterface
-	templateMiddleware    middleware.TemplateMiddlewareInterface
-	dataServiceMiddleware middleware.DataServiceMiddlewareInterface
+	authMiddleware     middleware.AuthMiddlewareInterface
+	i18nMiddleware     middleware.I18nMiddlewareInterface
+	templateMiddleware middleware.TemplateMiddlewareInterface
 
 	logger *zap.Logger
 }
@@ -56,21 +54,19 @@ func NewMiddlewareSetup(i do.Injector) (MiddlewareSetup, error) {
 	authMiddleware := do.MustInvoke[middleware.AuthMiddlewareInterface](i)
 	i18nMiddleware := do.MustInvoke[middleware.I18nMiddlewareInterface](i)
 	templateMiddleware := do.MustInvoke[middleware.TemplateMiddlewareInterface](i)
-	dataServiceMiddleware := do.MustInvoke[middleware.DataServiceMiddlewareInterface](i)
 
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &middlewareSetup{
-		authService:           authService,
-		i18nService:           i18nService,
-		templateService:       templateService,
-		layoutService:         layoutService,
-		errorService:          errorService,
-		authMiddleware:        authMiddleware,
-		i18nMiddleware:        i18nMiddleware,
-		templateMiddleware:    templateMiddleware,
-		dataServiceMiddleware: dataServiceMiddleware,
-		logger:                logger,
+		authService:        authService,
+		i18nService:        i18nService,
+		templateService:    templateService,
+		layoutService:      layoutService,
+		errorService:       errorService,
+		authMiddleware:     authMiddleware,
+		i18nMiddleware:     i18nMiddleware,
+		templateMiddleware: templateMiddleware,
+		logger:             logger,
 	}, nil
 }
 
@@ -114,11 +110,6 @@ func (ms *middlewareSetup) GetTemplateMiddleware() middleware.TemplateMiddleware
 	return ms.templateMiddleware
 }
 
-// GetDataServiceMiddleware returns the data service middleware
-func (ms *middlewareSetup) GetDataServiceMiddleware() middleware.DataServiceMiddlewareInterface {
-	return ms.dataServiceMiddleware
-}
-
 // ConfigureMiddlewareChain configures the middleware chain for a specific route
 func (ms *middlewareSetup) ConfigureMiddlewareChain(route interfaces.Route, authSettings interface{}) []interface{} {
 	var middlewareChain []interface{}
@@ -137,14 +128,7 @@ func (ms *middlewareSetup) ConfigureMiddlewareChain(route interfaces.Route, auth
 		middlewareChain = append(middlewareChain, ms.authMiddleware)
 	}
 
-	// Add data service middleware before template middleware if the route requires data services
-	// This ensures data is resolved before template rendering
-	if route.RequiresDataService {
-		ms.logger.Debug("Adding data service middleware to chain",
-			zap.String("route", route.Path),
-			zap.String("data_service", route.DataServiceInterface))
-		middlewareChain = append(middlewareChain, ms.dataServiceMiddleware)
-	}
+	// DataService templates are now handled directly in TemplateService
 
 	// Always add template middleware for rendering
 	middlewareChain = append(middlewareChain, ms.templateMiddleware)
@@ -200,11 +184,6 @@ func (ms *middlewareSetup) ValidateMiddlewareSetup() error {
 	if ms.templateMiddleware == nil {
 		ms.logger.Error("Template middleware is nil")
 		return fmt.Errorf("template middleware not configured")
-	}
-
-	if ms.dataServiceMiddleware == nil {
-		ms.logger.Error("Data service middleware is nil")
-		return fmt.Errorf("data service middleware not configured")
 	}
 
 	ms.logger.Info("Middleware setup validation successful")

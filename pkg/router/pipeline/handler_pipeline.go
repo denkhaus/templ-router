@@ -13,12 +13,11 @@ import (
 
 // HandlerPipeline creates clean, composable HTTP handlers using middleware pattern
 type HandlerPipeline struct {
-	authMiddleware        middleware.AuthMiddlewareInterface
-	i18nMiddleware        middleware.I18nMiddlewareInterface
-	templateMiddleware    middleware.TemplateMiddlewareInterface
-	dataServiceMiddleware middleware.DataServiceMiddlewareInterface
-	templateRegistry      interfaces.TemplateRegistry
-	logger                *zap.Logger
+	authMiddleware     middleware.AuthMiddlewareInterface
+	i18nMiddleware     middleware.I18nMiddlewareInterface
+	templateMiddleware middleware.TemplateMiddlewareInterface
+	templateRegistry   interfaces.TemplateRegistry
+	logger             *zap.Logger
 }
 
 // PipelineConfig contains configuration for building a handler pipeline
@@ -39,17 +38,15 @@ func NewHandlerPipeline(i do.Injector) (*HandlerPipeline, error) {
 	authMiddleware := do.MustInvoke[middleware.AuthMiddlewareInterface](i)
 	i18nMiddleware := do.MustInvoke[middleware.I18nMiddlewareInterface](i)
 	templateMiddleware := do.MustInvoke[middleware.TemplateMiddlewareInterface](i)
-	dataServiceMiddleware := do.MustInvoke[middleware.DataServiceMiddlewareInterface](i)
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &HandlerPipeline{
-		authMiddleware:        authMiddleware,
-		i18nMiddleware:        i18nMiddleware,
-		templateMiddleware:    templateMiddleware,
-		dataServiceMiddleware: dataServiceMiddleware,
-		templateRegistry:      templateRegistry,
-		logger:                logger,
+		authMiddleware:     authMiddleware,
+		i18nMiddleware:     i18nMiddleware,
+		templateMiddleware: templateMiddleware,
+		templateRegistry:   templateRegistry,
+		logger:             logger,
 	}, nil
 
 }
@@ -61,25 +58,17 @@ func (hp *HandlerPipeline) BuildHandler(config PipelineConfig) http.Handler {
 		zap.String("template", config.Route.TemplateFile),
 		zap.Bool("requires_data_service", config.Route.RequiresDataService))
 
-	// Start with the innermost handler
+	// Start with the innermost handler (TemplateService now handles DataService templates directly)
 	var handler http.Handler
 	
-	// For data service routes, start with data service middleware (innermost)
 	if config.Route.RequiresDataService {
-		hp.logger.Debug("Adding data service middleware to pipeline",
+		hp.logger.Debug("Route requires DataService - will be handled by TemplateService",
 			zap.String("route", config.Route.Path),
 			zap.String("data_service_interface", config.Route.DataServiceInterface))
-		
-		// Start with template handler, then wrap with data service middleware
-		templateHandler := hp.templateMiddleware.Handle(config.Route, config.Params)
-		
-		// Wrap with template_key context, then data service middleware
-		templateHandler = hp.wrapWithTemplateKeyContext(templateHandler, config.Route)
-		handler = hp.dataServiceMiddleware.ResolveTemplateData(templateHandler)
-	} else {
-		// For non-data service routes, just use template middleware
-		handler = hp.templateMiddleware.Handle(config.Route, config.Params)
 	}
+	
+	// All routes use template middleware (which now handles DataService templates internally)
+	handler = hp.templateMiddleware.Handle(config.Route, config.Params)
 
 	// Wrap with i18n middleware
 	handler = hp.i18nMiddleware.Handle(handler, config.Route.TemplateFile)
