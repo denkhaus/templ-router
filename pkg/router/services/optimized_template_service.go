@@ -11,6 +11,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -193,7 +194,9 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 	if fn, ok := result.(func(string) templ.Component); ok {
 		id := params["id"]
 		if id == "" {
-			panic("OptimizedTemplateService: parameter 'id' is empty - template requires valid parameter")
+			return nil, shared.NewValidationError("parameter 'id' is required for parameterized template").
+				WithContext("route", routePath).
+				WithContext("template_uuid", templateUUID)
 		}
 		component := fn(id)
 		ots.logger.Debug("Parameterized template executed",
@@ -270,18 +273,31 @@ func (ots *OptimizedTemplateService) isDataServiceTemplate(result interface{}) b
 // convertLayoutPathToRoute converts layout path to route pattern (fail-fast)
 func (ots *OptimizedTemplateService) convertLayoutPathToRoute(layoutPath string) string {
 	if layoutPath == "" {
-		panic("OptimizedTemplateService: layoutPath is empty - invalid template path provided")
+		err := shared.NewValidationError("layoutPath cannot be empty").
+			WithDetails("invalid template path provided")
+		ots.logger.Error("Layout path validation failed", zap.Error(err))
+		return ""
 	}
 
 	// Library-agnostic conversion: any/path/layout.templ -> /layout
 	filename := filepath.Base(layoutPath)
 	if !strings.HasSuffix(filename, ".templ") {
-		panic(fmt.Sprintf("OptimizedTemplateService: invalid template file '%s' - must have .templ extension", layoutPath))
+		err := shared.NewValidationError("invalid template file extension").
+			WithDetails("must have .templ extension").
+			WithContext("layout_path", layoutPath).
+			WithContext("filename", filename)
+		ots.logger.Error("Template file validation failed", zap.Error(err))
+		return ""
 	}
 
 	routeName := strings.TrimSuffix(filename, ".templ")
 	if routeName == "" {
-		panic(fmt.Sprintf("OptimizedTemplateService: invalid template filename '%s' - cannot extract route name", layoutPath))
+		err := shared.NewValidationError("cannot extract route name from template filename").
+			WithDetails("invalid template filename structure").
+			WithContext("layout_path", layoutPath).
+			WithContext("filename", filename)
+		ots.logger.Error("Route name extraction failed", zap.Error(err))
+		return ""
 	}
 
 	return "/" + routeName

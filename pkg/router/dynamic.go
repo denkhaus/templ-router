@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
 // DynamicRouteSegment represents a route parameter defined using dollar sign convention
@@ -70,7 +72,12 @@ func RecognizeDynamicRoutesWithConfig(routePath string, templateName string, dyn
 
 			// No fallbacks - config is required for validation
 			if segment.ValidationRegex == "" {
-				panic(fmt.Sprintf("dynamic.go: validation regex not configured for parameter '%s' - config.Validation required", parameterName))
+				// Create structured error but continue processing
+				err := shared.NewConfigurationError("validation regex not configured for parameter").
+					WithContext("parameter", parameterName).
+					WithDetails("config.Validation required for dynamic parameters")
+				fmt.Printf("Configuration Error: %s\n", err.Error())
+				continue
 			}
 
 			segments = append(segments, segment)

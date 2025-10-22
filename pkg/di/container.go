@@ -74,6 +74,7 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 	// Register middleware services - constructors already return interfaces!
 	do.Provide(c.injector, middleware.NewProductiveFileSystemChecker)
 	do.Provide(c.injector, middleware.NewLayoutService)
+	do.Provide(c.injector, middleware.NewDedicatedErrorTemplateService)
 	do.Provide(c.injector, middleware.NewErrorServiceCore)
 	do.Provide(c.injector, middleware.NewConfigurableParameterExtractor)
 

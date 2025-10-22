@@ -11,10 +11,11 @@ import (
 // SEPARATED FROM: error_service.go (Separation of Concerns)
 // This focuses purely on error service coordination without HTML rendering or template resolution
 type ErrorServiceCore struct {
-	templateResolver ErrorTemplateResolver // Interface (proper DI)
-	renderer         *ErrorRenderer
-	templateService  interfaces.TemplateService // Integration with OptimizedTemplateService
-	logger           *zap.Logger
+	templateResolver       ErrorTemplateResolver // Interface (proper DI)
+	renderer              *ErrorRenderer
+	templateService       interfaces.TemplateService // Integration with OptimizedTemplateService
+	dedicatedErrorService DedicatedErrorTemplateService // NEW: Dedicated error template service
+	logger                *zap.Logger
 }
 
 // NewErrorServiceCore creates a new core error service for DI
@@ -28,11 +29,15 @@ func NewErrorServiceCore(i do.Injector) (interfaces.ErrorService, error) {
 	templateService := do.MustInvoke[interfaces.TemplateService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
+	// NEW: Invoke dedicated error template service from DI
+	dedicatedErrorService := do.MustInvoke[DedicatedErrorTemplateService](i)
+
 	return &ErrorServiceCore{
-		templateResolver: templateResolver,
-		renderer:         renderer,
-		templateService:  templateService,
-		logger:           logger,
+		templateResolver:       templateResolver,
+		renderer:              renderer,
+		templateService:       templateService,
+		dedicatedErrorService: dedicatedErrorService,
+		logger:                logger,
 	}, nil
 }
 
@@ -70,25 +75,44 @@ func (esc *ErrorServiceCore) CreateErrorComponent(message, path string) templ.Co
 	return esc.renderer.RenderErrorHTML(500, message, "fallback", path)
 }
 
-// tryRenderErrorTemplate attempts to render an error template using the template service
+// tryRenderErrorTemplate attempts to render an error template using the dedicated error service
 func (esc *ErrorServiceCore) tryRenderErrorTemplate(errorTemplate *interfaces.ErrorTemplate, message, path string) templ.Component {
-	// FIXED: Proper error template resolution through OptimizedTemplateService
-	// This addresses the critical TODO from error_service.go:262
+	// FIXED: Use dedicated error template service instead of OptimizedTemplateService
+	// This solves the conflict where OptimizedTemplateService would resolve wrong templates for error paths
 
-	esc.logger.Debug("Attempting error template resolution through OptimizedTemplateService",
+	esc.logger.Debug("Attempting error template resolution through DedicatedErrorTemplateService",
 		zap.String("template", errorTemplate.FilePath),
 		zap.String("message", message),
 		zap.String("path", path))
 
-	// CRITICAL FIX: Don't use OptimizedTemplateService for error templates
-	// The OptimizedTemplateService tries to resolve templates based on the request path,
-	// which can lead to rendering the wrong template (e.g., dashboard template for /fr/dashboard)
-	// Instead, fall back to simple HTML rendering for error cases
-	esc.logger.Info("Skipping OptimizedTemplateService for error template to avoid wrong template resolution",
+	// Check if error template is available in registry
+	if !esc.dedicatedErrorService.IsErrorTemplateAvailable(errorTemplate) {
+		esc.logger.Debug("Error template not available in registry",
+			zap.String("template", errorTemplate.FilePath))
+		return nil
+	}
+
+	// Create error context for template
+	errorContext := &ErrorContext{
+		StatusCode:  errorTemplate.ErrorCode,
+		Message:     message,
+		RequestPath: path,
+	}
+
+	// Render error template using dedicated service
+	component, err := esc.dedicatedErrorService.RenderErrorTemplate(errorTemplate, errorContext)
+	if err != nil {
+		esc.logger.Error("Failed to render error template",
+			zap.String("template", errorTemplate.FilePath),
+			zap.Error(err))
+		return nil
+	}
+
+	esc.logger.Info("Successfully rendered error template",
 		zap.String("template", errorTemplate.FilePath),
 		zap.String("path", path))
 
-	return nil // Always fall back to simple HTML rendering
+	return component
 }
 
 // ErrorContext represents error information for templates

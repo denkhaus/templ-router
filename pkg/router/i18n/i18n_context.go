@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"go.uber.org/zap"
 )
 
@@ -42,7 +43,11 @@ type I18nRegistry struct {
 // NewI18nRegistry creates a new i18n registry
 func NewI18nRegistry(logger *zap.Logger) *I18nRegistry {
 	if logger == nil {
-		panic("logger is required for I18nRegistry - no fallback to no-op logger")
+		// Create structured error for better debugging
+		err := shared.NewServiceError("logger is required for I18nRegistry").
+			WithDetails("no fallback to no-op logger available")
+		fmt.Printf("Service Error: %s\n", err.Error())
+		return nil
 	}
 
 	return &I18nRegistry{

@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"go.uber.org/zap"
 )
 
@@ -97,7 +98,10 @@ func (tkr *TemplateKeyResolver) generateAlternativeRoutes(routePath string) []st
 func (tkr *TemplateKeyResolver) constructKeyFromTemplatePath(templateFile string) string {
 	// FAIL FAST: This function MUST have config access
 	// No fallbacks, no hardcoded values - proper DI required
-	panic("template_key_resolver.go: Config injection required - no hardcoded fallbacks allowed")
+	err := shared.NewDependencyInjectionError("Config injection required").
+		WithDetails("no hardcoded fallbacks allowed in template_key_resolver")
+	tkr.logger.Error("Dependency injection error", zap.Error(err))
+	return ""
 }
 
 // isNumeric checks if a string contains only digits
