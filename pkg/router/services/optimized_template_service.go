@@ -64,8 +64,8 @@ func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, ctx
 		zap.String("template_file", route.TemplateFile),
 		zap.Any("params", params))
 
-	// PERFORMANCE: Check cache first
-	cacheKey := routePath + "|" + route.TemplateFile
+	// PERFORMANCE: Check cache first - include parameters in cache key for dynamic templates
+	cacheKey := ots.buildCacheKey(routePath, route.TemplateFile, params)
 	if cached, found := ots.templateCache.Load(cacheKey); found {
 		if component, ok := cached.(templ.Component); ok {
 			ots.logger.Debug("Template served from cache",
@@ -402,6 +402,34 @@ func deriveMethodNameFromDataType(parameterType string) string {
 		return "Get" + typeName
 	}
 	return "GetData" // fallback
+}
+
+// buildCacheKey creates a cache key that includes parameters for dynamic templates
+func (ots *OptimizedTemplateService) buildCacheKey(routePath, templateFile string, params map[string]string) string {
+	baseKey := routePath + "|" + templateFile
+	
+	// For dynamic templates with parameters, include ALL parameter values in the cache key
+	if len(params) > 0 {
+		// Create a sorted list of all parameters for consistent cache keys
+		var paramParts []string
+		for key, value := range params {
+			paramParts = append(paramParts, key+"="+value)
+		}
+		
+		// Sort parameters for consistent cache keys regardless of iteration order
+		if len(paramParts) > 0 {
+			for i := 0; i < len(paramParts)-1; i++ {
+				for j := i + 1; j < len(paramParts); j++ {
+					if paramParts[i] > paramParts[j] {
+						paramParts[i], paramParts[j] = paramParts[j], paramParts[i]
+					}
+				}
+			}
+			baseKey += "|" + strings.Join(paramParts, "&")
+		}
+	}
+	
+	return baseKey
 }
 
 // ClearCache clears the template cache (useful for development)
