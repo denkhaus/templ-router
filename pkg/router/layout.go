@@ -3,6 +3,8 @@ package router
 import (
 	"path/filepath"
 	"strings"
+
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 )
 
 // LayoutTemplate represents a layout.templ file that defines base UI structure
@@ -98,7 +100,7 @@ func GetLayoutHierarchy(templatePath string, layoutTemplates []LayoutTemplate) [
 }
 
 // ProcessLayoutsForApp processes all layout templates in the app directory to build layout information
-func ProcessLayoutsForApp(templates []Template) []LayoutTemplate {
+func ProcessLayoutsForApp(templates []interfaces.Template) []LayoutTemplate {
 	var layoutTemplates []LayoutTemplate
 	
 	// Filter layout templates

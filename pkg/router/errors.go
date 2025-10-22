@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/metadata"
 )
 
@@ -88,7 +89,7 @@ func FindErrorTemplateForPath(path string, errorTemplates []ErrorTemplate, rootD
 }
 
 // ProcessErrorTemplates processes all error templates in the app directory to build error template information
-func ProcessErrorTemplates(templates []Template) []ErrorTemplate {
+func ProcessErrorTemplates(templates []interfaces.Template) []ErrorTemplate {
 	var errorTemplates []ErrorTemplate
 
 	// Filter error templates

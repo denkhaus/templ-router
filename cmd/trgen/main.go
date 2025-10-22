@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os"
 
 	"github.com/denkhaus/templ-router/cmd/trgen/commands"
 	"github.com/denkhaus/templ-router/cmd/trgen/version"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/urfave/cli/v2"
 )
 
@@ -71,6 +71,30 @@ func main() {
 	}
 
 	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
+		// Create structured error for CLI startup failure
+		cliError := shared.NewServiceError("CLI application failed to execute").
+			WithCause(err).
+			WithContext("command", os.Args).
+			WithContext("version", buildInfo.Short())
+		
+		// Print user-friendly error message
+		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
+		
+		// Print additional context for debugging if it's a structured error
+		if appErr, ok := err.(*shared.AppError); ok {
+			if appErr.Details != "" {
+				fmt.Fprintf(os.Stderr, "Details: %s\n", appErr.Details)
+			}
+			if len(appErr.Context) > 0 {
+				fmt.Fprintf(os.Stderr, "Context: %+v\n", appErr.Context)
+			}
+		}
+		
+		// Exit with appropriate error code
+		if shared.IsErrorType(cliError, shared.ErrorTypeValidation) {
+			os.Exit(2) // Invalid usage
+		} else {
+			os.Exit(1) // General error
+		}
 	}
 }

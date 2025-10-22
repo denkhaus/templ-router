@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
@@ -32,7 +33,7 @@ type DynamicRouteSegment struct {
 	SupportedValues []string
 
 	// Config contains the YAML configuration for this parameter (if available)
-	Config *DynamicParameterConfig
+	Config *interfaces.DynamicParameterConfig
 }
 
 // RecognizeDynamicRoutes identifies dynamic route patterns using dollar sign convention
@@ -42,7 +43,7 @@ func RecognizeDynamicRoutes(routePath string, templateName string) []DynamicRout
 }
 
 // RecognizeDynamicRoutesWithConfig identifies dynamic route patterns with YAML configuration
-func RecognizeDynamicRoutesWithConfig(routePath string, templateName string, dynamicSettings *DynamicSettings) []DynamicRouteSegment {
+func RecognizeDynamicRoutesWithConfig(routePath string, templateName string, dynamicSettings *interfaces.DynamicSettings) []DynamicRouteSegment {
 	segments := []DynamicRouteSegment{}
 
 	// Split the route path into parts
@@ -114,7 +115,7 @@ func (d *DynamicRouteSegment) ValidateDynamicSegmentValue(value string) bool {
 }
 
 // ValidateParameterValue validates a parameter value using YAML configuration
-func ValidateParameterValue(paramName string, value string, config *DynamicParameterConfig) (bool, string) {
+func ValidateParameterValue(paramName string, value string, config *interfaces.DynamicParameterConfig) (bool, string) {
 	if config == nil {
 		return true, ""
 	}
