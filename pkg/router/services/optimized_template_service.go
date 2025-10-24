@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 	"reflect"
 	"strings"
-	"sync"
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
@@ -24,9 +23,8 @@ type OptimizedTemplateService struct {
 	// Template registry interface for decoupled access
 	templateRegistry interfaces.TemplateRegistry
 
-	// Performance optimization: Template cache
-	templateCache sync.Map // map[string]templ.Component
-	routeCache    sync.Map // map[string]string (route -> templateUUID)
+	// Cache service for performance optimization
+	cacheService interfaces.CacheService
 
 	// Route converter for dynamic route handling
 	routeConverter RouteConverter
@@ -40,6 +38,7 @@ func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, err
 	logger := do.MustInvoke[*zap.Logger](i)
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 	dataResolver := do.MustInvoke[interfaces.DataServiceResolver](i)
+	cacheService := do.MustInvoke[interfaces.CacheService](i)
 
 	// Create route converter for dynamic route handling
 	routeConverter, err := NewRouteConverter(i)
@@ -52,6 +51,7 @@ func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, err
 		templateRegistry: templateRegistry,
 		routeConverter:   routeConverter,
 		dataResolver:     dataResolver,
+		cacheService:     cacheService,
 	}, nil
 }
 
@@ -65,8 +65,8 @@ func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, ctx
 		zap.Any("params", params))
 
 	// PERFORMANCE: Check cache first - include parameters in cache key for dynamic templates
-	cacheKey := ots.buildCacheKey(routePath, route.TemplateFile, params)
-	if cached, found := ots.templateCache.Load(cacheKey); found {
+	cacheKey := ots.cacheService.BuildTemplateKey(route.TemplateFile, "", params)
+	if cached, found := ots.cacheService.GetTemplate(cacheKey); found {
 		if component, ok := cached.(templ.Component); ok {
 			ots.logger.Debug("Template served from cache",
 				zap.String("cache_key", cacheKey))
@@ -81,7 +81,7 @@ func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, ctx
 	}
 
 	// PERFORMANCE: Cache successful resolution
-	ots.templateCache.Store(cacheKey, component)
+	ots.cacheService.SetTemplate(cacheKey, component)
 
 	return component, nil
 }
@@ -92,8 +92,8 @@ func (ots *OptimizedTemplateService) RenderLayoutComponent(layoutPath string, co
 		zap.String("layout_path", layoutPath))
 
 	// PERFORMANCE: Check layout cache
-	layoutCacheKey := "layout:" + layoutPath
-	if cached, found := ots.templateCache.Load(layoutCacheKey); found {
+	layoutCacheKey := ots.cacheService.BuildTemplateKey(layoutPath, "", nil)
+	if cached, found := ots.cacheService.GetTemplate(layoutCacheKey); found {
 		if layoutFunc, ok := cached.(func(templ.Component) templ.Component); ok {
 			ots.logger.Debug("Layout function served from cache",
 				zap.String("layout_path", layoutPath))
@@ -117,7 +117,7 @@ func (ots *OptimizedTemplateService) RenderLayoutComponent(layoutPath string, co
 					zap.String("template_uuid", templateUUID))
 
 				// PERFORMANCE: Cache layout function
-				ots.templateCache.Store(layoutCacheKey, layoutFunc)
+				ots.cacheService.SetTemplate(layoutCacheKey, layoutFunc)
 
 				// Create layout component with content
 				return layoutFunc(content), nil
@@ -133,7 +133,8 @@ func (ots *OptimizedTemplateService) RenderLayoutComponent(layoutPath string, co
 // resolveTemplate - UNIFIED resolution strategy combining all previous approaches
 func (ots *OptimizedTemplateService) resolveTemplate(routePath string, params map[string]string) (templ.Component, error) {
 	// PERFORMANCE: Check route cache first
-	if templateUUID, found := ots.routeCache.Load(routePath); found {
+	routeCacheKey := ots.cacheService.BuildRouteKey(routePath, params)
+	if templateUUID, found := ots.cacheService.GetRoute(routeCacheKey); found {
 		if uuid, ok := templateUUID.(string); ok {
 			if templateFunc, exists := ots.templateRegistry.GetTemplateFunction(uuid); exists {
 				return ots.executeTemplateFunction(templateFunc, params, routePath, uuid)
@@ -145,7 +146,8 @@ func (ots *OptimizedTemplateService) resolveTemplate(routePath string, params ma
 	routeMapping := ots.templateRegistry.GetRouteToTemplateMapping()
 	if templateUUID, exists := routeMapping[routePath]; exists {
 		// PERFORMANCE: Cache successful route mapping
-		ots.routeCache.Store(routePath, templateUUID)
+		routeCacheKey := ots.cacheService.BuildRouteKey(routePath, params)
+		ots.cacheService.SetRoute(routeCacheKey, templateUUID)
 
 		if templateFunc, found := ots.templateRegistry.GetTemplateFunction(templateUUID); found {
 			return ots.executeTemplateFunction(templateFunc, params, routePath, templateUUID)
@@ -157,7 +159,8 @@ func (ots *OptimizedTemplateService) resolveTemplate(routePath string, params ma
 	for _, convertedRoute := range convertedRoutes {
 		if templateUUID, exists := routeMapping[convertedRoute]; exists {
 			// PERFORMANCE: Cache successful conversion
-			ots.routeCache.Store(routePath, templateUUID)
+			routeCacheKey := ots.cacheService.BuildRouteKey(routePath, params)
+			ots.cacheService.SetRoute(routeCacheKey, templateUUID)
 
 			if templateFunc, found := ots.templateRegistry.GetTemplateFunction(templateUUID); found {
 				ots.logger.Debug("Template resolved via route conversion",
@@ -404,37 +407,9 @@ func deriveMethodNameFromDataType(parameterType string) string {
 	return "GetData" // fallback
 }
 
-// buildCacheKey creates a cache key that includes parameters for dynamic templates
-func (ots *OptimizedTemplateService) buildCacheKey(routePath, templateFile string, params map[string]string) string {
-	baseKey := routePath + "|" + templateFile
-	
-	// For dynamic templates with parameters, include ALL parameter values in the cache key
-	if len(params) > 0 {
-		// Create a sorted list of all parameters for consistent cache keys
-		var paramParts []string
-		for key, value := range params {
-			paramParts = append(paramParts, key+"="+value)
-		}
-		
-		// Sort parameters for consistent cache keys regardless of iteration order
-		if len(paramParts) > 0 {
-			for i := 0; i < len(paramParts)-1; i++ {
-				for j := i + 1; j < len(paramParts); j++ {
-					if paramParts[i] > paramParts[j] {
-						paramParts[i], paramParts[j] = paramParts[j], paramParts[i]
-					}
-				}
-			}
-			baseKey += "|" + strings.Join(paramParts, "&")
-		}
-	}
-	
-	return baseKey
-}
 
 // ClearCache clears the template cache (useful for development)
 func (ots *OptimizedTemplateService) ClearCache() {
-	ots.templateCache = sync.Map{}
-	ots.routeCache = sync.Map{}
+	ots.cacheService.ClearAll()
 	ots.logger.Info("Template cache cleared")
 }

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Template Not Found: {{.TemplateKey}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-red-50">
+    <div class="min-h-screen py-8">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="bg-white rounded-lg shadow-lg p-8 border-l-4 border-red-500">
+                <h1 class="text-3xl font-bold text-red-800 mb-4">Template Not Found</h1>
+                <div class="bg-red-100 border border-red-200 rounded-lg p-6">
+                    <p class="text-red-700 mb-4">The requested template could not be found:</p>
+                    <p class="text-red-600 font-mono text-sm"><strong>{{.TemplateKey}}</strong></p>
+                </div>
+
+                {{if .AvailableKeys}}
+                <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-blue-800 mb-2">Available Templates:</h4>
+                    <div class="text-blue-600 text-sm space-y-1">
+                        {{range .AvailableKeys}}
+                        <p class="font-mono">{{.}}</p>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

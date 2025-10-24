@@ -7,6 +7,7 @@ import (
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
 	"github.com/denkhaus/templ-router/pkg/router/services"
 	"github.com/denkhaus/templ-router/pkg/services/auth"
+	"github.com/denkhaus/templ-router/pkg/services/cache"
 	"github.com/denkhaus/templ-router/pkg/services/logger"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -54,6 +55,9 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 
 	// Internal services (these can remain concrete for now)
 	do.Provide(c.injector, services.NewInMemoryTranslationStore)
+
+	// Cache service for performance optimization
+	do.Provide(c.injector, cache.NewCacheService)
 
 	do.Provide(c.injector, auth.NewAuthHandlers)
 	do.Provide(c.injector, services.NewAuthService)

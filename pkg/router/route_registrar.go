@@ -73,6 +73,11 @@ func (rr *routeRegistrar) RegisterRoutes(routes []interfaces.Route) error {
 
 // registerSingleRoute registers a single route with proper handler and middleware
 func (rr *routeRegistrar) registerSingleRoute(route interfaces.Route) error {
+	// Validate route before registration
+	if err := rr.validateRouteForRegistration(route); err != nil {
+		return fmt.Errorf("route validation failed for '%s': %w", route.Path, err)
+	}
+
 	// LOCALE EXPANSION: Handle $locale routes specially
 	if strings.Contains(route.Path, "$locale") {
 		return rr.registerLocaleSpecificRoutes(route)
@@ -171,19 +176,6 @@ func (rr *routeRegistrar) RegisterMethodNotAllowedHandler() {
 	})
 }
 
-// TODO: Why is this validation not implemented.
-// isValidLocale checks if a locale is supported using config
-// func (rr *routeRegistrar) isValidLocale(locale string) bool {
-
-// 	// Get supported locales from config service
-// 	supportedLocales := rr.configService.GetSupportedLocales()
-// 	for _, valid := range supportedLocales {
-// 		if locale == valid {
-// 			return true
-// 		}
-// 	}
-// 	return false
-// }
 
 // registerLocaleSpecificRoutes registers specific routes for each valid locale
 func (rr *routeRegistrar) registerLocaleSpecificRoutes(route interfaces.Route) error {
@@ -229,6 +221,51 @@ func (rr *routeRegistrar) registerLocaleSpecificRoutes(route interfaces.Route) e
 			zap.String("chi_pattern", chiPattern),
 			zap.String("template", route.TemplateFile))
 	}
+
+	return nil
+}
+
+// validateRouteForRegistration performs basic validation before route registration
+func (rr *routeRegistrar) validateRouteForRegistration(route interfaces.Route) error {
+	// Check for empty path
+	if route.Path == "" {
+		return fmt.Errorf("route path cannot be empty")
+	}
+
+	// Check for valid path format
+	if !strings.HasPrefix(route.Path, "/") {
+		return fmt.Errorf("route path must start with '/'")
+	}
+
+	// Check for empty template file
+	if route.TemplateFile == "" {
+		return fmt.Errorf("template file cannot be empty")
+	}
+
+	// Check for invalid characters in path
+	if strings.Contains(route.Path, "//") {
+		return fmt.Errorf("route path contains double slashes")
+	}
+
+	// Check for conflicting dynamic parameters
+	if strings.Contains(route.Path, "$locale") && strings.Contains(route.Path, "{locale}") {
+		return fmt.Errorf("route path contains both $locale and {locale} syntax")
+	}
+
+	// Validate locale routes have proper structure
+	if strings.Contains(route.Path, "$locale") {
+		if rr.configService == nil {
+			return fmt.Errorf("config service required for locale routes")
+		}
+		supportedLocales := rr.configService.GetSupportedLocales()
+		if len(supportedLocales) == 0 {
+			return fmt.Errorf("no supported locales configured for locale route")
+		}
+	}
+
+	rr.logger.Debug("Route validation passed",
+		zap.String("path", route.Path),
+		zap.String("template", route.TemplateFile))
 
 	return nil
 }

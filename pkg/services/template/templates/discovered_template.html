@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Discovered Template: {{.TemplateKey}}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-blue-50">
+    <div class="min-h-screen py-8">
+        <div class="max-w-4xl mx-auto px-4">
+            <div class="bg-white rounded-lg shadow-lg p-8 border-l-4 border-blue-500">
+                <h1 class="text-3xl font-bold text-blue-800 mb-4">Template Discovered!</h1>
+                <div class="bg-blue-100 border border-blue-200 rounded-lg p-6">
+                    <h3 class="text-lg font-semibold text-blue-800 mb-2">AST-Based Template Discovery</h3>
+                    <p class="text-blue-700 mb-4">This template was found by scanning the generated Go files!</p>
+                    <div class="text-blue-600 text-sm space-y-1">
+                        <p><strong>Template Key:</strong> {{.TemplateKey}}</p>
+                        <p><strong>Function Name:</strong> {{.FunctionName}}</p>
+                        <p><strong>Discovery Method:</strong> AST Parsing of *_templ.go files</p>
+                        <p><strong>Status:</strong> Template-Agnostic Router Working</p>
+                    </div>
+                </div>
+
+                <div class="mt-6 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-green-800 mb-2">Success!</h4>
+                    <ul class="text-green-700 text-sm space-y-1">
+                        <li>✅ App directory scanned successfully</li>
+                        <li>✅ Generated Go files parsed</li>
+                        <li>✅ Template functions discovered</li>
+                        <li>✅ Router remains template-agnostic</li>
+                        <li>✅ No static imports of app package</li>
+                    </ul>
+                </div>
+
+                {{if .Params}}
+                <div class="mt-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <h4 class="font-semibold text-yellow-800 mb-2">Parameters:</h4>
+                    <div class="text-yellow-600 text-sm">
+                        {{range $key, $value := .Params}}
+                        <p><strong>{{$key}}:</strong> {{$value}}</p>
+                        {{end}}
+                    </div>
+                </div>
+                {{end}}
+            </div>
+        </div>
+    </div>
+</body>
+</html>

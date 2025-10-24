@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"context"
+	"embed"
+	"html/template"
 	"net/http"
 	"strings"
 
@@ -10,10 +12,26 @@ import (
 	"go.uber.org/zap"
 )
 
+//go:embed templates/*.html
+var i18nTemplates embed.FS
+
 // i18nMiddleware handles internationalization concerns (private implementation)
 type i18nMiddleware struct {
 	i18nService interfaces.I18nService
 	logger      *zap.Logger
+}
+
+// LanguageNotSupportedData holds data for the language not supported template
+type LanguageNotSupportedData struct {
+	Locale             string
+	SupportedLanguages []SupportedLanguage
+}
+
+// SupportedLanguage represents a supported language with display information
+type SupportedLanguage struct {
+	Code         string
+	Name         string
+	ContinueText string
 }
 
 // I18nService interface for clean dependency
@@ -47,6 +65,72 @@ func (im *i18nMiddleware) isValidLocale(locale string) bool {
 	return false
 }
 
+// renderLanguageNotSupportedPage renders the language not supported error page using embedded template
+func (im *i18nMiddleware) renderLanguageNotSupportedPage(w http.ResponseWriter, locale string) {
+	// Parse embedded template
+	tmpl, err := template.ParseFS(i18nTemplates, "templates/i18n_language_not_supported.html")
+	if err != nil {
+		im.logger.Error("Failed to parse language not supported template", zap.Error(err))
+		// Fallback to simple error message
+		http.Error(w, "Language not supported", http.StatusNotFound)
+		return
+	}
+
+	// Get supported languages dynamically from i18n service
+	supportedLocales := im.i18nService.GetSupportedLocales()
+	supportedLanguages := make([]SupportedLanguage, 0, len(supportedLocales))
+	
+	// Map locale codes to language names and continue text (ASCII only)
+	languageMap := map[string]SupportedLanguage{
+		"en": {Code: "en", Name: "English", ContinueText: "Continue in English"},
+		"de": {Code: "de", Name: "Deutsch", ContinueText: "Auf Deutsch fortfahren"},
+		"fr": {Code: "fr", Name: "Francais", ContinueText: "Continuer en francais"},
+		"es": {Code: "es", Name: "Espanol", ContinueText: "Continuar en espanol"},
+		"it": {Code: "it", Name: "Italiano", ContinueText: "Continua in italiano"},
+		"pt": {Code: "pt", Name: "Portugues", ContinueText: "Continuar em portugues"},
+		"nl": {Code: "nl", Name: "Nederlands", ContinueText: "Doorgaan in het Nederlands"},
+		"ru": {Code: "ru", Name: "Russian", ContinueText: "Continue in Russian"},
+		"zh": {Code: "zh", Name: "Chinese", ContinueText: "Continue in Chinese"},
+		"ja": {Code: "ja", Name: "Japanese", ContinueText: "Continue in Japanese"},
+	}
+	
+	// Build supported languages list from actual supported locales
+	for _, localeCode := range supportedLocales {
+		if lang, exists := languageMap[localeCode]; exists {
+			supportedLanguages = append(supportedLanguages, lang)
+		} else {
+			// Fallback for unknown locale codes
+			supportedLanguages = append(supportedLanguages, SupportedLanguage{
+				Code:         localeCode,
+				Name:         strings.ToUpper(localeCode),
+				ContinueText: "Continue in " + strings.ToUpper(localeCode),
+			})
+		}
+	}
+
+	data := LanguageNotSupportedData{
+		Locale:             locale,
+		SupportedLanguages: supportedLanguages,
+	}
+
+	// Set headers
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusNotFound)
+
+	// Execute template
+	if err := tmpl.Execute(w, data); err != nil {
+		im.logger.Error("Failed to execute language not supported template", 
+			zap.Error(err),
+			zap.String("locale", locale))
+		// Template execution failed, write simple fallback
+		w.Write([]byte("Language not supported"))
+	}
+
+	im.logger.Debug("Rendered language not supported page",
+		zap.String("unsupported_locale", locale),
+		zap.Strings("supported_locales", supportedLocales))
+}
+
 // Handle processes internationalization for a request
 func (im *i18nMiddleware) Handle(next http.Handler, templatePath string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -60,39 +144,8 @@ func (im *i18nMiddleware) Handle(next http.Handler, templatePath string) http.Ha
 				zap.String("unsupported_locale", locale),
 				zap.Strings("supported_locales", im.i18nService.GetSupportedLocales()))
 
-			// Return a proper "Language not supported" error page
-			w.Header().Set("Content-Type", "text/html")
-			w.WriteHeader(http.StatusNotFound)
-
-			// TODO: put this intemplate and make it accessible via embed.FS
-			errorHTML := `<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>Language Not Supported - 404</title>
-    <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f5f5f5; }
-        .container { max-width: 600px; margin: 0 auto; background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .error-code { font-size: 72px; font-weight: bold; color: #e74c3c; margin-bottom: 20px; }
-        .btn { display: inline-block; padding: 12px 24px; background: #3498db; color: white; text-decoration: none; border-radius: 5px; margin: 5px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="error-code">404</div>
-        <h1>Language Not Supported</h1>
-        <p>The language "<strong>` + locale + `</strong>" is not supported.</p>
-        <p><strong>Supported Languages:</strong> English (en) | Deutsch (de)</p>
-        <div>
-            <a href="/en" class="btn">Continue in English</a>
-            <a href="/de" class="btn">Auf Deutsch fortfahren</a>
-            <a href="/" class="btn">Language Selection</a>
-        </div>
-    </div>
-</body>
-</html>`
-
-			w.Write([]byte(errorHTML))
+			// Render language not supported page using embedded template
+			im.renderLanguageNotSupportedPage(w, locale)
 			return
 		}
 

@@ -1,4 +1,4 @@
-/*! tailwindcss v4.1.15 | MIT License | https://tailwindcss.com */
+/*! tailwindcss v4.1.16 | MIT License | https://tailwindcss.com */
 @layer properties;
 @font-face {
   font-family: "Geist";
@@ -210,9 +210,7 @@
     ::placeholder {
       color: currentcolor;
       @supports (color: color-mix(in lab, red, red)) {
-        & {
-          color: color-mix(in oklab, currentcolor 50%, transparent);
-        }
+        color: color-mix(in oklab, currentcolor 50%, transparent);
       }
     }
   }
@@ -716,9 +714,7 @@
   .bg-foreground\/30 {
     background-color: var(--foreground);
     @supports (color: color-mix(in lab, red, red)) {
-      & {
-        background-color: color-mix(in oklab, var(--foreground) 30%, transparent);
-      }
+      background-color: color-mix(in oklab, var(--foreground) 30%, transparent);
     }
   }
   .bg-gray-50 {
@@ -1195,9 +1191,7 @@
       @media (hover: hover) {
         background-color: var(--primary);
         @supports (color: color-mix(in lab, red, red)) {
-          & {
-            background-color: color-mix(in oklab, var(--primary) 90%, transparent);
-          }
+          background-color: color-mix(in oklab, var(--primary) 90%, transparent);
         }
       }
     }

@@ -85,7 +85,7 @@ func (vo *validationOrchestrator) validateAll(routes []interfaces.Route, configs
 	for i := range routes {
 		route := &routes[i]
 		config := configs[route.TemplateFile]
-		vo.validateSingleRoute(route, config, hierarchyMap, result)
+		vo.validateSingleRoute(route, config, hierarchyMap, configs, result)
 	}
 
 	// Validate route conflicts (cross-route validation)
@@ -95,7 +95,7 @@ func (vo *validationOrchestrator) validateAll(routes []interfaces.Route, configs
 }
 
 // validateSingleRoute validates a single route using all specialized validators
-func (vo *validationOrchestrator) validateSingleRoute(route *interfaces.Route, config *interfaces.ConfigFile, hierarchyMap map[string][]string, result *ValidationResult) {
+func (vo *validationOrchestrator) validateSingleRoute(route *interfaces.Route, config *interfaces.ConfigFile, hierarchyMap map[string][]string, configs map[string]*interfaces.ConfigFile, result *ValidationResult) {
 	vo.logger.Debug("Validating route",
 		zap.String("path", route.Path),
 		zap.String("template", route.TemplateFile))
@@ -105,7 +105,7 @@ func (vo *validationOrchestrator) validateSingleRoute(route *interfaces.Route, c
 	vo.routeValidator.ValidateRouteConfig(route, config, result)
 
 	// Parameter validation
-	vo.paramValidator.ValidateParameters(route, config, hierarchyMap, result)
+	vo.paramValidator.ValidateParameters(route, config, hierarchyMap, configs, result)
 
 	// Auth validation
 	vo.authValidator.ValidateAuthSettings(route, config, result)

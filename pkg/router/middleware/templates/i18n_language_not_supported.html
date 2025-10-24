@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Language Not Supported - 404</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background: #f5f5f5; 
+            margin: 0;
+        }
+        .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            background: white; 
+            padding: 40px; 
+            border-radius: 10px; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); 
+        }
+        .error-code { 
+            font-size: 72px; 
+            font-weight: bold; 
+            color: #e74c3c; 
+            margin-bottom: 20px; 
+        }
+        .btn { 
+            display: inline-block; 
+            padding: 12px 24px; 
+            background: #3498db; 
+            color: white; 
+            text-decoration: none; 
+            border-radius: 5px; 
+            margin: 5px;
+            transition: background-color 0.3s ease;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+        .supported-languages {
+            margin: 20px 0;
+            padding: 15px;
+            background: #ecf0f1;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="error-code">404</div>
+        <h1>Language Not Supported</h1>
+        <p>The language "<strong>{{.Locale}}</strong>" is not supported.</p>
+        <div class="supported-languages">
+            <p><strong>Supported Languages:</strong></p>
+            <p>{{range $i, $lang := .SupportedLanguages}}{{if $i}} | {{end}}{{$lang.Name}} ({{$lang.Code}}){{end}}</p>
+        </div>
+        <div>
+            {{range .SupportedLanguages}}
+            <a href="/{{.Code}}" class="btn">{{.ContinueText}}</a>
+            {{end}}
+            <a href="/" class="btn">Language Selection</a>
+        </div>
+    </div>
+</body>
+</html>
