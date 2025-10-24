@@ -39,7 +39,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_SERVER_PORT": "0",
 			},
 			expectError: true,
-			errorMsg:    "invalid server port: 0",
+			errorMsg:    "Invalid server port",
 		},
 		{
 			name: "invalid server port - too high",
@@ -47,7 +47,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_SERVER_PORT": "65536",
 			},
 			expectError: true,
-			errorMsg:    "invalid server port: 65536",
+			errorMsg:    "Invalid server port",
 		},
 		{
 			name: "valid server port - minimum",
@@ -70,7 +70,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_DATABASE_PORT": "0",
 			},
 			expectError: true,
-			errorMsg:    "invalid database port: 0",
+			errorMsg:    "Invalid database port",
 		},
 		{
 			name: "invalid database port - too high",
@@ -78,7 +78,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_DATABASE_PORT": "65536",
 			},
 			expectError: true,
-			errorMsg:    "invalid database port: 65536",
+			errorMsg:    "Invalid database port",
 		},
 		{
 			name: "valid database port - minimum",
@@ -101,7 +101,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_AUTH_MIN_PASSWORD_LENGTH": "0",
 			},
 			expectError: true,
-			errorMsg:    "minimum password length must be at least 1",
+			errorMsg:    "Minimum password length must be at least 1",
 		},
 		{
 			name: "invalid min password length - negative",
@@ -109,7 +109,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_AUTH_MIN_PASSWORD_LENGTH": "-1",
 			},
 			expectError: true,
-			errorMsg:    "minimum password length must be at least 1",
+			errorMsg:    "Minimum password length must be at least 1",
 		},
 		{
 			name: "valid min password length - minimum",
@@ -126,7 +126,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_AUTH_DEFAULT_ADMIN_EMAIL":  "",
 			},
 			expectError: true,
-			errorMsg:    "default admin email cannot be empty when CreateDefaultAdmin is enabled",
+			errorMsg:    "Email cannot be empty when CreateDefaultAdmin is enabled",
 		},
 		{
 			name: "default admin enabled with empty password",
@@ -136,7 +136,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_AUTH_DEFAULT_ADMIN_PASSWORD": "",
 			},
 			expectError: true,
-			errorMsg:    "default admin password cannot be empty when CreateDefaultAdmin is enabled",
+			errorMsg:    "Password cannot be empty when CreateDefaultAdmin is enabled",
 		},
 		{
 			name: "default admin password too short",
@@ -149,7 +149,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_AUTH_DEFAULT_ADMIN_LAST_NAME":  "User",
 			},
 			expectError: true,
-			errorMsg:    "default admin password must meet minimum password length requirement (10 characters)",
+			errorMsg:    "Password must be at least 10 characters",
 		},
 		{
 			name: "default admin enabled with empty first name",
@@ -161,7 +161,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_AUTH_DEFAULT_ADMIN_LAST_NAME":  "User",
 			},
 			expectError: true,
-			errorMsg:    "default admin first name cannot be empty when CreateDefaultAdmin is enabled",
+			errorMsg:    "First name cannot be empty when CreateDefaultAdmin is enabled",
 		},
 		{
 			name: "default admin enabled with empty last name",
@@ -173,7 +173,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_AUTH_DEFAULT_ADMIN_LAST_NAME":  "",
 			},
 			expectError: true,
-			errorMsg:    "default admin last name cannot be empty when CreateDefaultAdmin is enabled",
+			errorMsg:    "Last name cannot be empty when CreateDefaultAdmin is enabled",
 		},
 		{
 			name: "valid default admin configuration",
@@ -203,7 +203,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_EMAIL_SMTP_PORT": "0",
 			},
 			expectError: true,
-			errorMsg:    "invalid SMTP port: 0",
+			errorMsg:    "Invalid SMTP port",
 		},
 		{
 			name: "invalid SMTP port - too high",
@@ -211,7 +211,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_EMAIL_SMTP_PORT": "65536",
 			},
 			expectError: true,
-			errorMsg:    "invalid SMTP port: 65536",
+			errorMsg:    "Invalid SMTP port",
 		},
 		{
 			name: "valid SMTP port - minimum",
@@ -234,7 +234,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_SECURITY_RATE_LIMIT_REQUESTS": "0",
 			},
 			expectError: true,
-			errorMsg:    "rate limit requests must be at least 1",
+			errorMsg:    "Rate limit requests must be at least 1",
 		},
 		{
 			name: "invalid rate limit - negative",
@@ -242,7 +242,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_SECURITY_RATE_LIMIT_REQUESTS": "-1",
 			},
 			expectError: true,
-			errorMsg:    "rate limit requests must be at least 1",
+			errorMsg:    "Rate limit requests must be at least 1",
 		},
 		{
 			name: "valid rate limit - minimum",
@@ -260,7 +260,7 @@ func TestConfigValidation(t *testing.T) {
 				"TR_AUTH_MIN_PASSWORD_LENGTH":      "0",
 			},
 			expectError: true,
-			errorMsg:    "invalid server port: 0", // Should return first validation error
+			errorMsg:    "Invalid server port", // Should return first validation error
 		},
 	}
 
@@ -340,7 +340,7 @@ func TestDirectValidation(t *testing.T) {
 				},
 			},
 			expectError: true,
-			errorMsg:    "invalid server port: 0",
+			errorMsg:    "Invalid server port",
 		},
 	}
 

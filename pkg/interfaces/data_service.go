@@ -20,6 +20,15 @@ type DataServiceResolver interface {
 	// ResolveDataService resolves a data service by interface type from DI
 	ResolveDataService(interfaceType string) (interface{}, error)
 	
+	// ResolveGenericDataService resolves a data service as generic interface (no reflection needed)
+	ResolveGenericDataService(interfaceType string) (GenericDataService, error)
+	
 	// HasDataService checks if a data service is registered in DI
 	HasDataService(interfaceType string) bool
+}
+
+// GenericDataService provides a reflection-free interface for data services
+type GenericDataService interface {
+	// GetData returns data for the given context and parameters
+	GetData(ctx context.Context, params map[string]string) (interface{}, error)
 }

@@ -1,9 +1,8 @@
 package config
 
 import (
-	"fmt"
-
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/samber/do/v2"
 )
@@ -18,11 +17,16 @@ func NewConfigService(envVarPraefix string) func(i do.Injector) (interfaces.Conf
 	return func(i do.Injector) (interfaces.ConfigService, error) {
 		var cfg configImpl
 		if err := envconfig.Process("TR", &cfg); err != nil {
-			return nil, fmt.Errorf("failed to load configuration: %w", err)
+			return nil, shared.NewConfigurationError("failed to load configuration from environment variables").
+				WithDetails("Environment variable processing failed").
+				WithCause(err).
+				WithContext("prefix", "TR")
 		}
 
 		if err := cfg.Validate(); err != nil {
-			return nil, fmt.Errorf("configuration validation failed: %w", err)
+			return nil, shared.NewConfigurationError("configuration validation failed").
+				WithDetails("Configuration values do not meet validation requirements").
+				WithCause(err)
 		}
 
 		if cfg.Config.PrintSummary {

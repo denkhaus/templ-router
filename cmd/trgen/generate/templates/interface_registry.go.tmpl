@@ -64,10 +64,16 @@ func (r *templateRegistryImpl) GetTemplate(key string) (templ.Component, error) 
 			// For templates with complex parameters
 			return fn(nil), nil
 		default:
-			return nil, fmt.Errorf("unsupported template function type for key: %s", key)
+			return nil, shared.NewTemplateError("unsupported template function type").
+				WithDetails("Template function signature not supported by registry").
+				WithContext("template_key", key).
+				WithContext("function_type", fmt.Sprintf("%T", templateFunc))
 		}
 	}
-	return nil, fmt.Errorf("template not found: %s", key)
+	return nil, shared.NewTemplateError("template not found").
+		WithDetails("No template registered for the specified key").
+		WithContext("template_key", key).
+		WithContext("available_keys", r.GetAllTemplateKeys())
 }
 
 // GetTemplateFunction retrieves a template function by key
@@ -106,7 +112,16 @@ func (r *templateRegistryImpl) GetTemplateByRoute(route string) (templ.Component
 	if templateKey, exists := r.routeMapping[route]; exists {
 		return r.GetTemplate(templateKey)
 	}
-	return nil, fmt.Errorf("no template found for route: %s", route)
+	return nil, shared.NewRouteError("no template found for route").
+		WithDetails("Route pattern not mapped to any template").
+		WithContext("route_pattern", route).
+		WithContext("available_routes", func() []string {
+			routes := make([]string, 0, len(r.routeMapping))
+			for route := range r.routeMapping {
+				routes = append(routes, route)
+			}
+			return routes
+		}())
 }
 
 // RequiresDataService checks if a template requires a data service

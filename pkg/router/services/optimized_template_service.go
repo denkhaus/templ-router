@@ -306,22 +306,104 @@ func (ots *OptimizedTemplateService) convertLayoutPathToRoute(layoutPath string)
 	return "/" + routeName
 }
 
-// executeDataServiceTemplate handles DataService template execution
+// executeDataServiceTemplate handles DataService template execution with optimized method calls
 func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc interface{}, params map[string]string, routePath, templateUUID string) (templ.Component, error) {
 	// Get DataService info from template registry
 	dataServiceInfo, exists := ots.templateRegistry.GetDataServiceInfo(templateUUID)
 	if !exists {
-		return nil, fmt.Errorf("template %s requires data service but no info found", templateUUID)
+		return nil, shared.NewServiceError("template requires data service but no info found").
+			WithDetails("DataService information missing from template registry").
+			WithContext("template_uuid", templateUUID).
+			WithContext("route", routePath)
 	}
 
 	ots.logger.Debug("Resolving DataService",
 		zap.String("route", routePath),
 		zap.String("data_service_interface", dataServiceInfo.InterfaceType))
 
+	// OPTIMIZATION: Use GenericDataService interface (no reflection for DataService calls)
+	genericDataService, err := ots.dataResolver.ResolveGenericDataService(dataServiceInfo.InterfaceType)
+	if err != nil {
+		return nil, shared.NewDependencyInjectionError("failed to resolve generic data service").
+			WithDetails("DataService not found or cannot be wrapped as GenericDataService").
+			WithCause(err).
+			WithContext("interface_type", dataServiceInfo.InterfaceType).
+			WithContext("route", routePath).
+			WithContext("template_uuid", templateUUID)
+	}
+
+	ots.logger.Debug("Using GenericDataService interface (optimized, no reflection for service call)",
+		zap.String("interface_type", dataServiceInfo.InterfaceType))
+
+	// Call GetData directly on the generic interface (no reflection!)
+	data, err := genericDataService.GetData(context.Background(), params)
+	if err != nil {
+		return nil, err
+	}
+
+	// Execute template function with reflection (only remaining reflection usage)
+	ots.logger.Debug("Executing template function with reflection",
+		zap.String("template_uuid", templateUUID))
+	
+	return ots.executeTemplateWithReflection(templateFunc, data, routePath, templateUUID)
+}
+
+// executeTemplateWithReflection executes template function using reflection (fallback)
+func (ots *OptimizedTemplateService) executeTemplateWithReflection(templateFunc interface{}, data interface{}, routePath, templateUUID string) (templ.Component, error) {
+	// Call template function with data using reflection
+	funcValue := reflect.ValueOf(templateFunc)
+	
+	if funcValue.Kind() != reflect.Func {
+		return nil, shared.NewTemplateError("invalid template function type").
+			WithDetails("Template must be a function").
+			WithContext("actual_type", funcValue.Kind().String()).
+			WithContext("route", routePath).
+			WithContext("template_uuid", templateUUID)
+	}
+
+	// Prepare arguments: data
+	templateArgs := []reflect.Value{
+		reflect.ValueOf(data),
+	}
+
+	// Call the function
+	templateResults := funcValue.Call(templateArgs)
+	if len(templateResults) != 1 {
+		return nil, shared.NewTemplateError("invalid template function signature").
+			WithDetails("Template function should return exactly one value").
+			WithContext("result_count", len(templateResults)).
+			WithContext("route", routePath).
+			WithContext("template_uuid", templateUUID)
+	}
+
+	// Convert result to templ.Component
+	component, ok := templateResults[0].Interface().(templ.Component)
+	if !ok {
+		return nil, shared.NewTemplateError("invalid template function return type").
+			WithDetails("Template function must return templ.Component").
+			WithContext("actual_type", fmt.Sprintf("%T", templateResults[0].Interface())).
+			WithContext("route", routePath).
+			WithContext("template_uuid", templateUUID)
+	}
+
+	ots.logger.Debug("Template executed successfully with reflection fallback",
+		zap.String("route", routePath),
+		zap.String("template_uuid", templateUUID))
+
+	return component, nil
+}
+
+// executeDataServiceTemplateWithReflection executes DataService template using reflection (fallback)
+func (ots *OptimizedTemplateService) executeDataServiceTemplateWithReflection(templateFunc interface{}, params map[string]string, routePath, templateUUID string, dataServiceInfo interfaces.DataServiceInfo) (templ.Component, error) {
 	// Resolve data service from DI
 	dataService, err := ots.dataResolver.ResolveDataService(dataServiceInfo.InterfaceType)
 	if err != nil {
-		return nil, fmt.Errorf("failed to resolve data service %s: %w", dataServiceInfo.InterfaceType, err)
+		return nil, shared.NewDependencyInjectionError("failed to resolve data service").
+			WithDetails("DataService not found in DI container").
+			WithCause(err).
+			WithContext("interface_type", dataServiceInfo.InterfaceType).
+			WithContext("route", routePath).
+			WithContext("template_uuid", templateUUID)
 	}
 
 	// Call specific method based on data type, fallback to GetData
@@ -336,14 +418,19 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 	}
 	
 	if !getDataMethod.IsValid() {
-		return nil, fmt.Errorf("neither %s nor GetData method found on data service", methodName)
+		return nil, shared.NewServiceError("data service method not found").
+			WithDetails("Neither specific method nor GetData method exists on data service").
+			WithContext("method_name", methodName).
+			WithContext("interface_type", dataServiceInfo.InterfaceType).
+			WithContext("route", routePath).
+			WithContext("template_uuid", templateUUID)
 	}
 	
-	ots.logger.Debug("Using data service method",
+	ots.logger.Debug("Using data service method with reflection fallback",
 		zap.String("method_name", methodName),
 		zap.String("data_service_interface", dataServiceInfo.InterfaceType))
 
-	// Prepare arguments: ctx (empty for now), params
+	// Prepare arguments: ctx, params
 	args := []reflect.Value{
 		reflect.ValueOf(context.Background()),
 		reflect.ValueOf(params),
@@ -352,7 +439,12 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 	// Call the method
 	results := getDataMethod.Call(args)
 	if len(results) != 2 {
-		return nil, fmt.Errorf("GetData method should return (data, error)")
+		return nil, shared.NewServiceError("invalid data service method signature").
+			WithDetails("GetData method should return (data, error)").
+			WithContext("method_name", methodName).
+			WithContext("result_count", len(results)).
+			WithContext("interface_type", dataServiceInfo.InterfaceType).
+			WithContext("route", routePath)
 	}
 
 	// Check for error
@@ -363,35 +455,8 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 
 	data := results[0].Interface()
 
-	// Call template function with data using reflection
-	funcValue := reflect.ValueOf(templateFunc)
-	
-	if funcValue.Kind() != reflect.Func {
-		return nil, fmt.Errorf("template is not a function")
-	}
-
-	// Prepare arguments: data
-	templateArgs := []reflect.Value{
-		reflect.ValueOf(data),
-	}
-
-	// Call the function
-	templateResults := funcValue.Call(templateArgs)
-	if len(templateResults) != 1 {
-		return nil, fmt.Errorf("template function should return one value")
-	}
-
-	// Convert result to templ.Component
-	component, ok := templateResults[0].Interface().(templ.Component)
-	if !ok {
-		return nil, fmt.Errorf("template function did not return templ.Component")
-	}
-
-	ots.logger.Debug("DataService template executed successfully",
-		zap.String("route", routePath),
-		zap.String("template_uuid", templateUUID))
-
-	return component, nil
+	// Execute template with reflection
+	return ots.executeTemplateWithReflection(templateFunc, data, routePath, templateUUID)
 }
 
 // deriveMethodNameFromDataType converts "*dataservices.UserData" to "GetUserData"

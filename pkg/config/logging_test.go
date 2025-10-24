@@ -96,7 +96,7 @@ func TestLogSummary(t *testing.T) {
 				"Database:",
 				"Host: localhost",
 				"Port: 5432",
-				"User: denkhaus",
+				"User: postgres",
 				"Name: router_db",
 				"SSL Mode: disable",
 				"Authentication:",

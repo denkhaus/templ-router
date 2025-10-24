@@ -18,17 +18,17 @@ func TestGetDatabaseDSN(t *testing.T) {
 		{
 			name:     "default values",
 			envVars:  map[string]string{},
-			expected: "host=localhost port=5432 user=denkhaus password=postgres dbname=router_db sslmode=disable",
+			expected: "host=localhost port=5432 user=postgres password=postgres dbname=router_db sslmode=disable",
 		},
 		{
 			name: "custom values",
 			envVars: map[string]string{
-				"TR_DATABASE_HOST":     "db.example.com",
-				"TR_DATABASE_PORT":     "3306",
-				"TR_DATABASE_USER":     "myuser",
-				"TR_DATABASE_PASSWORD": "mypass",
-				"TR_DATABASE_NAME":     "mydb",
-				"TR_DATABASE_SSL_MODE": "require",
+				"TR_DATABASE_HOST":          "db.example.com",
+				"TR_DATABASE_PORT":          "3306",
+				"TR_DATABASE_DATABASE_USER": "myuser",
+				"TR_DATABASE_PASSWORD":      "mypass",
+				"TR_DATABASE_NAME":          "mydb",
+				"TR_DATABASE_SSL_MODE":      "require",
 			},
 			expected: "host=db.example.com port=3306 user=myuser password=mypass dbname=mydb sslmode=require",
 		},
@@ -37,7 +37,7 @@ func TestGetDatabaseDSN(t *testing.T) {
 			envVars: map[string]string{
 				"TR_DATABASE_PASSWORD": "p@ssw0rd!#$",
 			},
-			expected: "host=localhost port=5432 user=denkhaus password=p@ssw0rd!#$ dbname=router_db sslmode=disable",
+			expected: "host=localhost port=5432 user=postgres password=p@ssw0rd!#$ dbname=router_db sslmode=disable",
 		},
 	}
 

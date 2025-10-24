@@ -40,7 +40,7 @@ func TestNewConfigService(t *testing.T) {
 				"TR_SERVER_PORT": "99999",
 			},
 			expectError: true,
-			errorMsg:    "invalid server port",
+			errorMsg:    "Invalid server port",
 		},
 		{
 			name: "invalid database port",
@@ -48,7 +48,7 @@ func TestNewConfigService(t *testing.T) {
 				"TR_DATABASE_PORT": "0",
 			},
 			expectError: true,
-			errorMsg:    "invalid database port",
+			errorMsg:    "Invalid database port",
 		},
 		{
 			name: "invalid min password length",
@@ -56,7 +56,7 @@ func TestNewConfigService(t *testing.T) {
 				"TR_AUTH_MIN_PASSWORD_LENGTH": "0",
 			},
 			expectError: true,
-			errorMsg:    "minimum password length must be at least 1",
+			errorMsg:    "Minimum password length must be at least 1",
 		},
 		{
 			name: "default admin enabled but missing email",
@@ -65,7 +65,7 @@ func TestNewConfigService(t *testing.T) {
 				"TR_AUTH_DEFAULT_ADMIN_EMAIL":  "",
 			},
 			expectError: true,
-			errorMsg:    "default admin email cannot be empty",
+			errorMsg:    "Email cannot be empty when CreateDefaultAdmin is enabled",
 		},
 		{
 			name: "default admin enabled but password too short",
@@ -75,7 +75,7 @@ func TestNewConfigService(t *testing.T) {
 				"TR_AUTH_DEFAULT_ADMIN_PASSWORD":  "short",
 			},
 			expectError: true,
-			errorMsg:    "default admin password must meet minimum password length requirement",
+			errorMsg:    "Password must be at least 10 characters",
 		},
 	}
 
@@ -127,7 +127,7 @@ func TestConfigServiceAccessors(t *testing.T) {
 		// Database config
 		"TR_DATABASE_HOST":     "testdb.example.com",
 		"TR_DATABASE_PORT":     "3306",
-		"TR_DATABASE_USER":     "testuser",
+		"TR_DATABASE_DATABASE_USER": "testuser",
 		"TR_DATABASE_PASSWORD": "testpass",
 		"TR_DATABASE_NAME":     "testdb",
 		"TR_DATABASE_SSL_MODE": "require",
@@ -444,7 +444,7 @@ func clearTestEnv(t *testing.T) {
 	envVars := []string{
 		"TR_SERVER_HOST", "TR_SERVER_PORT", "TR_SERVER_BASE_URL",
 		"TR_SERVER_READ_TIMEOUT", "TR_SERVER_WRITE_TIMEOUT", "TR_SERVER_IDLE_TIMEOUT", "TR_SERVER_SHUTDOWN_TIMEOUT",
-		"TR_DATABASE_HOST", "TR_DATABASE_PORT", "TR_DATABASE_USER", "TR_DATABASE_PASSWORD", "TR_DATABASE_NAME", "TR_DATABASE_SSL_MODE",
+		"TR_DATABASE_HOST", "TR_DATABASE_PORT", "TR_DATABASE_DATABASE_USER", "TR_DATABASE_PASSWORD", "TR_DATABASE_NAME", "TR_DATABASE_SSL_MODE",
 		"TR_AUTH_REQUIRE_EMAIL_VERIFICATION", "TR_AUTH_VERIFICATION_TOKEN_EXPIRY", "TR_AUTH_SESSION_COOKIE_NAME",
 		"TR_AUTH_SESSION_EXPIRY", "TR_AUTH_SESSION_SECURE", "TR_AUTH_SESSION_HTTP_ONLY", "TR_AUTH_SESSION_SAME_SITE",
 		"TR_AUTH_MIN_PASSWORD_LENGTH", "TR_AUTH_REQUIRE_STRONG_PASSWORD", "TR_AUTH_CREATE_DEFAULT_ADMIN",

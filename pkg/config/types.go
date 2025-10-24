@@ -57,7 +57,7 @@ type ConfigConfig struct {
 type DatabaseConfig struct {
 	Host     string `envconfig:"HOST" default:"localhost"`
 	Port     int    `envconfig:"PORT" default:"5432"`
-	User     string `envconfig:"USER" default:"postgres"`
+	User     string `envconfig:"DATABASE_USER" default:"postgres"`
 	Password string `envconfig:"PASSWORD" default:"postgres"`
 	Name     string `envconfig:"NAME" default:"router_db"`
 	SSLMode  string `envconfig:"SSL_MODE" default:"disable"`
