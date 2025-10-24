@@ -13,7 +13,16 @@ templ Page() {
 					{ i18n.T(ctx, "signup_subtitle") }
 				</p>
 			</div>
-			<form class="mt-8 space-y-6" action="/signup" method="POST">
+			<!-- Error message container -->
+			<div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+				<span id="error-text"></span>
+			</div>
+			
+			<form class="mt-8 space-y-6" 
+				  hx-post="/api/auth/signup" 
+				  hx-target="#error-message"
+				  hx-swap="innerHTML"
+				  hx-on::response-error="document.getElementById('error-message').classList.remove('hidden')">
 				<input type="hidden" name="csrf_token" value="csrf-token-placeholder"/>
 				<div class="rounded-md shadow-sm -space-y-px">
 					<div>

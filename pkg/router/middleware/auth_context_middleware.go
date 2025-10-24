@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -61,8 +62,8 @@ func (acm *AuthContextMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// Add user to context directly
-		ctx = context.WithValue(ctx, "user", user)
+		// Add user to context using the correct key constant
+		ctx = context.WithValue(ctx, shared.UserContextKey, user)
 		r = r.WithContext(ctx)
 
 		acm.logger.Debug("User added to context",

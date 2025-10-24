@@ -4,12 +4,12 @@ import (
 	"context"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
-// User context keys
-const (
-	UserContextKey = "user"
-)
+// User context keys - using shared package to avoid import cycles
+// Deprecated: Use shared.UserContextKey instead
+const UserContextKey = shared.UserContextKey
 
 // GetCurrentUser retrieves the current user from context
 // This is a generic utility function that works with any UserEntity implementation

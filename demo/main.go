@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/denkhaus/templ-router/demo/assets"
 	"github.com/denkhaus/templ-router/demo/generated/templates"
@@ -13,6 +15,7 @@ import (
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -21,7 +24,22 @@ import (
 // main demonstrates the new clean architecture
 func main() {
 	if err := startupClean(context.Background()); err != nil {
-		panic(fmt.Sprintf("Failed to start application: %v", err))
+		// Handle startup errors gracefully with structured error handling
+		var appErr *shared.AppError
+		if errors.As(err, &appErr) {
+			// Structured error - log with context and exit gracefully
+			fmt.Fprintf(os.Stderr, "Application startup failed: %s\n", appErr.Error())
+			if appErr.Context != nil {
+				fmt.Fprintf(os.Stderr, "Error context: %+v\n", appErr.Context)
+			}
+			if appErr.Cause != nil {
+				fmt.Fprintf(os.Stderr, "Underlying cause: %v\n", appErr.Cause)
+			}
+		} else {
+			// Generic error - wrap and handle gracefully
+			fmt.Fprintf(os.Stderr, "Application startup failed: %v\n", err)
+		}
+		os.Exit(1)
 	}
 }
 
@@ -41,17 +59,23 @@ func startupClean(ctx context.Context) error {
 
 	templateRegistry, err := templates.NewRegistry(injector)
 	if err != nil {
-		return fmt.Errorf("failed to create template registry: %w", err)
+		return shared.NewServiceError("Failed to create template registry").
+			WithCause(err).
+			WithContext("component", "template_registry")
 	}
 
 	assetsService, err := assets.NewService(injector)
 	if err != nil {
-		return fmt.Errorf("failed to create assets service: %w", err)
+		return shared.NewServiceError("Failed to create assets service").
+			WithCause(err).
+			WithContext("component", "assets_service")
 	}
 
 	userStore, err := services.NewDefaultUserStore(injector)
 	if err != nil {
-		return fmt.Errorf("failed to create userStore: %w", err)
+		return shared.NewServiceError("Failed to create user store").
+			WithCause(err).
+			WithContext("component", "user_store")
 	}
 
 	// Register application services using options pattern
@@ -77,7 +101,9 @@ func startupClean(ctx context.Context) error {
 	// Add auth context middleware
 	authMiddleware, err := middleware.NewAuthContextMiddleware(container.GetInjector())
 	if err != nil {
-		return fmt.Errorf("failed to create auth middleware: %w", err)
+		return shared.NewServiceError("Failed to create auth middleware").
+			WithCause(err).
+			WithContext("component", "auth_middleware")
 	}
 	mux.Use(authMiddleware.Middleware)
 
@@ -86,7 +112,9 @@ func startupClean(ctx context.Context) error {
 
 	// Initialize the router (discover routes, layouts, etc.)
 	if err := cleanRouter.Initialize(); err != nil {
-		return fmt.Errorf("failed to initialize clean router: %w", err)
+		return shared.NewServiceError("Failed to initialize clean router").
+			WithCause(err).
+			WithContext("component", "router_initialization")
 	}
 
 	// Add API routes
@@ -105,7 +133,9 @@ func startupClean(ctx context.Context) error {
 	// Register file-based routes
 	logger.Info("Registering routes with clean architecture...")
 	if err := cleanRouter.RegisterRoutes(mux); err != nil {
-		return fmt.Errorf("failed to register routes: %w", err)
+		return shared.NewServiceError("Failed to register routes").
+			WithCause(err).
+			WithContext("component", "route_registration")
 	}
 
 	// Register external auth routes (pluggable authentication)
@@ -129,7 +159,10 @@ func startupClean(ctx context.Context) error {
 	// Start server
 	logger.Info("Starting Clean Architecture Demo Server on 0.0.0.0:8084")
 	if err := http.ListenAndServe("0.0.0.0:8084", mux); err != nil {
-		return fmt.Errorf("failed to start server: %w", err)
+		return shared.NewServiceError("Failed to start HTTP server").
+			WithCause(err).
+			WithContext("component", "http_server").
+			WithContext("address", "0.0.0.0:8084")
 	}
 
 	return nil

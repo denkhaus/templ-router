@@ -45,7 +45,7 @@ func (h *authHandlersImpl) RegisterRoutes(registerFunc func(method, path string,
 // UserStore extracts and validates all relevant data from the request
 func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		h.respondWithError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		h.respondWithError(w, r, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -54,8 +54,8 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		h.logger.Warn("Login failed", zap.Error(err))
 
-		// Always return JSON error response so form can display error to user
-		h.respondWithError(w, "Invalid credentials", http.StatusUnauthorized)
+		// Return appropriate error response (HTML for HTMX, JSON for API)
+		h.respondWithError(w, r, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
 
@@ -63,7 +63,7 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 	session, err := h.sessionStore.CreateSession(user.GetID())
 	if err != nil {
 		h.logger.Error("Failed to create session", zap.Error(err))
-		h.respondWithError(w, "Internal server error", http.StatusInternalServerError)
+		h.respondWithError(w, r, "Internal server error", http.StatusInternalServerError)
 		return
 	}
 
@@ -100,7 +100,7 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 // UserStore extracts and validates ALL relevant data from the request
 func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		h.respondWithError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		h.respondWithError(w, r, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -109,8 +109,8 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		h.logger.Warn("Signup failed", zap.Error(err))
 
-		// Always return JSON error response so form can display error to user
-		h.respondWithError(w, "Failed to create user", http.StatusBadRequest)
+		// Return appropriate error response (HTML for HTMX, JSON for API)
+		h.respondWithError(w, r, "Failed to create user", http.StatusBadRequest)
 		return
 	}
 
@@ -137,7 +137,7 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 // HandleSignOut handles user logout API endpoint
 func (h *authHandlersImpl) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		h.respondWithError(w, "Method not allowed", http.StatusMethodNotAllowed)
+		h.respondWithError(w, r, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -176,13 +176,28 @@ func (h *authHandlersImpl) HandleSignOut(w http.ResponseWriter, r *http.Request)
 	})
 }
 
-// respondWithError sends an error JSON response
-func (h *authHandlersImpl) respondWithError(w http.ResponseWriter, message string, statusCode int) {
+// respondWithError sends an error response (HTML for HTMX, JSON for API)
+func (h *authHandlersImpl) respondWithError(w http.ResponseWriter, r *http.Request, message string, statusCode int) {
+	// Check if this is an HTMX request
+	if h.isHTMXRequest(r) {
+		w.Header().Set("Content-Type", "text/html")
+		w.WriteHeader(statusCode)
+		// Return HTML error message for HTMX to inject into the error container
+		w.Write([]byte(`<span class="font-medium">` + message + `</span>`))
+		return
+	}
+	
+	// Default JSON response for API requests
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(map[string]string{
 		"error": message,
 	})
+}
+
+// isHTMXRequest checks if the request is from HTMX
+func (h *authHandlersImpl) isHTMXRequest(r *http.Request) bool {
+	return r.Header.Get("HX-Request") == "true"
 }
 
 // respondWithSuccess sends a success JSON response

@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -230,7 +231,10 @@ func (rd *routeDiscoveryImpl) DiscoverLayouts(scanPath string) ([]router.LayoutT
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to walk directory %s: %w", scanPath, err)
+		return nil, shared.NewRouteError("Failed to walk directory during layout discovery").
+			WithCause(err).
+			WithContext("scan_path", scanPath).
+			WithContext("operation", "layout_discovery")
 	}
 
 	rd.logger.Info("Layout discovery completed",
@@ -274,7 +278,10 @@ func (rd *routeDiscoveryImpl) DiscoverErrorTemplates(scanPath string) ([]router.
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to walk directory %s: %w", scanPath, err)
+		return nil, shared.NewRouteError("Failed to walk directory during error template discovery").
+			WithCause(err).
+			WithContext("scan_path", scanPath).
+			WithContext("operation", "error_template_discovery")
 	}
 
 	rd.logger.Info("Error template discovery completed",
@@ -298,7 +305,11 @@ func (rd *routeDiscoveryImpl) isErrorTemplate(path string) bool {
 func (rd *routeDiscoveryImpl) createLayoutFromTemplate(templatePath, scanPath string) (router.LayoutTemplate, error) {
 	relativePath, err := filepath.Rel(scanPath, templatePath)
 	if err != nil {
-		return router.LayoutTemplate{}, fmt.Errorf("failed to get relative path: %w", err)
+		return router.LayoutTemplate{}, shared.NewRouteError("Failed to get relative path for layout template").
+			WithCause(err).
+			WithContext("template_path", templatePath).
+			WithContext("scan_path", scanPath).
+			WithContext("operation", "layout_template_creation")
 	}
 
 	// Calculate layout level based on directory depth
@@ -317,7 +328,11 @@ func (rd *routeDiscoveryImpl) createLayoutFromTemplate(templatePath, scanPath st
 func (rd *routeDiscoveryImpl) createErrorTemplateFromTemplate(templatePath, scanPath string) (router.ErrorTemplate, error) {
 	relativePath, err := filepath.Rel(scanPath, templatePath)
 	if err != nil {
-		return router.ErrorTemplate{}, fmt.Errorf("failed to get relative path: %w", err)
+		return router.ErrorTemplate{}, shared.NewRouteError("Failed to get relative path for error template").
+			WithCause(err).
+			WithContext("template_path", templatePath).
+			WithContext("scan_path", scanPath).
+			WithContext("operation", "error_template_creation")
 	}
 
 	// Extract error type from path (e.g., 404, 500, etc.)
