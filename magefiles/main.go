@@ -96,6 +96,8 @@ func Clean() error {
 		"/tmp/templui-starter",
 		"dist",
 		"node_modules/.cache",
+		"demo/tests/.ginkgo",
+		"coverage",
 	}
 
 	for _, dir := range dirs {
@@ -103,6 +105,9 @@ func Clean() error {
 			fmt.Printf("Warning: Could not remove %s: %v\n", dir, err)
 		}
 	}
+
+	// Clean Go test cache
+	sh.Run("go", "clean", "-testcache")
 
 	return nil
 }

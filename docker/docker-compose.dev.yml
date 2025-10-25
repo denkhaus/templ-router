@@ -19,6 +19,9 @@ services:
       - TR_LOGGING_LEVEL=debug
       - TR_LAYOUT_ASSETS_DIRECTORY=demo/assets
       - TR_LAYOUT_ROOT_DIRECTORY=demo/app
+      - TR_AUTH_SIGNIN_SUCCESS_ROUTE=/en/dashboard
+      - TR_AUTH_SIGNUP_SUCCESS_ROUTE=/en/dashboard
+      - TR_AUTH_SIGNOUT_SUCCESS_ROUTE=/login
       - GOCACHE=/home/user/.cache/go-build
       - GOMODCACHE=/go/pkg/mod
       - HOME=/home/user

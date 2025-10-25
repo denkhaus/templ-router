@@ -84,6 +84,15 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 	successRoute := h.configService.GetSignInSuccessRoute()
 	if successRoute != "" {
 		successRoute := i18n.LocalizeRouteIfRequired(r.Context(), successRoute)
+		
+		// Check if this is an HTMX request
+		if h.isHTMXRequest(r) {
+			// Use HX-Redirect header for HTMX requests
+			w.Header().Set("HX-Redirect", successRoute)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		
 		http.Redirect(w, r, successRoute, http.StatusSeeOther)
 		return
 	}
@@ -122,6 +131,15 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 	successRoute := h.configService.GetSignUpSuccessRoute()
 	if successRoute != "" {
 		successRoute := i18n.LocalizeRouteIfRequired(r.Context(), successRoute)
+		
+		// Check if this is an HTMX request
+		if h.isHTMXRequest(r) {
+			// Use HX-Redirect header for HTMX requests
+			w.Header().Set("HX-Redirect", successRoute)
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+		
 		http.Redirect(w, r, successRoute, http.StatusSeeOther)
 		return
 	}
