@@ -1,0 +1,90 @@
+package testorder
+
+import (
+	"fmt"
+	"strings"
+	"github.com/denkhaus/templ-router/demo/pkg/dataservices"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
+)
+
+templ Page(data *dataservices.OrderData) {
+	<div class="max-w-4xl mx-auto">
+		<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+			<!-- Order Header -->
+			<div class="bg-gradient-to-r from-purple-500 to-pink-600 px-8 py-12">
+				<div class="flex items-center space-x-6">
+					<div class="w-24 h-24 bg-white rounded-full flex items-center justify-center">
+						<svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path>
+						</svg>
+					</div>
+					<div class="text-white">
+						<h1 class="text-3xl font-bold">Order DataService Test</h1>
+						<p class="text-purple-100 mt-2">Order ID: { data.ID }</p>
+						<p class="text-purple-100">Testing GetOrderData vs GetData</p>
+					</div>
+				</div>
+			</div>
+			<!-- Order Content -->
+			<div class="p-8">
+				<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+					<!-- Order Information -->
+					<div>
+						<h2 class="text-2xl font-semibold text-gray-800 mb-6">Order Information</h2>
+						<div class="space-y-4">
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">Order ID</span>
+								<span class="text-gray-800">{ data.ID }</span>
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">User ID</span>
+								<span class="text-gray-800">{ data.UserID }</span>
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">Items</span>
+								<span class="text-gray-800">{ strings.Join(data.Items, ", ") }</span>
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">Total</span>
+								<span class="text-gray-800">${ fmt.Sprintf("%.2f", data.Total) }</span>
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">Status</span>
+								if strings.Contains(data.Status, "GetOrderData") {
+									<span class="px-2 py-1 bg-purple-100 text-purple-800 rounded text-sm">{ data.Status }</span>
+								} else {
+									<span class="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-sm">{ data.Status }</span>
+								}
+							</div>
+							<div class="flex justify-between items-center py-3 border-b border-gray-200">
+								<span class="text-gray-600 font-medium">Date</span>
+								<span class="text-gray-800">{ data.Date }</span>
+							</div>
+						</div>
+					</div>
+					<!-- Test Info -->
+					<div>
+						<h2 class="text-2xl font-semibold text-gray-800 mb-6">DataService Test Info</h2>
+						<div class="bg-purple-50 border border-purple-200 rounded-lg p-6">
+							<h3 class="text-lg font-semibold text-purple-800 mb-3">Specific Method Priority Test</h3>
+							<p class="text-purple-700 mb-2">This template tests a DataService with BOTH GetData and GetOrderData methods.</p>
+							<div class="text-sm text-purple-700 space-y-1">
+								<p><strong>Service:</strong> dataservices.OrderDataService</p>
+								<p><strong>Available Methods:</strong> GetData() + GetOrderData()</p>
+								<p><strong>Expected Behavior:</strong> Should call GetOrderData (specific method)</p>
+								<p><strong>Data Type:</strong> *dataservices.OrderData</p>
+								<p><strong>Route:</strong> /{ i18n.GetCurrentLocale(ctx) }/testorder</p>
+							</div>
+							<div class="mt-4 p-3 bg-purple-100 rounded">
+								<p class="text-sm text-purple-800">
+									<strong>Result Check:</strong> Look at the Status field above. 
+									If it shows "GetOrderData method called", the specific method was used correctly!
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}

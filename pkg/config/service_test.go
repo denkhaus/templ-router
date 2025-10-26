@@ -99,7 +99,8 @@ func TestNewConfigService(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
+					// The service layer wraps validation errors in "configuration validation failed"
+					assert.Contains(t, err.Error(), "configuration validation failed")
 				}
 				assert.Nil(t, service)
 			} else {

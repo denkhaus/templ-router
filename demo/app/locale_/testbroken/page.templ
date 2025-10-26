@@ -1,0 +1,50 @@
+package testbroken
+
+import (
+	"github.com/denkhaus/templ-router/demo/pkg/dataservices"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
+)
+
+templ Page(data *dataservices.BrokenData) {
+	<div class="max-w-4xl mx-auto">
+		<div class="bg-white rounded-lg shadow-lg overflow-hidden">
+			<!-- Error Header -->
+			<div class="bg-gradient-to-r from-red-500 to-orange-600 px-8 py-12">
+				<div class="flex items-center space-x-6">
+					<div class="w-24 h-24 bg-white rounded-full flex items-center justify-center">
+						<svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+						</svg>
+					</div>
+					<div class="text-white">
+						<h1 class="text-3xl font-bold">Broken DataService Test</h1>
+						<p class="text-red-100 mt-2">This should show an error!</p>
+						<p class="text-red-100">Testing error handling</p>
+					</div>
+				</div>
+			</div>
+			<!-- Error Content -->
+			<div class="p-8">
+				<div class="bg-red-50 border border-red-200 rounded-lg p-6">
+					<h2 class="text-2xl font-semibold text-red-800 mb-6">⚠️ You Should NOT See This Content!</h2>
+					<p class="text-red-700 mb-4">
+						If you can see this page content, something is wrong with the error handling.
+						This DataService intentionally has no GetData or GetBrokenData methods.
+					</p>
+					<div class="text-sm text-red-700 space-y-1">
+						<p><strong>Service:</strong> dataservices.BrokenDataService</p>
+						<p><strong>Available Methods:</strong> FetchData(), RetrieveData() (wrong names!)</p>
+						<p><strong>Expected Behavior:</strong> Should show 500 error</p>
+						<p><strong>Data Type:</strong> *dataservices.BrokenData</p>
+						<p><strong>Route:</strong> /{ i18n.GetCurrentLocale(ctx) }/testbroken</p>
+					</div>
+					<div class="mt-4 p-3 bg-red-100 rounded">
+						<p class="text-sm text-red-800">
+							<strong>Data received:</strong> { data.ID } - { data.Message }
+						</p>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+}

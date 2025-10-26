@@ -1,0 +1,130 @@
+project_name: templ-router
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - id: trgen
+    main: ./cmd/trgen
+    binary: trgen
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+
+archives:
+  - id: default
+    builds:
+      - trgen
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+      - goos: windows
+        format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+  groups:
+    - title: Features
+      regexp: "^.*feat[(\\w)]*:+.*$"
+      order: 0
+    - title: 'Bug fixes'
+      regexp: "^.*fix[(\\w)]*:+.*$"
+      order: 1
+    - title: 'Performance improvements'
+      regexp: "^.*perf[(\\w)]*:+.*$"
+      order: 2
+    - title: Others
+      order: 999
+
+release:
+  github:
+    owner: denkhaus
+    name: templ-router
+  draft: false
+  prerelease: auto
+  mode: replace
+  header: |
+    ## Templ Router {{ .Tag }}
+    
+    Welcome to this new release of Templ Router! 
+    
+    **Full Changelog**: https://github.com/denkhaus/templ-router/compare/{{ .PreviousTag }}...{{ .Tag }}
+  footer: |
+    ## Installation
+    
+    ### Go Install
+    ```bash
+    go install github.com/denkhaus/templ-router/cmd/trgen@{{ .Tag }}
+    ```
+    
+    ### Download Binary
+    Download the appropriate binary for your platform from the assets below.
+    
+    ### Docker
+    ```bash
+    docker pull ghcr.io/denkhaus/templ-router:{{ .Tag }}
+    ```
+    
+    ## What's Next?
+    
+    Check out our [documentation](https://github.com/denkhaus/templ-router/wiki) for getting started guides and examples.
+    
+    ---
+    
+    **Thanks to all contributors who made this release possible!**
+
+dockers:
+  - image_templates:
+      - "ghcr.io/denkhaus/templ-router:{{ .Tag }}"
+      - "ghcr.io/denkhaus/templ-router:latest"
+    dockerfile: Dockerfile.release
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--platform=linux/amd64"
+
+brews:
+  - name: templ-router
+    repository:
+      owner: denkhaus
+      name: homebrew-tap
+    folder: Formula
+    homepage: "https://github.com/denkhaus/templ-router"
+    description: "A powerful, file-based routing framework for Go applications using templ templates"
+    license: "MIT"
+    test: |
+      system "#{bin}/trgen --version"
+    install: |
+      bin.install "trgen"

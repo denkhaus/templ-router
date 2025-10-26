@@ -64,3 +64,40 @@ func (Build) RegistryWatch() error {
 		"TEMPLATE_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
 	}, "sh", "-c", "cd demo && trgen --watch")
 }
+
+// All builds all binaries for different platforms
+func (Build) All() error {
+	fmt.Println("Building all binaries...")
+	
+	platforms := []struct {
+		os   string
+		arch string
+	}{
+		{"linux", "amd64"},
+		{"linux", "arm64"},
+		{"darwin", "amd64"},
+		{"darwin", "arm64"},
+		{"windows", "amd64"},
+	}
+	
+	for _, platform := range platforms {
+		fmt.Printf("Building for %s/%s...\n", platform.os, platform.arch)
+		
+		env := map[string]string{
+			"GOOS":   platform.os,
+			"GOARCH": platform.arch,
+		}
+		
+		output := fmt.Sprintf("bin/templ-router-%s-%s", platform.os, platform.arch)
+		if platform.os == "windows" {
+			output += ".exe"
+		}
+		
+		if err := sh.RunWithV(env, "go", "build", "-o", output, "./cmd/trgen"); err != nil {
+			return fmt.Errorf("failed to build for %s/%s: %w", platform.os, platform.arch, err)
+		}
+	}
+	
+	fmt.Println("All binaries built successfully")
+	return nil
+}

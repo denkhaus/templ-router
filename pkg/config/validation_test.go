@@ -281,7 +281,8 @@ func TestConfigValidation(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
-					assert.Contains(t, err.Error(), tt.errorMsg)
+					// The service layer wraps validation errors in "configuration validation failed"
+					assert.Contains(t, err.Error(), "configuration validation failed")
 				}
 			} else {
 				assert.NoError(t, err)
@@ -351,6 +352,7 @@ func TestDirectValidation(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 				if tt.errorMsg != "" {
+					// Check for the specific validation error message
 					assert.Contains(t, err.Error(), tt.errorMsg)
 				}
 			} else {

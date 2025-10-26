@@ -1,0 +1,90 @@
+name: Bug Report
+description: File a bug report to help us improve
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: What version of Templ Router are you running?
+      placeholder: v0.1.0
+    validations:
+      required: true
+
+  - type: dropdown
+    id: go-version
+    attributes:
+      label: Go Version
+      description: What version of Go are you using?
+      options:
+        - Go 1.23
+        - Go 1.24
+        - Other (please specify in description)
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Also tell us, what did you expect to happen?
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Please provide detailed steps to reproduce the issue
+      placeholder: |
+        1. Create a template at...
+        2. Configure routing with...
+        3. Run the application...
+        4. See error...
+    validations:
+      required: true
+
+  - type: textarea
+    id: code-sample
+    attributes:
+      label: Code Sample
+      description: Please provide a minimal code sample that reproduces the issue
+      render: go
+    validations:
+      required: false
+
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration
+      description: Please share relevant configuration (environment variables, YAML files)
+      render: yaml
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: Please copy and paste any relevant log output
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
