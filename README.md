@@ -823,6 +823,11 @@ TR_LAYOUT_TEMPLATE_EXTENSION=.templ
 # Template Generator
 TR_TEMPLATE_GENERATOR_OUTPUT_DIR=generated/templates
 TR_TEMPLATE_GENERATOR_PACKAGE_NAME=templates
+
+# Router Configuration
+TR_ROUTER_ENABLE_TRAILING_SLASH=true
+TR_ROUTER_ENABLE_SLASH_REDIRECT=true
+TR_ROUTER_ENABLE_METHOD_NOT_ALLOWED=true
 ```
 
 # Security Configuration
@@ -851,7 +856,41 @@ TR_LOGGING_FILE_PATH=logs/router.log
 TR_ENVIRONMENT_KIND=develop
 ```
 
-**Configuration Sections:** Server, Database, Auth, Email, Security, Logging, I18n, Layout, TemplateGenerator, Environment
+**Configuration Sections:** Server, Database, Auth, Email, Security, Logging, I18n, Layout, TemplateGenerator, Router, Environment
+
+### Router Configuration
+
+The router provides several built-in middleware features that can be configured:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| `TR_ROUTER_ENABLE_TRAILING_SLASH` | `true` | Automatically redirects `/path/` to `/path` and vice versa |
+| `TR_ROUTER_ENABLE_SLASH_REDIRECT` | `true` | Cleans up double slashes in URLs (e.g., `/path//` → `/path/`) |
+| `TR_ROUTER_ENABLE_METHOD_NOT_ALLOWED` | `true` | Enables 405 Method Not Allowed handler for unsupported HTTP methods |
+
+**Examples:**
+
+```bash
+# Enable trailing slash redirection (default: true)
+TR_ROUTER_ENABLE_TRAILING_SLASH=true
+# /dashboard/ → redirects to /dashboard
+# /dashboard → redirects to /dashboard/
+
+# Enable slash cleanup (default: true)  
+TR_ROUTER_ENABLE_SLASH_REDIRECT=true
+# /path//to///resource → redirects to /path/to/resource
+
+# Enable method not allowed handler (default: true)
+TR_ROUTER_ENABLE_METHOD_NOT_ALLOWED=true
+# POST /get-only-route → returns 405 Method Not Allowed
+```
+
+**Benefits:**
+
+- **SEO Friendly**: Prevents duplicate content issues from trailing slash variations
+- **Clean URLs**: Automatically fixes malformed URLs with double slashes
+- **Better UX**: Proper HTTP status codes for unsupported methods
+- **Out-of-the-Box**: No manual middleware configuration required
 
 ## Data Services
 
