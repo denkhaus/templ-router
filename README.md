@@ -348,27 +348,38 @@ func main() {
     container := di.NewContainer()
     
     // Register core services
-    container.RegisterRouterServices()
+    container.RegisterRouterServices("TR") // config prefix
     
-    // Register your application services
+    // Create your services
+    templateRegistry, _ := templates.NewRegistry(container.GetInjector())
+    assetsService, _ := assets.NewService(container.GetInjector())
+    userStore, _ := services.NewDefaultUserStore(container.GetInjector())
+    
+    // Register application services
     container.RegisterApplicationServices(
-        di.WithTemplateRegistry(myTemplateRegistry),
-        di.WithDataService("ProductService", myProductService),
-        di.WithDataService("UserService", myUserService),
+        di.WithTemplateRegistry(templateRegistry),
+        di.WithAssetsService(assetsService),
+        di.WithUserStore(userStore),
     )
     
+    // Register DataServices as named dependencies
+    injector := container.GetInjector()
+    do.ProvideNamed(injector, "UserDataService", dataservices.NewUserDataService)
+    do.ProvideNamed(injector, "ProductDataService", dataservices.NewProductDataService)
+    
     router := container.GetRouter()
-    router.Start()
+    router.Initialize()
 }
 ```
 
 ### Data Service Integration
 
 ```go
-// Automatic resolution based on template function signature
-func ProductPage(productService interfaces.DataService, id string) templ.Component {
-    // Service automatically injected based on interface
-    return productTemplate(productService, id)
+// Data services are resolved by name based on template function signature
+func ProductPage(productService ProductDataService, id string) templ.Component {
+    // ProductDataService is automatically resolved from DI container
+    product, _ := productService.GetProduct(id)
+    return productTemplate(product)
 }
 ```
 
@@ -461,10 +472,11 @@ func (s *ProductService) ListProducts() ([]*Product, error) {
     return products, nil
 }
 
-// Register in container
-container.RegisterApplicationServices(
-    di.WithDataService("ProductService", &ProductService{db: db}),
-)
+// Register as named service in container
+injector := container.GetInjector()
+do.ProvideNamed(injector, "ProductDataService", func() *ProductService {
+    return &ProductService{db: db}
+})
 ```
 
 ### Custom Authentication
