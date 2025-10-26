@@ -102,15 +102,6 @@ func startupClean(ctx context.Context) error {
 	// Create Chi router
 	mux := chi.NewRouter()
 
-	// Add auth context middleware
-	authMiddleware, err := middleware.NewAuthContextMiddleware(container.GetInjector())
-	if err != nil {
-		return shared.NewServiceError("Failed to create auth middleware").
-			WithCause(err).
-			WithContext("component", "auth_middleware")
-	}
-	mux.Use(authMiddleware.Middleware)
-
 	// Get clean router from container
 	cleanRouter := container.GetRouter()
 
@@ -120,6 +111,22 @@ func startupClean(ctx context.Context) error {
 			WithCause(err).
 			WithContext("component", "router_initialization")
 	}
+
+	// Configure router middleware FIRST (before any routes or other middleware)
+	if err := cleanRouter.GetMiddlewareSetup().GetRouterMiddleware().ConfigureRouterMiddleware(mux); err != nil {
+		return shared.NewServiceError("Failed to configure router middleware").
+			WithCause(err).
+			WithContext("component", "router_middleware")
+	}
+
+	// Add auth context middleware AFTER router middleware
+	authMiddleware, err := middleware.NewAuthContextMiddleware(container.GetInjector())
+	if err != nil {
+		return shared.NewServiceError("Failed to create auth middleware").
+			WithCause(err).
+			WithContext("component", "auth_middleware")
+	}
+	mux.Use(authMiddleware.Middleware)
 
 	// Add API routes
 	mux.HandleFunc("/api/health", func(w http.ResponseWriter, r *http.Request) {
