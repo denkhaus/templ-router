@@ -7,6 +7,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/go-chi/chi/v5"
 )
 
 // Common errors
@@ -56,6 +57,11 @@ type I18nMiddlewareInterface interface {
 // TemplateMiddlewareInterface handles template rendering middleware
 type TemplateMiddlewareInterface interface {
 	Handle(route interfaces.Route, params map[string]string) http.Handler
+}
+
+// RouterMiddlewareInterface handles router-level middleware configuration
+type RouterMiddlewareInterface interface {
+	ConfigureRouterMiddleware(chiRouter *chi.Mux) error
 }
 
 

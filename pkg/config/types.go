@@ -36,6 +36,9 @@ type configImpl struct {
 
 	// Config Configuration
 	Config ConfigConfig `envconfig:"CONFIG"`
+
+	// Router configuration
+	Router RouterConfig `envconfig:"ROUTER"`
 }
 
 // ServerConfig holds server-related configuration
@@ -47,6 +50,20 @@ type ServerConfig struct {
 	WriteTimeout    time.Duration `envconfig:"WRITE_TIMEOUT" default:"30s"`
 	IdleTimeout     time.Duration `envconfig:"IDLE_TIMEOUT" default:"120s"`
 	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
+}
+
+// RouterConfig holds router-related configuration
+type RouterConfig struct {
+	// Enable automatic trailing slash redirection
+	// When true, /path/ redirects to /path and vice versa
+	EnableTrailingSlash bool `envconfig:"ENABLE_TRAILING_SLASH" default:"true"`
+	
+	// Enable automatic slash redirection
+	// When true, /path// redirects to /path/
+	EnableSlashRedirect bool `envconfig:"ENABLE_SLASH_REDIRECT" default:"true"`
+	
+	// Enable method not allowed handler
+	EnableMethodNotAllowed bool `envconfig:"ENABLE_METHOD_NOT_ALLOWED" default:"true"`
 }
 
 type ConfigConfig struct {

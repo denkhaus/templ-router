@@ -19,6 +19,7 @@ type MiddlewareSetup interface {
 	GetAuthMiddleware() middleware.AuthMiddlewareInterface
 	GetI18nMiddleware() middleware.I18nMiddlewareInterface
 	GetTemplateMiddleware() middleware.TemplateMiddlewareInterface
+	GetRouterMiddleware() middleware.RouterMiddlewareInterface
 	ConfigureMiddlewareChain(route interfaces.Route, authSettings interface{}) []interface{}
 	ValidateMiddlewareSetup() error
 }
@@ -37,6 +38,7 @@ type middlewareSetup struct {
 	authMiddleware     middleware.AuthMiddlewareInterface
 	i18nMiddleware     middleware.I18nMiddlewareInterface
 	templateMiddleware middleware.TemplateMiddlewareInterface
+	routerMiddleware   middleware.RouterMiddlewareInterface
 
 	logger *zap.Logger
 }
@@ -54,6 +56,7 @@ func NewMiddlewareSetup(i do.Injector) (MiddlewareSetup, error) {
 	authMiddleware := do.MustInvoke[middleware.AuthMiddlewareInterface](i)
 	i18nMiddleware := do.MustInvoke[middleware.I18nMiddlewareInterface](i)
 	templateMiddleware := do.MustInvoke[middleware.TemplateMiddlewareInterface](i)
+	routerMiddleware := do.MustInvoke[middleware.RouterMiddlewareInterface](i)
 
 	logger := do.MustInvoke[*zap.Logger](i)
 
@@ -66,6 +69,7 @@ func NewMiddlewareSetup(i do.Injector) (MiddlewareSetup, error) {
 		authMiddleware:     authMiddleware,
 		i18nMiddleware:     i18nMiddleware,
 		templateMiddleware: templateMiddleware,
+		routerMiddleware:   routerMiddleware,
 		logger:             logger,
 	}, nil
 }
@@ -108,6 +112,11 @@ func (ms *middlewareSetup) GetI18nMiddleware() middleware.I18nMiddlewareInterfac
 // GetTemplateMiddleware returns the template middleware
 func (ms *middlewareSetup) GetTemplateMiddleware() middleware.TemplateMiddlewareInterface {
 	return ms.templateMiddleware
+}
+
+// GetRouterMiddleware returns the router middleware
+func (ms *middlewareSetup) GetRouterMiddleware() middleware.RouterMiddlewareInterface {
+	return ms.routerMiddleware
 }
 
 // ConfigureMiddlewareChain configures the middleware chain for a specific route
@@ -184,6 +193,11 @@ func (ms *middlewareSetup) ValidateMiddlewareSetup() error {
 	if ms.templateMiddleware == nil {
 		ms.logger.Error("Template middleware is nil")
 		return fmt.Errorf("template middleware not configured")
+	}
+
+	if ms.routerMiddleware == nil {
+		ms.logger.Error("Router middleware is nil")
+		return fmt.Errorf("router middleware not configured")
 	}
 
 	ms.logger.Info("Middleware setup validation successful")

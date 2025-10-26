@@ -12,7 +12,7 @@ import (
 )
 
 // Mock implementations for testing
-type mockConfigService struct {
+type mockRouteDiscoveryConfigService struct {
 	layoutRootDir     string
 	layoutFileName    string
 	templateExtension string
@@ -20,35 +20,35 @@ type mockConfigService struct {
 	defaultLocale     string
 }
 
-func (m *mockConfigService) GetLayoutRootDirectory() string {
+func (m *mockRouteDiscoveryConfigService) GetLayoutRootDirectory() string {
 	if m.layoutRootDir == "" {
 		return "app"
 	}
 	return m.layoutRootDir
 }
 
-func (m *mockConfigService) GetLayoutFileName() string {
+func (m *mockRouteDiscoveryConfigService) GetLayoutFileName() string {
 	if m.layoutFileName == "" {
 		return "layout"
 	}
 	return m.layoutFileName
 }
 
-func (m *mockConfigService) GetTemplateExtension() string {
+func (m *mockRouteDiscoveryConfigService) GetTemplateExtension() string {
 	if m.templateExtension == "" {
 		return ".templ"
 	}
 	return m.templateExtension
 }
 
-func (m *mockConfigService) GetSupportedLocales() []string {
+func (m *mockRouteDiscoveryConfigService) GetSupportedLocales() []string {
 	if len(m.supportedLocales) == 0 {
 		return []string{"en", "de"}
 	}
 	return m.supportedLocales
 }
 
-func (m *mockConfigService) GetDefaultLocale() string {
+func (m *mockRouteDiscoveryConfigService) GetDefaultLocale() string {
 	if m.defaultLocale == "" {
 		return "en"
 	}
@@ -56,54 +56,54 @@ func (m *mockConfigService) GetDefaultLocale() string {
 }
 
 // Additional methods to satisfy interfaces.ConfigService
-func (m *mockConfigService) AreSecurityHeadersEnabled() bool { return false }
-func (m *mockConfigService) GetServerHost() string { return "localhost" }
-func (m *mockConfigService) GetServerPort() int { return 8080 }
-func (m *mockConfigService) GetServerBaseURL() string { return "http://localhost:8080" }
-func (m *mockConfigService) GetDatabaseHost() string { return "localhost" }
-func (m *mockConfigService) GetDatabasePort() int { return 5432 }
-func (m *mockConfigService) GetDatabaseUser() string { return "user" }
-func (m *mockConfigService) GetDatabasePassword() string { return "pass" }
-func (m *mockConfigService) GetDatabaseName() string { return "db" }
-func (m *mockConfigService) GetDatabaseSSLMode() string { return "disable" }
-func (m *mockConfigService) IsEmailVerificationRequired() bool { return false }
-func (m *mockConfigService) GetVerificationTokenExpiry() time.Duration { return 24 * time.Hour }
-func (m *mockConfigService) GetSessionCookieName() string { return "session" }
-func (m *mockConfigService) GetSessionExpiry() time.Duration { return 24 * time.Hour }
-func (m *mockConfigService) IsSessionSecure() bool { return false }
-func (m *mockConfigService) IsSessionHTTPOnly() bool { return true }
-func (m *mockConfigService) GetSessionSameSite() string { return "lax" }
-func (m *mockConfigService) GetMinPasswordLength() int { return 8 }
-func (m *mockConfigService) IsStrongPasswordRequired() bool { return false }
-func (m *mockConfigService) ShouldCreateDefaultAdmin() bool { return false }
-func (m *mockConfigService) GetDefaultAdminEmail() string { return "admin@example.com" }
-func (m *mockConfigService) GetDefaultAdminPassword() string { return "password" }
-func (m *mockConfigService) GetDefaultAdminFirstName() string { return "Admin" }
-func (m *mockConfigService) GetDefaultAdminLastName() string { return "User" }
-func (m *mockConfigService) GetSMTPHost() string { return "" }
-func (m *mockConfigService) GetSMTPPort() int { return 587 }
-func (m *mockConfigService) GetSMTPUsername() string { return "" }
-func (m *mockConfigService) GetSMTPPassword() string { return "" }
-func (m *mockConfigService) IsSMTPTLSEnabled() bool { return true }
-func (m *mockConfigService) GetFromEmail() string { return "noreply@example.com" }
-func (m *mockConfigService) GetFromName() string { return "App" }
-func (m *mockConfigService) GetReplyToEmail() string { return "" }
-func (m *mockConfigService) IsEmailDummyModeEnabled() bool { return true }
-func (m *mockConfigService) GetCSRFSecret() string { return "secret" }
-func (m *mockConfigService) IsCSRFSecure() bool { return false }
-func (m *mockConfigService) IsCSRFHTTPOnly() bool { return true }
-func (m *mockConfigService) GetCSRFSameSite() string { return "strict" }
-func (m *mockConfigService) IsRateLimitEnabled() bool { return false }
-func (m *mockConfigService) GetRateLimitRequests() int { return 100 }
-func (m *mockConfigService) IsHSTSEnabled() bool { return false }
-func (m *mockConfigService) GetHSTSMaxAge() int { return 31536000 }
-func (m *mockConfigService) GetLogLevel() string { return "info" }
-func (m *mockConfigService) GetLogFormat() string { return "json" }
-func (m *mockConfigService) GetLogOutput() string { return "stdout" }
-func (m *mockConfigService) IsFileLoggingEnabled() bool { return false }
-func (m *mockConfigService) GetLogFilePath() string { return "" }
-func (m *mockConfigService) IsProductionMode() bool { return false }
-func (m *mockConfigService) IsDevelopmentMode() bool { return true }
+func (m *mockRouteDiscoveryConfigService) AreSecurityHeadersEnabled() bool { return false }
+func (m *mockRouteDiscoveryConfigService) GetServerHost() string { return "localhost" }
+func (m *mockRouteDiscoveryConfigService) GetServerPort() int { return 8080 }
+func (m *mockRouteDiscoveryConfigService) GetServerBaseURL() string { return "http://localhost:8080" }
+func (m *mockRouteDiscoveryConfigService) GetDatabaseHost() string { return "localhost" }
+func (m *mockRouteDiscoveryConfigService) GetDatabasePort() int { return 5432 }
+func (m *mockRouteDiscoveryConfigService) GetDatabaseUser() string { return "user" }
+func (m *mockRouteDiscoveryConfigService) GetDatabasePassword() string { return "pass" }
+func (m *mockRouteDiscoveryConfigService) GetDatabaseName() string { return "db" }
+func (m *mockRouteDiscoveryConfigService) GetDatabaseSSLMode() string { return "disable" }
+func (m *mockRouteDiscoveryConfigService) IsEmailVerificationRequired() bool { return false }
+func (m *mockRouteDiscoveryConfigService) GetVerificationTokenExpiry() time.Duration { return 24 * time.Hour }
+func (m *mockRouteDiscoveryConfigService) GetSessionCookieName() string { return "session" }
+func (m *mockRouteDiscoveryConfigService) GetSessionExpiry() time.Duration { return 24 * time.Hour }
+func (m *mockRouteDiscoveryConfigService) IsSessionSecure() bool { return false }
+func (m *mockRouteDiscoveryConfigService) IsSessionHTTPOnly() bool { return true }
+func (m *mockRouteDiscoveryConfigService) GetSessionSameSite() string { return "lax" }
+func (m *mockRouteDiscoveryConfigService) GetMinPasswordLength() int { return 8 }
+func (m *mockRouteDiscoveryConfigService) IsStrongPasswordRequired() bool { return false }
+func (m *mockRouteDiscoveryConfigService) ShouldCreateDefaultAdmin() bool { return false }
+func (m *mockRouteDiscoveryConfigService) GetDefaultAdminEmail() string { return "admin@example.com" }
+func (m *mockRouteDiscoveryConfigService) GetDefaultAdminPassword() string { return "password" }
+func (m *mockRouteDiscoveryConfigService) GetDefaultAdminFirstName() string { return "Admin" }
+func (m *mockRouteDiscoveryConfigService) GetDefaultAdminLastName() string { return "User" }
+func (m *mockRouteDiscoveryConfigService) GetSMTPHost() string { return "" }
+func (m *mockRouteDiscoveryConfigService) GetSMTPPort() int { return 587 }
+func (m *mockRouteDiscoveryConfigService) GetSMTPUsername() string { return "" }
+func (m *mockRouteDiscoveryConfigService) GetSMTPPassword() string { return "" }
+func (m *mockRouteDiscoveryConfigService) IsSMTPTLSEnabled() bool { return true }
+func (m *mockRouteDiscoveryConfigService) GetFromEmail() string { return "noreply@example.com" }
+func (m *mockRouteDiscoveryConfigService) GetFromName() string { return "App" }
+func (m *mockRouteDiscoveryConfigService) GetReplyToEmail() string { return "" }
+func (m *mockRouteDiscoveryConfigService) IsEmailDummyModeEnabled() bool { return true }
+func (m *mockRouteDiscoveryConfigService) GetCSRFSecret() string { return "secret" }
+func (m *mockRouteDiscoveryConfigService) IsCSRFSecure() bool { return false }
+func (m *mockRouteDiscoveryConfigService) IsCSRFHTTPOnly() bool { return true }
+func (m *mockRouteDiscoveryConfigService) GetCSRFSameSite() string { return "strict" }
+func (m *mockRouteDiscoveryConfigService) IsRateLimitEnabled() bool { return false }
+func (m *mockRouteDiscoveryConfigService) GetRateLimitRequests() int { return 100 }
+func (m *mockRouteDiscoveryConfigService) IsHSTSEnabled() bool { return false }
+func (m *mockRouteDiscoveryConfigService) GetHSTSMaxAge() int { return 31536000 }
+func (m *mockRouteDiscoveryConfigService) GetLogLevel() string { return "info" }
+func (m *mockRouteDiscoveryConfigService) GetLogFormat() string { return "json" }
+func (m *mockRouteDiscoveryConfigService) GetLogOutput() string { return "stdout" }
+func (m *mockRouteDiscoveryConfigService) IsFileLoggingEnabled() bool { return false }
+func (m *mockRouteDiscoveryConfigService) GetLogFilePath() string { return "" }
+func (m *mockRouteDiscoveryConfigService) IsProductionMode() bool { return false }
+func (m *mockRouteDiscoveryConfigService) IsDevelopmentMode() bool { return true }
 
 type mockFileSystemChecker struct{}
 
@@ -168,7 +168,7 @@ func createTestContainer() do.Injector {
 	injector := do.New()
 	
 	// Register mocks with proper interface types
-	do.ProvideValue[interfaces.ConfigService](injector, &mockConfigService{})
+	do.ProvideValue[interfaces.ConfigService](injector, &mockRouteDiscoveryConfigService{})
 	do.ProvideValue[*zap.Logger](injector, zap.NewNop())
 	do.ProvideValue[middleware.FileSystemChecker](injector, &mockFileSystemChecker{})
 	do.ProvideValue[interfaces.TemplateRegistry](injector, &mockTemplateRegistry{})
@@ -328,26 +328,31 @@ func TestI18nPlaceholderFix(t *testing.T) {
 	}
 }
 // Additional missing methods for ConfigService
-func (m *mockConfigService) GetServerReadTimeout() time.Duration { return 30 * time.Second }
-func (m *mockConfigService) GetServerWriteTimeout() time.Duration { return 30 * time.Second }
-func (m *mockConfigService) GetServerIdleTimeout() time.Duration { return 2 * time.Minute }
-func (m *mockConfigService) GetServerShutdownTimeout() time.Duration { return 30 * time.Second }
-func (m *mockConfigService) GetFallbackLocale() string { return "en" }
-func (m *mockConfigService) GetLayoutAssetsDirectory() string { return "assets" }
-func (m *mockConfigService) GetLayoutAssetsRouteName() string { return "/assets/" }
-func (m *mockConfigService) GetMetadataExtension() string { return ".yaml" }
-func (m *mockConfigService) IsLayoutInheritanceEnabled() bool { return true }
-func (m *mockConfigService) GetTemplateOutputDir() string { return "generated" }
-func (m *mockConfigService) GetTemplatePackageName() string { return "templates" }
-func (m *mockConfigService) IsSessionHttpOnly() bool { return true }
-func (m *mockConfigService) IsCSRFHttpOnly() bool { return true }
-func (m *mockConfigService) IsDevelopment() bool { return true }
-func (m *mockConfigService) IsProduction() bool { return false }
+func (m *mockRouteDiscoveryConfigService) GetServerReadTimeout() time.Duration { return 30 * time.Second }
+func (m *mockRouteDiscoveryConfigService) GetServerWriteTimeout() time.Duration { return 30 * time.Second }
+func (m *mockRouteDiscoveryConfigService) GetServerIdleTimeout() time.Duration { return 2 * time.Minute }
+func (m *mockRouteDiscoveryConfigService) GetServerShutdownTimeout() time.Duration { return 30 * time.Second }
+func (m *mockRouteDiscoveryConfigService) GetFallbackLocale() string { return "en" }
+func (m *mockRouteDiscoveryConfigService) GetLayoutAssetsDirectory() string { return "assets" }
+func (m *mockRouteDiscoveryConfigService) GetLayoutAssetsRouteName() string { return "/assets/" }
+func (m *mockRouteDiscoveryConfigService) GetMetadataExtension() string { return ".yaml" }
+func (m *mockRouteDiscoveryConfigService) IsLayoutInheritanceEnabled() bool { return true }
+func (m *mockRouteDiscoveryConfigService) GetTemplateOutputDir() string { return "generated" }
+func (m *mockRouteDiscoveryConfigService) GetTemplatePackageName() string { return "templates" }
+func (m *mockRouteDiscoveryConfigService) IsSessionHttpOnly() bool { return true }
+func (m *mockRouteDiscoveryConfigService) IsCSRFHttpOnly() bool { return true }
+func (m *mockRouteDiscoveryConfigService) IsDevelopment() bool { return true }
+func (m *mockRouteDiscoveryConfigService) IsProduction() bool { return false }
 
 // Auth redirect routes (only for success cases)
-func (m *mockConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
-func (m *mockConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
-func (m *mockConfigService) GetSignOutSuccessRoute() string { return "/" }
+func (m *mockRouteDiscoveryConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
+func (m *mockRouteDiscoveryConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
+func (m *mockRouteDiscoveryConfigService) GetSignOutSuccessRoute() string { return "/" }
 
 // Auth routes
-func (m *mockConfigService) GetSignInRoute() string { return "/login" }
+func (m *mockRouteDiscoveryConfigService) GetSignInRoute() string { return "/login" }
+
+// Router configuration methods
+func (m *mockRouteDiscoveryConfigService) GetRouterEnableTrailingSlash() bool     { return true }
+func (m *mockRouteDiscoveryConfigService) GetRouterEnableSlashRedirect() bool     { return true }
+func (m *mockRouteDiscoveryConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }

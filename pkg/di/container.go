@@ -2,6 +2,7 @@ package di
 
 import (
 	"github.com/denkhaus/templ-router/pkg/config"
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
@@ -85,6 +86,7 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 	do.Provide(c.injector, middleware.NewAuthMiddleware)
 	do.Provide(c.injector, middleware.NewI18nMiddleware)
 	do.Provide(c.injector, middleware.NewTemplateMiddleware)
+	do.Provide(c.injector, middleware.NewRouterMiddleware)
 
 	do.Provide(c.injector, pipeline.NewHandlerPipeline)
 	do.Provide(c.injector, services.NewRouteDiscovery)
@@ -103,6 +105,11 @@ func (c *Container) GetRouter() router.RouterCore {
 // GetLogger returns the logger from the container
 func (c *Container) GetLogger() *zap.Logger {
 	return do.MustInvoke[*zap.Logger](c.injector)
+}
+
+// GetConfigService returns the config service instance
+func (c *Container) GetConfigService() interfaces.ConfigService {
+	return do.MustInvoke[interfaces.ConfigService](c.injector)
 }
 
 // Shutdown gracefully shuts down all services

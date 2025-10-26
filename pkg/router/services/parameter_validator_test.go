@@ -2,6 +2,7 @@ package services
 
 import (
 	"testing"
+	"time"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
@@ -9,6 +10,84 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
+
+// Mock config service for tests
+type mockConfigService struct{}
+
+// Router configuration methods
+func (m *mockConfigService) GetRouterEnableTrailingSlash() bool     { return true }
+func (m *mockConfigService) GetRouterEnableSlashRedirect() bool     { return true }
+func (m *mockConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+
+// Implement all required ConfigService methods
+func (m *mockConfigService) GetLayoutRootDirectory() string            { return "app" }
+func (m *mockConfigService) GetSupportedLocales() []string             { return []string{"en", "de"} }
+func (m *mockConfigService) GetDefaultLocale() string                  { return "en" }
+func (m *mockConfigService) GetFallbackLocale() string                 { return "en" }
+func (m *mockConfigService) GetLayoutFileName() string                 { return "layout" }
+func (m *mockConfigService) GetTemplateExtension() string              { return ".templ" }
+func (m *mockConfigService) GetMetadataExtension() string              { return ".yaml" }
+func (m *mockConfigService) IsLayoutInheritanceEnabled() bool          { return true }
+func (m *mockConfigService) GetTemplateOutputDir() string              { return "generated" }
+func (m *mockConfigService) GetTemplatePackageName() string            { return "templates" }
+func (m *mockConfigService) GetLayoutAssetsDirectory() string          { return "assets" }
+func (m *mockConfigService) GetLayoutAssetsRouteName() string          { return "/assets/" }
+func (m *mockConfigService) IsDevelopment() bool                       { return true }
+func (m *mockConfigService) IsProduction() bool                        { return false }
+func (m *mockConfigService) GetServerHost() string                     { return "localhost" }
+func (m *mockConfigService) GetServerPort() int                        { return 8080 }
+func (m *mockConfigService) GetServerBaseURL() string                  { return "http://localhost:8080" }
+func (m *mockConfigService) GetServerReadTimeout() time.Duration       { return 30 * time.Second }
+func (m *mockConfigService) GetServerWriteTimeout() time.Duration      { return 30 * time.Second }
+func (m *mockConfigService) GetServerIdleTimeout() time.Duration       { return 60 * time.Second }
+func (m *mockConfigService) GetServerShutdownTimeout() time.Duration   { return 10 * time.Second }
+func (m *mockConfigService) GetDatabaseHost() string                   { return "localhost" }
+func (m *mockConfigService) GetDatabasePort() int                      { return 5432 }
+func (m *mockConfigService) GetDatabaseUser() string                   { return "user" }
+func (m *mockConfigService) GetDatabasePassword() string               { return "password" }
+func (m *mockConfigService) GetDatabaseName() string                   { return "testdb" }
+func (m *mockConfigService) GetDatabaseSSLMode() string                { return "disable" }
+func (m *mockConfigService) IsEmailVerificationRequired() bool         { return false }
+func (m *mockConfigService) GetVerificationTokenExpiry() time.Duration { return 24 * time.Hour }
+func (m *mockConfigService) GetSessionCookieName() string              { return "session" }
+func (m *mockConfigService) GetSessionExpiry() time.Duration           { return 24 * time.Hour }
+func (m *mockConfigService) IsSessionSecure() bool                     { return false }
+func (m *mockConfigService) IsSessionHttpOnly() bool                   { return true }
+func (m *mockConfigService) GetSessionSameSite() string                { return "Lax" }
+func (m *mockConfigService) GetMinPasswordLength() int                 { return 8 }
+func (m *mockConfigService) IsStrongPasswordRequired() bool            { return false }
+func (m *mockConfigService) ShouldCreateDefaultAdmin() bool            { return false }
+func (m *mockConfigService) GetDefaultAdminEmail() string              { return "" }
+func (m *mockConfigService) GetDefaultAdminPassword() string           { return "" }
+func (m *mockConfigService) GetDefaultAdminFirstName() string          { return "" }
+func (m *mockConfigService) GetDefaultAdminLastName() string           { return "" }
+func (m *mockConfigService) GetSignInRoute() string                    { return "/login" }
+func (m *mockConfigService) GetSignInSuccessRoute() string             { return "/dashboard" }
+func (m *mockConfigService) GetSignUpSuccessRoute() string             { return "/welcome" }
+func (m *mockConfigService) GetSignOutSuccessRoute() string            { return "/" }
+func (m *mockConfigService) GetCSRFSecret() string                     { return "secret" }
+func (m *mockConfigService) IsCSRFSecure() bool                        { return false }
+func (m *mockConfigService) IsCSRFHttpOnly() bool                      { return true }
+func (m *mockConfigService) GetCSRFSameSite() string                   { return "Lax" }
+func (m *mockConfigService) IsRateLimitEnabled() bool                  { return false }
+func (m *mockConfigService) GetRateLimitRequests() int                 { return 100 }
+func (m *mockConfigService) AreSecurityHeadersEnabled() bool           { return false }
+func (m *mockConfigService) IsHSTSEnabled() bool                       { return false }
+func (m *mockConfigService) GetHSTSMaxAge() int                        { return 31536000 }
+func (m *mockConfigService) GetLogLevel() string                       { return "info" }
+func (m *mockConfigService) GetLogFormat() string                      { return "json" }
+func (m *mockConfigService) GetLogOutput() string                      { return "stdout" }
+func (m *mockConfigService) IsFileLoggingEnabled() bool                { return false }
+func (m *mockConfigService) GetLogFilePath() string                    { return "" }
+func (m *mockConfigService) GetSMTPHost() string                       { return "" }
+func (m *mockConfigService) GetSMTPPort() int                          { return 587 }
+func (m *mockConfigService) GetSMTPUsername() string                   { return "" }
+func (m *mockConfigService) GetSMTPPassword() string                   { return "" }
+func (m *mockConfigService) IsSMTPTLSEnabled() bool                    { return true }
+func (m *mockConfigService) GetFromEmail() string                      { return "" }
+func (m *mockConfigService) GetFromName() string                       { return "" }
+func (m *mockConfigService) GetReplyToEmail() string                   { return "" }
+func (m *mockConfigService) IsEmailDummyModeEnabled() bool             { return true }
 
 func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 	// Setup

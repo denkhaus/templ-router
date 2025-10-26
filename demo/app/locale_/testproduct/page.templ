@@ -18,57 +18,62 @@ templ Page(data *dataservices.ProductData) {
 						</svg>
 					</div>
 					<div class="text-white">
-						<h1 class="text-3xl font-bold">Product DataService Test</h1>
-						<p class="text-green-100 mt-2">Product ID: { data.ID }</p>
-						<p class="text-green-100">Testing GetData method ONLY</p>
+						<h1 class="text-3xl font-bold">{ i18n.T(ctx, "product_header_title") }</h1>
+						<p class="text-green-100 mt-2">{ i18n.T(ctx, "product_id_label") }: { data.ID }</p>
+						<p class="text-green-100">{ i18n.T(ctx, "testing_getdata_only") }</p>
 					</div>
 				</div>
 			</div>
 			<!-- Product Content -->
 			<div class="p-8">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-					<!-- Product Information -->
+					<!-- Product Details Section -->
 					<div>
-						<h2 class="text-2xl font-semibold text-gray-800 mb-6">Product Information</h2>
+						<h2 class="text-2xl font-semibold text-gray-800 mb-6">{ i18n.T(ctx, "product_information") }</h2>
 						<div class="space-y-4">
 							<div class="flex justify-between items-center py-3 border-b border-gray-200">
-								<span class="text-gray-600 font-medium">Product Name</span>
+								<span class="text-gray-600 font-medium">{ i18n.T(ctx, "product_name") }</span>
 								<span class="text-gray-800">{ data.Name }</span>
 							</div>
 							<div class="flex justify-between items-center py-3 border-b border-gray-200">
-								<span class="text-gray-600 font-medium">Description</span>
+								<span class="text-gray-600 font-medium">{ i18n.T(ctx, "description") }</span>
 								<span class="text-gray-800">{ data.Description }</span>
 							</div>
 							<div class="flex justify-between items-center py-3 border-b border-gray-200">
-								<span class="text-gray-600 font-medium">Price</span>
+								<span class="text-gray-600 font-medium">{ i18n.T(ctx, "price") }</span>
 								<span class="text-gray-800">${ fmt.Sprintf("%.2f", data.Price) }</span>
 							</div>
 							<div class="flex justify-between items-center py-3 border-b border-gray-200">
-								<span class="text-gray-600 font-medium">Category</span>
+								<span class="text-gray-600 font-medium">{ i18n.T(ctx, "category") }</span>
 								<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">{ data.Category }</span>
 							</div>
 							<div class="flex justify-between items-center py-3 border-b border-gray-200">
-								<span class="text-gray-600 font-medium">In Stock</span>
+								<span class="text-gray-600 font-medium">{ i18n.T(ctx, "in_stock") }</span>
 								if data.InStock {
-									<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">Yes</span>
+									<span class="px-2 py-1 bg-green-100 text-green-800 rounded text-sm">{ i18n.T(ctx, "yes") }</span>
 								} else {
-									<span class="px-2 py-1 bg-red-100 text-red-800 rounded text-sm">No</span>
+									<span class="px-2 py-1 bg-red-100 text-red-800 rounded text-sm">{ i18n.T(ctx, "no") }</span>
 								}
 							</div>
 						</div>
 					</div>
 					<!-- Test Info -->
 					<div>
-						<h2 class="text-2xl font-semibold text-gray-800 mb-6">DataService Test Info</h2>
+						<h2 class="text-2xl font-semibold text-gray-800 mb-6">{ i18n.T(ctx, "dataservice_test_info") }</h2>
 						<div class="bg-green-50 border border-green-200 rounded-lg p-6">
-							<h3 class="text-lg font-semibold text-green-800 mb-3">GetData Method Only Test</h3>
-							<p class="text-green-700 mb-2">This template tests a DataService that ONLY implements GetData method.</p>
+							<h3 class="text-lg font-semibold text-green-800 mb-3">{ i18n.T(ctx, "getdata_method_test") }</h3>
+							<p class="text-green-700 mb-2">{ i18n.T(ctx, "getdata_description") }</p>
 							<div class="text-sm text-green-700 space-y-1">
-								<p><strong>Service:</strong> dataservices.ProductDataService</p>
-								<p><strong>Available Methods:</strong> GetData() only</p>
-								<p><strong>Expected Behavior:</strong> Should call GetData method</p>
-								<p><strong>Data Type:</strong> *dataservices.ProductData</p>
-								<p><strong>Route:</strong> /{ i18n.GetCurrentLocale(ctx) }/testproduct</p>
+								<p><strong>{ i18n.T(ctx, "service_label") }:</strong> dataservices.ProductDataService</p>
+								<p><strong>{ i18n.T(ctx, "available_methods") }:</strong> { i18n.T(ctx, "getdata_only") }</p>
+								<p><strong>{ i18n.T(ctx, "expected_behavior") }:</strong> { i18n.T(ctx, "should_call_getdata") }</p>
+								<p><strong>{ i18n.T(ctx, "data_type") }:</strong> *dataservices.ProductData</p>
+								<p><strong>{ i18n.T(ctx, "route_label") }:</strong> /{ i18n.GetCurrentLocale(ctx) }/testproduct</p>
+							</div>
+							<div class="mt-4 p-3 bg-green-100 rounded">
+								<p class="text-sm text-green-800">
+									<strong>{ i18n.T(ctx, "welcome_message") }</strong>
+								</p>
 							</div>
 						</div>
 					</div>

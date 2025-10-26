@@ -283,3 +283,20 @@ func (cs *configService) IsDevelopment() bool {
 func (cs *configService) IsProduction() bool {
 	return cs.config.IsProduction()
 }
+
+// Router configuration accessors
+
+// GetRouterEnableTrailingSlash returns whether trailing slash redirection is enabled
+func (cs *configService) GetRouterEnableTrailingSlash() bool {
+	return cs.config.Router.EnableTrailingSlash
+}
+
+// GetRouterEnableSlashRedirect returns whether slash redirection is enabled
+func (cs *configService) GetRouterEnableSlashRedirect() bool {
+	return cs.config.Router.EnableSlashRedirect
+}
+
+// GetRouterEnableMethodNotAllowed returns whether method not allowed handler is enabled
+func (cs *configService) GetRouterEnableMethodNotAllowed() bool {
+	return cs.config.Router.EnableMethodNotAllowed
+}

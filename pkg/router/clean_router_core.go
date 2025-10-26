@@ -118,6 +118,11 @@ func (crc *cleanRouterCore) Initialize() error {
 func (crc *cleanRouterCore) RegisterRoutes(chiRouter *chi.Mux) error {
 	crc.logger.Info("Registering routes with Chi router")
 
+	// Configure router middleware based on configuration
+	if err := crc.configureRouterMiddleware(chiRouter); err != nil {
+		return fmt.Errorf("failed to configure router middleware: %w", err)
+	}
+
 	// Create route registrar through DI to ensure proper ConfigService injection
 	routeRegistrar, err := NewRouteRegistrar(crc.injector, chiRouter)
 	if err != nil {
@@ -165,6 +170,13 @@ func (crc *cleanRouterCore) RegisterRoutes(chiRouter *chi.Mux) error {
 		zap.Int("total_routes", len(crc.routes)))
 
 	return nil
+}
+
+// configureRouterMiddleware configures router-level middleware based on configuration
+func (crc *cleanRouterCore) configureRouterMiddleware(chiRouter *chi.Mux) error {
+	// Use the router middleware from the middleware setup
+	routerMiddleware := crc.middlewareSetup.GetRouterMiddleware()
+	return routerMiddleware.ConfigureRouterMiddleware(chiRouter)
 }
 
 // convertToInterfaceRoutes converts router.Route to interfaces.Route

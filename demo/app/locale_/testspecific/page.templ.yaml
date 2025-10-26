@@ -1,0 +1,73 @@
+i18n:
+  en:
+    page_title: "Specific Method Only Test"
+    specific_method_header: "Specific Method Only Test"
+    data_id_label: "Data ID"
+    testing_specific_method: "Testing GetSpecificData without GetData"
+    data_information: "Data Information"
+    title_label: "Title"
+    description_label: "Description"
+    method_called: "Method Called"
+    dataservice_test_info: "DataService Test Info"
+    specific_method_test: "Specific Method Only Test"
+    specific_method_description: "This template tests a DataService that ONLY implements the specific method."
+    service_label: "Service"
+    available_methods: "Available Methods"
+    getspecific_only: "GetSpecificData() ONLY"
+    missing_method: "Missing Method"
+    getdata_not_implemented: "GetData() - NOT implemented"
+    expected_behavior: "Expected Behavior"
+    should_call_specific: "Should call GetSpecificData directly"
+    data_type: "Data Type"
+    route_label: "Route"
+    success_indicator: "Success Indicator"
+    success_message: "If you see this page, the router successfully called GetSpecificData without needing GetData!"
+    important_note: "📝 Important Note"
+    welcome_message: "Welcome to the Specific Method DataService demonstration!"
+    
+  de:
+    page_title: "Nur Spezifische Methode Test"
+    specific_method_header: "Nur Spezifische Methode Test"
+    data_id_label: "Daten-ID"
+    testing_specific_method: "Teste GetSpecificData ohne GetData"
+    data_information: "Dateninformationen"
+    title_label: "Titel"
+    description_label: "Beschreibung"
+    method_called: "Aufgerufene Methode"
+    dataservice_test_info: "DataService Test Info"
+    specific_method_test: "Nur Spezifische Methode Test"
+    specific_method_description: "Dieses Template testet einen DataService, der NUR die spezifische Methode implementiert."
+    service_label: "Service"
+    available_methods: "Verfügbare Methoden"
+    getspecific_only: "NUR GetSpecificData()"
+    missing_method: "Fehlende Methode"
+    getdata_not_implemented: "GetData() - NICHT implementiert"
+    expected_behavior: "Erwartetes Verhalten"
+    should_call_specific: "Sollte GetSpecificData direkt aufrufen"
+    data_type: "Datentyp"
+    route_label: "Route"
+    success_indicator: "Erfolgsindikator"
+    success_message: "Wenn Sie diese Seite sehen, hat der Router erfolgreich GetSpecificData aufgerufen, ohne GetData zu benötigen!"
+    important_note: "📝 Wichtiger Hinweis"
+    welcome_message: "Willkommen zur Spezifische Methode DataService Demonstration!"
+
+auth:
+  type: "Public"
+
+metadata:
+  title: "Specific Method DataService Test - Multi-Language Demo"
+  theme: "specific-dataservice-test"
+  description: "Testing specific DataService method without GetData fallback"
+  app_version: "1.0.0"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]
+
+dataservice:
+  service: "SpecificDataService"
+  method: "GetSpecificData"
+  description: "Tests SpecificOnlyDataService with GetSpecificData method only (no GetData fallback)"

@@ -1,0 +1,72 @@
+i18n:
+  en:
+    page_title: "Product DataService Test"
+    product_header_title: "Product DataService Test"
+    product_id_label: "Product ID"
+    testing_getdata_only: "Testing GetData method ONLY"
+    product_information: "Product Information"
+    product_name: "Product Name"
+    description: "Description"
+    price: "Price"
+    category: "Category"
+    in_stock: "In Stock"
+    yes: "Yes"
+    no: "No"
+    dataservice_test_info: "DataService Test Info"
+    getdata_method_test: "GetData Method Only Test"
+    getdata_description: "This template tests a DataService that ONLY implements GetData method."
+    service_label: "Service"
+    available_methods: "Available Methods"
+    getdata_only: "GetData() only"
+    expected_behavior: "Expected Behavior"
+    should_call_getdata: "Should call GetData method"
+    data_type: "Data Type"
+    route_label: "Route"
+    welcome_message: "Welcome to the Product DataService demonstration!"
+    
+  de:
+    page_title: "Produkt DataService Test"
+    product_header_title: "Produkt DataService Test"
+    product_id_label: "Produkt-ID"
+    testing_getdata_only: "Teste nur GetData Methode"
+    product_information: "Produktinformationen"
+    product_name: "Produktname"
+    description: "Beschreibung"
+    price: "Preis"
+    category: "Kategorie"
+    in_stock: "Auf Lager"
+    yes: "Ja"
+    no: "Nein"
+    dataservice_test_info: "DataService Test Info"
+    getdata_method_test: "GetData Methoden Test"
+    getdata_description: "Dieses Template testet einen DataService, der NUR die GetData Methode implementiert."
+    service_label: "Service"
+    available_methods: "Verfügbare Methoden"
+    getdata_only: "Nur GetData()"
+    expected_behavior: "Erwartetes Verhalten"
+    should_call_getdata: "Sollte GetData Methode aufrufen"
+    data_type: "Datentyp"
+    route_label: "Route"
+    welcome_message: "Willkommen zur Produkt DataService Demonstration!"
+
+
+auth:
+  type: "Public"
+
+metadata:
+  title: "Product DataService Test - Multi-Language Demo"
+  theme: "dataservice-test"
+  description: "Testing DataService integration with i18n translations"
+  app_version: "1.0.0"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]
+
+dataservice:
+  service: "ProductDataService"
+  method: "GetData"
+  description: "Tests ProductDataService with GetData method only"

@@ -95,4 +95,9 @@ type ConfigService interface {
 	// Environment configuration
 	IsDevelopment() bool
 	IsProduction() bool
+
+	// Router configuration
+	GetRouterEnableTrailingSlash() bool
+	GetRouterEnableSlashRedirect() bool
+	GetRouterEnableMethodNotAllowed() bool
 }

@@ -17,50 +17,50 @@ templ Page(data *dataservices.SpecificData) {
 						</svg>
 					</div>
 					<div class="text-white">
-						<h1 class="text-3xl font-bold">Specific Method Only Test</h1>
-						<p class="text-indigo-100 mt-2">Data ID: { data.ID }</p>
-						<p class="text-indigo-100">Testing GetSpecificData without GetData</p>
+						<h1 class="text-3xl font-bold">{ i18n.T(ctx, "specific_method_header") }</h1>
+						<p class="text-indigo-100 mt-2">{ i18n.T(ctx, "data_id_label") }: { data.ID }</p>
+						<p class="text-indigo-100">{ i18n.T(ctx, "testing_specific_method") }</p>
 					</div>
 				</div>
 			</div>
 			<!-- Content -->
 			<div class="p-8">
 				<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-					<!-- Data Information -->
+					<!-- Data Details Section -->
 					<div>
-						<h2 class="text-2xl font-semibold text-gray-800 mb-6">Data Information</h2>
+						<h2 class="text-2xl font-semibold text-gray-800 mb-6">{ i18n.T(ctx, "data_information") }</h2>
 						<div class="space-y-4">
 							<div class="flex justify-between items-center py-3 border-b border-gray-200">
-								<span class="text-gray-600 font-medium">Title</span>
+								<span class="text-gray-600 font-medium">{ i18n.T(ctx, "title_label") }</span>
 								<span class="text-gray-800">{ data.Title }</span>
 							</div>
 							<div class="flex justify-between items-center py-3 border-b border-gray-200">
-								<span class="text-gray-600 font-medium">Description</span>
+								<span class="text-gray-600 font-medium">{ i18n.T(ctx, "description_label") }</span>
 								<span class="text-gray-800 text-sm">{ data.Description }</span>
 							</div>
 							<div class="flex justify-between items-center py-3 border-b border-gray-200">
-								<span class="text-gray-600 font-medium">Method Called</span>
+								<span class="text-gray-600 font-medium">{ i18n.T(ctx, "method_called") }</span>
 								<span class="px-2 py-1 bg-indigo-100 text-indigo-800 rounded text-sm">{ data.Method }</span>
 							</div>
 						</div>
 					</div>
 					<!-- Test Info -->
 					<div>
-						<h2 class="text-2xl font-semibold text-gray-800 mb-6">DataService Test Info</h2>
+						<h2 class="text-2xl font-semibold text-gray-800 mb-6">{ i18n.T(ctx, "dataservice_test_info") }</h2>
 						<div class="bg-indigo-50 border border-indigo-200 rounded-lg p-6">
-							<h3 class="text-lg font-semibold text-indigo-800 mb-3">Specific Method Only Test</h3>
-							<p class="text-indigo-700 mb-2">This template tests a DataService that ONLY implements the specific method.</p>
+							<h3 class="text-lg font-semibold text-indigo-800 mb-3">{ i18n.T(ctx, "specific_method_test") }</h3>
+							<p class="text-indigo-700 mb-2">{ i18n.T(ctx, "specific_method_description") }</p>
 							<div class="text-sm text-indigo-700 space-y-1">
-								<p><strong>Service:</strong> dataservices.SpecificOnlyDataService</p>
-								<p><strong>Available Methods:</strong> GetSpecificData() ONLY</p>
-								<p><strong>Missing Method:</strong> GetData() - NOT implemented</p>
-								<p><strong>Expected Behavior:</strong> Should call GetSpecificData directly</p>
-								<p><strong>Data Type:</strong> *dataservices.SpecificData</p>
-								<p><strong>Route:</strong> /{ i18n.GetCurrentLocale(ctx) }/testspecific</p>
+								<p><strong>{ i18n.T(ctx, "service_label") }:</strong> dataservices.SpecificOnlyDataService</p>
+								<p><strong>{ i18n.T(ctx, "available_methods") }:</strong> { i18n.T(ctx, "getspecific_only") }</p>
+								<p><strong>{ i18n.T(ctx, "missing_method") }:</strong> { i18n.T(ctx, "getdata_not_implemented") }</p>
+								<p><strong>{ i18n.T(ctx, "expected_behavior") }:</strong> { i18n.T(ctx, "should_call_specific") }</p>
+								<p><strong>{ i18n.T(ctx, "data_type") }:</strong> *dataservices.SpecificData</p>
+								<p><strong>{ i18n.T(ctx, "route_label") }:</strong> /{ i18n.GetCurrentLocale(ctx) }/testspecific</p>
 							</div>
 							<div class="mt-4 p-3 bg-indigo-100 rounded">
 								<p class="text-sm text-indigo-800">
-									<strong>Success Indicator:</strong> If you see this page, the router successfully called GetSpecificData without needing GetData!
+									<strong>{ i18n.T(ctx, "success_indicator") }:</strong> { i18n.T(ctx, "success_message") }
 								</p>
 							</div>
 						</div>
@@ -68,8 +68,13 @@ templ Page(data *dataservices.SpecificData) {
 				</div>
 				<!-- Important Note -->
 				<div class="mt-8 bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-					<h3 class="text-lg font-semibold text-yellow-800 mb-3">📝 Important Note</h3>
+					<h3 class="text-lg font-semibold text-yellow-800 mb-3">{ i18n.T(ctx, "important_note") }</h3>
 					<p class="text-yellow-700 text-sm">{ data.Note }</p>
+					<div class="mt-3 p-2 bg-yellow-100 rounded">
+						<p class="text-xs text-yellow-800">
+							<strong>{ i18n.T(ctx, "welcome_message") }</strong>
+						</p>
+					</div>
 				</div>
 			</div>
 		</div>

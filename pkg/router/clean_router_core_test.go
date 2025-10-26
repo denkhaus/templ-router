@@ -92,6 +92,11 @@ func (m *mockRouterConfigService) GetLogFilePath() string         { return "" }
 func (m *mockRouterConfigService) IsDevelopment() bool            { return true }
 func (m *mockRouterConfigService) IsProduction() bool             { return false }
 
+// Router configuration methods
+func (m *mockRouterConfigService) GetRouterEnableTrailingSlash() bool     { return true }
+func (m *mockRouterConfigService) GetRouterEnableSlashRedirect() bool     { return true }
+func (m *mockRouterConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+
 type mockRouterAssetsService struct{}
 
 func (m *mockRouterAssetsService) SetupRoutes(router *chi.Mux)             {}
@@ -371,6 +376,14 @@ func (m *mockTemplateMiddleware) HandleTemplateError(err error, w http.ResponseW
 	http.Error(w, "Template error", http.StatusInternalServerError)
 }
 
+// Mock RouterMiddleware
+type mockRouterMiddleware struct{}
+
+func (m *mockRouterMiddleware) ConfigureRouterMiddleware(chiRouter *chi.Mux) error {
+	// Mock implementation - do nothing
+	return nil
+}
+
 // Mock AuthHandlers for router tests
 type mockRouterAuthHandlers struct{}
 
@@ -431,6 +444,7 @@ func createRouterTestContainer() do.Injector {
 	do.ProvideValue[middleware.AuthMiddlewareInterface](injector, &mockAuthMiddleware{})
 	do.ProvideValue[middleware.I18nMiddlewareInterface](injector, &mockI18nMiddleware{})
 	do.ProvideValue[middleware.TemplateMiddlewareInterface](injector, &mockTemplateMiddleware{})
+	do.ProvideValue[middleware.RouterMiddlewareInterface](injector, &mockRouterMiddleware{})
 
 	// Register AuthHandlers (required by RegisterRoutes)
 	do.ProvideValue[interfaces.AuthHandlers](injector, &mockRouterAuthHandlers{})

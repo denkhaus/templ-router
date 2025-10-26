@@ -97,7 +97,18 @@ func (p Test) E2EData() error {
 
 	return sh.RunWithV(map[string]string{
 		"TEST_BASE_URL": "http://localhost:8084",
-	}, "sh", "-c", "cd demo/tests && ginkgo run --focus='Data Service' --randomize-all --race --trace")
+	}, "sh", "-c", "cd demo/tests && ginkgo run --focus='Data Service|TestProduct|TestSpecific' --randomize-all --race --trace")
+}
+
+// E2EDataServiceI18n runs DataService + i18n integration tests
+func (p Test) E2EDataServiceI18n() error {
+	mg.Deps(p.CheckService)
+
+	fmt.Println("🌐💾 Running DataService + i18n integration tests...")
+
+	return sh.RunWithV(map[string]string{
+		"TEST_BASE_URL": "http://localhost:8084",
+	}, "sh", "-c", "cd demo/tests && ginkgo run --focus='TestProduct.*i18n|TestSpecific.*i18n' --randomize-all --race --trace")
 }
 
 // E2EContent runs content validation tests
@@ -225,11 +236,13 @@ func (p Test) DevSetup() error {
 
 	fmt.Println("✅ Development testing environment ready!")
 	fmt.Println("💡 Available commands:")
-	fmt.Println("   mage test:e2e        - Run all E2E tests")
-	fmt.Println("   mage test:e2eWatch   - Watch mode for development")
-	fmt.Println("   mage test:e2eSmoke   - Quick smoke tests")
-	fmt.Println("   mage test:e2eRouting - Routing tests")
-	fmt.Println("   mage test:e2eI18n    - i18n tests")
+	fmt.Println("   mage test:e2e               - Run all E2E tests")
+	fmt.Println("   mage test:e2eWatch          - Watch mode for development")
+	fmt.Println("   mage test:e2eSmoke          - Quick smoke tests")
+	fmt.Println("   mage test:e2eRouting        - Routing tests")
+	fmt.Println("   mage test:e2eI18n           - i18n tests")
+	fmt.Println("   mage test:e2eData           - DataService tests")
+	fmt.Println("   mage test:e2eDataServiceI18n - DataService + i18n integration tests")
 
 	return nil
 }

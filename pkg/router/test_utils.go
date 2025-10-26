@@ -8,6 +8,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
@@ -42,6 +43,11 @@ func (m *MockConfigService) GetTemplateOutputDir() string              { return 
 func (m *MockConfigService) GetTemplatePackageName() string            { return "templates" }
 func (m *MockConfigService) IsDevelopment() bool                       { return true }
 func (m *MockConfigService) IsProduction() bool                        { return false }
+
+// Router configuration methods
+func (m *MockConfigService) GetRouterEnableTrailingSlash() bool     { return true }
+func (m *MockConfigService) GetRouterEnableSlashRedirect() bool     { return true }
+func (m *MockConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
 func (m *MockConfigService) GetServerReadTimeout() time.Duration       { return 30 * time.Second }
 func (m *MockConfigService) GetServerWriteTimeout() time.Duration      { return 30 * time.Second }
 func (m *MockConfigService) GetServerIdleTimeout() time.Duration       { return 60 * time.Second }
@@ -234,7 +240,7 @@ func (m *MockErrorService) CreateErrorComponent(message, path string) templ.Comp
 // Middleware mocks
 type MockAuthMiddleware struct{}
 
-func (m *MockAuthMiddleware) Middleware(next http.Handler) http.Handler {
+func (m *MockAuthMiddleware) Handle(next http.Handler, requirements *interfaces.AuthSettings) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 	})
@@ -242,7 +248,7 @@ func (m *MockAuthMiddleware) Middleware(next http.Handler) http.Handler {
 
 type MockI18nMiddleware struct{}
 
-func (m *MockI18nMiddleware) Middleware(next http.Handler) http.Handler {
+func (m *MockI18nMiddleware) Handle(next http.Handler, templatePath string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 	})
@@ -250,10 +256,18 @@ func (m *MockI18nMiddleware) Middleware(next http.Handler) http.Handler {
 
 type MockTemplateMiddleware struct{}
 
-func (m *MockTemplateMiddleware) Middleware(next http.Handler) http.Handler {
+func (m *MockTemplateMiddleware) Handle(route interfaces.Route, params map[string]string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("mock template response"))
 	})
+}
+
+type MockRouterMiddleware struct{}
+
+func (m *MockRouterMiddleware) ConfigureRouterMiddleware(chiRouter *chi.Mux) error {
+	// Mock implementation - do nothing
+	return nil
 }
 
 // Helper function to create a complete test DI container
@@ -319,7 +333,22 @@ func CreateTestContainer() do.Injector {
 		return &MockErrorService{}, nil
 	})
 
-	// Skip middleware registration for now as interfaces are complex
+	// Register all middleware interfaces for complete testing
+	do.Provide(injector, func(i do.Injector) (middleware.AuthMiddlewareInterface, error) {
+		return &MockAuthMiddleware{}, nil
+	})
+
+	do.Provide(injector, func(i do.Injector) (middleware.I18nMiddlewareInterface, error) {
+		return &MockI18nMiddleware{}, nil
+	})
+
+	do.Provide(injector, func(i do.Injector) (middleware.TemplateMiddlewareInterface, error) {
+		return &MockTemplateMiddleware{}, nil
+	})
+
+	do.Provide(injector, func(i do.Injector) (middleware.RouterMiddlewareInterface, error) {
+		return &MockRouterMiddleware{}, nil
+	})
 
 	return injector
 }
