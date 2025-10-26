@@ -286,3 +286,8 @@ func (m *mockTemplateConfigService) GetSignOutSuccessRoute() string { return "/"
 
 // Auth routes
 func (m *mockTemplateConfigService) GetSignInRoute() string { return "/login" }
+
+// Router configuration methods
+func (m *mockTemplateConfigService) GetRouterEnableTrailingSlash() bool     { return true }
+func (m *mockTemplateConfigService) GetRouterEnableSlashRedirect() bool     { return true }
+func (m *mockTemplateConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }

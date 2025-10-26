@@ -32,6 +32,11 @@ func (m *mockLoggerConfigService) GetLogFilePath() string                 { retu
 func (m *mockLoggerConfigService) IsDevelopment() bool                    { return m.isDevelopment }
 func (m *mockLoggerConfigService) IsProduction() bool                     { return m.isProduction }
 
+// Router configuration methods
+func (m *mockLoggerConfigService) GetRouterEnableTrailingSlash() bool     { return true }
+func (m *mockLoggerConfigService) GetRouterEnableSlashRedirect() bool     { return true }
+func (m *mockLoggerConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+
 // Implement remaining interface methods with defaults
 func (m *mockLoggerConfigService) GetServerHost() string                     { return "localhost" }
 func (m *mockLoggerConfigService) GetServerPort() int                        { return 8080 }
