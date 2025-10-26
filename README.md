@@ -132,20 +132,25 @@ app/[locale]/product/[id]/page.templ → /en/product/123
 Each template can have an optional `.templ.yaml` configuration file:
 
 ```yaml
-# app/admin/page.templ.yaml
+# app/locale_/admin/page.templ.yaml
 auth:
-  type: admin
-  redirect_url: /login
+  type: "AdminRequired"
+  redirect_url: "/login"
 
 i18n:
-  title: "Admin Dashboard"
-  description: "Manage your application"
+  en:
+    page_title: "System Administration"
+    admin_warning: "Admin Area - Restricted Access"
+  de:
+    page_title: "Systemadministration"
+    admin_warning: "Admin-Bereich - Eingeschränkter Zugang"
 
 dynamic:
   parameters:
-    id:
-      validation: "^[0-9]+$"
-      description: "Product ID"
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]
 ```
 
 ### Layout System
@@ -198,25 +203,34 @@ I18N_FALLBACK_LOCALE=en
 ### Translation Files
 
 ```yaml
-# app/[locale]/admin/page.templ.yaml
+# app/locale_/dashboard/page.templ.yaml
 i18n:
   en:
-    title: "Admin Dashboard"
-    welcome: "Welcome, Administrator"
+    page_title: "Dashboard"
+    page_subtitle: "Overview of your application metrics and recent activity"
+    stats_users: "Total Users"
+    recent_activity_title: "Recent Activity"
   de:
-    title: "Admin-Dashboard"
-    welcome: "Willkommen, Administrator"
-  fr:
-    title: "Tableau de Bord Admin"
-    welcome: "Bienvenue, Administrateur"
+    page_title: "Dashboard"
+    page_subtitle: "Übersicht Ihrer Anwendungsmetriken und aktuellen Aktivitäten"
+    stats_users: "Gesamte Benutzer"
+    recent_activity_title: "Letzte Aktivitäten"
+
+auth:
+  type: "Public"
+
+metadata:
+  title: "Dashboard - Multi-Language Demo"
+  theme: "dashboard"
+  description: "Application dashboard with metrics"
 ```
 
 ### Using Translations in Templates
 
 ```go
 templ AdminPage() {
-    <h1>{ t("admin.title") }</h1>
-    <p>{ t("admin.welcome") }</p>
+    <h1>{ t("page_title") }</h1>
+    <p>{ t("admin_warning") }</p>
 }
 ```
 
@@ -225,11 +239,14 @@ templ AdminPage() {
 ### Route-Level Authentication
 
 ```yaml
-# app/admin/page.templ.yaml
+# app/locale_/admin/page.templ.yaml
 auth:
-  type: admin           # public, user, admin
-  roles: ["admin", "moderator"]
-  redirect_url: /login
+  type: "AdminRequired"    # Public, UserRequired, AdminRequired
+  redirect_url: "/login"
+
+# app/login/page.templ.yaml
+auth:
+  type: "Public"
 ```
 
 ### Security Configuration
@@ -296,30 +313,29 @@ LOGGING_OUTPUT=stdout
 Each template can have rich metadata configuration:
 
 ```yaml
-# page.templ.yaml
+# app/locale_/product/id_/page.templ.yaml
 auth:
-  type: user
-  roles: ["user", "premium"]
+  type: "Public"
 
 i18n:
-  title: "Product Details"
-  description: "View product information"
-  keywords: ["product", "shop", "details"]
+  en:
+    page_title: "Product Details"
+    product_information: "Product Information"
+    dynamic_route_demo: "Dynamic Route Demo"
+  de:
+    page_title: "Produktdetails"
+    product_information: "Produktinformationen"
+    dynamic_route_demo: "Dynamische Route Demo"
 
 dynamic:
   parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]
     id:
-      validation: "^[a-zA-Z0-9-]+$"
+      validation: "^[a-zA-Z0-9_-]+$"
       description: "Product identifier"
-      supported_values: ["electronics", "clothing", "books"]
-
-layout:
-  disable_inheritance: false
-  custom_layout: "special-layout"
-
-error:
-  custom_404: "product-not-found"
-  custom_500: "product-error"
 ```
 
 ## Dependency Injection
