@@ -1,6 +1,6 @@
 {
     "devDependencies": {
-        "@html-eslint/eslint-plugin": "^0.37.0",
+        "@html-eslint/eslint-plugin": "^0.47.0",
         "@html-eslint/parser": "^0.47.0",
         "@tailwindcss/cli": "^4.1.14",
         "eslint": "^9.24.0",
