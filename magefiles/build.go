@@ -43,9 +43,9 @@ func (p Build) RegistryGenerate() error {
 	fmt.Println("Generating template registry...")
 	// Generate templates
 	if err := sh.RunWithV(map[string]string{
-		"TEMPLATE_SCAN_PATH":   "app",
-		"TEMPLATE_OUTPUT_DIR":  "generated/templates",
-		"TEMPLATE_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
+		"TRGEN_SCAN_PATH":   "app",
+		"TRGEN_OUTPUT_DIR":  "generated/templates",
+		"TRGEN_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
 	}, "sh", "-c", "cd demo && trgen"); err != nil {
 		return err
 	}
@@ -59,16 +59,16 @@ func (Build) RegistryWatch() error {
 	fmt.Println("Watching template registry...")
 
 	return sh.RunWithV(map[string]string{
-		"TEMPLATE_SCAN_PATH":   "app",
-		"TEMPLATE_OUTPUT_DIR":  "generated/templates",
-		"TEMPLATE_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
+		"TRGEN_SCAN_PATH":   "app",
+		"TRGEN_OUTPUT_DIR":  "generated/templates",
+		"TRGEN_MODULE_NAME": "github.com/denkhaus/templ-router/demo",
 	}, "sh", "-c", "cd demo && trgen --watch")
 }
 
 // All builds all binaries for different platforms
 func (Build) All() error {
 	fmt.Println("Building all binaries...")
-	
+
 	platforms := []struct {
 		os   string
 		arch string
@@ -79,25 +79,25 @@ func (Build) All() error {
 		{"darwin", "arm64"},
 		{"windows", "amd64"},
 	}
-	
+
 	for _, platform := range platforms {
 		fmt.Printf("Building for %s/%s...\n", platform.os, platform.arch)
-		
+
 		env := map[string]string{
 			"GOOS":   platform.os,
 			"GOARCH": platform.arch,
 		}
-		
+
 		output := fmt.Sprintf("bin/templ-router-%s-%s", platform.os, platform.arch)
 		if platform.os == "windows" {
 			output += ".exe"
 		}
-		
+
 		if err := sh.RunWithV(env, "go", "build", "-o", output, "./cmd/trgen"); err != nil {
 			return fmt.Errorf("failed to build for %s/%s: %w", platform.os, platform.arch, err)
 		}
 	}
-	
+
 	fmt.Println("All binaries built successfully")
 	return nil
 }

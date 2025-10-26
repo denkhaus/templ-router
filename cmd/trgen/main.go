@@ -11,7 +11,7 @@ import (
 )
 
 // CRITICAL: This generator MUST be 100% configuration-agnostic!
-// It's a LIBRARY for thousands of developers, NOT a local tool.
+// It's a LIBRARY for external developers, NOT a local tool for a single use case.
 // NEVER hardcode project names, paths, or module names.
 // EVERY project has different structures and names.
 // NO DEFAULTS for project-specific values!
@@ -20,24 +20,24 @@ func appFlags() []cli.Flag {
 		&cli.BoolFlag{
 			Name:    "watch",
 			Usage:   "Watch for file changes and regenerate templates",
-			EnvVars: []string{"TEMPLATE_WATCH_MODE"},
+			EnvVars: []string{"TRGEN_WATCH_MODE"},
 		},
 		&cli.StringFlag{
 			Name:    "watch-extensions",
 			Value:   ".templ,.yaml,.yml",
 			Usage:   "Comma-separated list of file extensions to watch",
-			EnvVars: []string{"TEMPLATE_WATCH_EXTENSIONS"},
+			EnvVars: []string{"TRGEN_WATCH_EXTENSIONS"},
 		},
 		&cli.StringFlag{
 			Name:     "scan-path",
 			Usage:    "Path to scan for templates (required)",
-			EnvVars:  []string{"TEMPLATE_SCAN_PATH"},
+			EnvVars:  []string{"TRGEN_SCAN_PATH"},
 			Required: true,
 		},
 		&cli.StringFlag{
-			Name:     "module-name", 
+			Name:     "module-name",
 			Usage:    "Go module name (required)",
-			EnvVars:  []string{"TEMPLATE_MODULE_NAME"},
+			EnvVars:  []string{"TRGEN_MODULE_NAME"},
 			Required: true,
 		},
 	}
@@ -45,7 +45,7 @@ func appFlags() []cli.Flag {
 
 func main() {
 	buildInfo := version.GetBuildInfo()
-	
+
 	app := &cli.App{
 		Name:    "trgen",
 		Usage:   "templ-router generator - Generate templates for templ-router",
@@ -76,10 +76,10 @@ func main() {
 			WithCause(err).
 			WithContext("command", os.Args).
 			WithContext("version", buildInfo.Short())
-		
+
 		// Print user-friendly error message
 		fmt.Fprintf(os.Stderr, "Error: %s\n", err.Error())
-		
+
 		// Print additional context for debugging if it's a structured error
 		if appErr, ok := err.(*shared.AppError); ok {
 			if appErr.Details != "" {
@@ -89,7 +89,7 @@ func main() {
 				fmt.Fprintf(os.Stderr, "Context: %+v\n", appErr.Context)
 			}
 		}
-		
+
 		// Exit with appropriate error code
 		if shared.IsErrorType(cliError, shared.ErrorTypeValidation) {
 			os.Exit(2) // Invalid usage

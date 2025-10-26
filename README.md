@@ -55,7 +55,7 @@ This pipeline ensures that templates always receive the correct authentication c
 ### 🗂️ File-Based Routing
 
 - Routes automatically generated from file structure using `trgen`
-- Dynamic parameters: `id_/` (underscore suffix), `locale_/` for internationalization
+- Dynamic parameters e.g. : `id_/` (underscore suffix), `locale_/` for internationalization
 - Route precedence system for conflict resolution
 - Template-to-route mapping with configurable patterns
 
@@ -168,7 +168,7 @@ auth:
 ### 📊 Data Service Integration
 
 - **Automatic Data Injection**: Templates can declare data service requirements
-- **Two Method Patterns**: `GetData()` method or specific `Get<DataType>()` methods
+- **Two Method Patterns**: `GetData()` method or specific `Get<Data Struct Name>()` methods
 - **Parameter Injection**: Route parameters automatically passed to data services
 - **DI Registration**: Data services registered via `do.ProvideNamed()`
 
@@ -236,8 +236,8 @@ After running `trgen`, you'll have a generated template registry that needs to b
 your-project/
 └── generated/
     └── templates/
-        ├── registry.go           # Template registry implementation
-        └── template_mappings.go  # Route-to-template mappings
+        └── registry.go           # Template registry implementation
+
 ```
 
 **Integration in your application:**
@@ -249,12 +249,12 @@ package main
 import (
     "context"
     "net/http"
-    
+
     "github.com/denkhaus/templ-router/pkg/di"
     "github.com/denkhaus/templ-router/pkg/router/middleware"
     "github.com/go-chi/chi/v5"
     "github.com/samber/do/v2"
-    
+
     // Import your generated template registry
     "github.com/youruser/yourproject/generated/templates"
     // Import your data services
@@ -265,48 +265,48 @@ func main() {
     // Create DI container with router services
     container := di.NewContainer()
     defer container.Shutdown()
-    
+
     // Register router services with config prefix
     container.RegisterRouterServices("TR")
-    
+
     // Create your template registry
     templateRegistry, err := templates.NewRegistry(container.GetInjector())
     if err != nil {
         panic(err)
     }
-    
+
     // Register application services using options pattern
     container.RegisterApplicationServices(
         di.WithTemplateRegistry(templateRegistry),
         // Add your other services here
     )
-    
+
     // Register your data services as named dependencies
     injector := container.GetInjector()
     do.ProvideNamed(injector, "UserDataService", dataservices.NewUserDataService)
     do.ProvideNamed(injector, "ProductDataService", dataservices.NewProductDataService)
-    
+
     // Create Chi router
     mux := chi.NewRouter()
-    
+
     // Add auth context middleware
     authMiddleware, err := middleware.NewAuthContextMiddleware(injector)
     if err != nil {
         panic(err)
     }
     mux.Use(authMiddleware.Middleware)
-    
+
     // Get clean router and initialize
     cleanRouter := container.GetRouter()
     if err := cleanRouter.Initialize(); err != nil {
         panic(err)
     }
-    
+
     // Register file-based routes
     if err := cleanRouter.RegisterRoutes(mux); err != nil {
         panic(err)
     }
-    
+
     // Start server
     http.ListenAndServe(":8080", mux)
 }
@@ -367,6 +367,7 @@ TEMPLATE_SCAN_PATH=app TEMPLATE_MODULE_NAME=github.com/youruser/yourproject trge
 ```
 
 **Why from application directory?**
+
 - `trgen` needs access to your `go.mod` file
 - Generated files are placed relative to your project structure
 - Module name must match your `go.mod`
@@ -392,10 +393,10 @@ trgen --scan-path=app --module-name=github.com/youruser/yourproject --watch --wa
 All command-line flags have corresponding environment variables:
 
 ```bash
-export TEMPLATE_SCAN_PATH=app
-export TEMPLATE_MODULE_NAME=github.com/youruser/yourproject
-export TEMPLATE_WATCH_MODE=true
-export TEMPLATE_WATCH_EXTENSIONS=".templ,.yaml,.yml"
+export TRGEN_SCAN_PATH=app
+export TRGEN_MODULE_NAME=github.com/youruser/yourproject
+export TRGEN_WATCH_MODE=true
+export TRGEN_WATCH_EXTENSIONS=".templ,.yaml,.yml"
 
 cd your-project
 trgen
@@ -463,21 +464,32 @@ templ AdminPage() {
 
 ## Template Configuration
 
-Each template can have an optional `.templ.yaml` configuration file:
+Each template can have an optional `.templ.yaml` configuration file. Here are real examples from the demo:
+
+### Admin Page (Restricted Access)
 
 ```yaml
-# demo/app/locale_/admin/page.templ.yaml
+# app/locale_/admin/page.templ.yaml
+i18n:
+  en:
+    admin_warning: "Admin Area - Restricted Access"
+    page_title: "System Administration"
+    user_management_title: "User Management"
+    user_management_desc: "Manage user accounts, roles, and permissions"
+    system_settings_title: "System Settings"
+    system_settings_desc: "Configure application settings and preferences"
+
+  de:
+    admin_warning: "Admin-Bereich - Eingeschränkter Zugang"
+    page_title: "Systemadministration"
+    user_management_title: "Benutzerverwaltung"
+    user_management_desc: "Benutzerkonten, Rollen und Berechtigungen verwalten"
+    system_settings_title: "Systemeinstellungen"
+    system_settings_desc: "Anwendungseinstellungen und Präferenzen konfigurieren"
+
 auth:
   type: "AdminRequired"
   redirect_url: "/login"
-
-i18n:
-  en:
-    page_title: "System Administration"
-    admin_warning: "Admin Area - Restricted Access"
-  de:
-    page_title: "Systemadministration"
-    admin_warning: "Admin-Bereich - Eingeschränkter Zugang"
 
 dynamic:
   parameters:
@@ -485,12 +497,62 @@ dynamic:
       validation: "^(en|de)$"
       description: "Language locale code (en or de)"
       supported_values: ["en", "de"]
+```
 
-# Custom metadata accessible via metadata.M()
+### Dashboard Page (User Required)
+
+```yaml
+# app/locale_/dashboard/page.templ.yaml
+i18n:
+  en:
+    page_title: "Dashboard"
+    page_subtitle: "Overview of your application metrics and recent activity"
+    stats_users: "Total Users"
+    stats_projects: "Active Projects"
+    recent_activity_title: "Recent Activity"
+    quick_actions_title: "Quick Actions"
+
+  de:
+    page_title: "Dashboard"
+    page_subtitle: "Übersicht Ihrer Anwendungsmetriken und aktuellen Aktivitäten"
+    stats_users: "Gesamte Benutzer"
+    stats_projects: "Aktive Projekte"
+    recent_activity_title: "Letzte Aktivitäten"
+    quick_actions_title: "Schnellaktionen"
+
+auth:
+  type: "Public"
+
 metadata:
-  page_title: "System Administration"
-  admin_warning: "Admin Area - Restricted Access"
-  custom_field: "Any custom value"
+  title: "Dashboard - Multi-Language Demo"
+  theme: "dashboard"
+  app_version: "1.2.3"
+  description: "Application dashboard with metrics"
+```
+
+### Login Page (Public Access)
+
+```yaml
+# app/login/page.templ.yaml
+i18n:
+  en:
+    login_title: "Sign in to your account"
+    login_subtitle: "Enter your credentials to access the system"
+    username: "Username"
+    password: "Password"
+    sign_in: "Sign in"
+    need_account: "Don't have an account? Sign up"
+
+  de:
+    login_title: "Bei Ihrem Konto anmelden"
+    login_subtitle: "Geben Sie Ihre Anmeldedaten ein, um auf das System zuzugreifen"
+    username: "Benutzername"
+    password: "Passwort"
+    sign_in: "Anmelden"
+    need_account: "Noch kein Konto? Registrieren"
+
+auth:
+  type: "Public"
 ```
 
 ### Metadata vs I18n
@@ -589,25 +651,94 @@ i18n:
     page_subtitle: "Übersicht Ihrer Anwendungsmetriken"
 ```
 
-Use in templates with real i18n functions:
+### I18n Helper Functions
+
+The `i18n` package provides several context-based helper functions for templates:
+
+#### Core Translation Function
 
 ```go
 import "github.com/denkhaus/templ-router/pkg/router/i18n"
 
-// Real i18n usage with i18n.T() function
+// Primary translation function
+i18n.T(ctx, "translation_key")
+// Returns the translated string for the current locale
+// Falls back to "[MISSING_I18N: key]" if translation not found
+
 templ DashboardPage() {
     <h1>{ i18n.T(ctx, "page_title") }</h1>
     <p>{ i18n.T(ctx, "page_subtitle") }</p>
-    <a href={ i18n.LocalizeSafeURL(ctx, "/admin") }>
-        { i18n.T(ctx, "nav_admin") }
-    </a>
+}
+```
+
+#### URL Localization
+
+```go
+// Automatically adds locale prefix to URLs
+i18n.LocalizeSafeURL(ctx, "/dashboard")
+// Returns: templ.SafeURL("/en/dashboard") or templ.SafeURL("/de/dashboard")
+
+templ Navigation() {
+    <nav>
+        <a href={ i18n.LocalizeSafeURL(ctx, "/admin") }>
+            { i18n.T(ctx, "nav_admin") }
+        </a>
+        <a href={ i18n.LocalizeSafeURL(ctx, "/user/profile") }>
+            { i18n.T(ctx, "nav_profile") }
+        </a>
+    </nav>
+}
+```
+
+#### Context Information Functions
+
+```go
+// Get current locale
+i18n.GetCurrentLocale(ctx)
+// Returns: "en", "de", "fr", etc.
+
+// Get current template path
+i18n.GetCurrentTemplate(ctx)
+// Returns: "app/locale_/dashboard/page.templ"
+
+// Get all available translation keys for current template
+i18n.GetAvailableKeys(ctx)
+// Returns: []string{"page_title", "stats_users", "nav_admin", ...}
+```
+
+#### Practical Examples
+
+```go
+// Language switcher with current locale detection
+templ LanguageSwitcher() {
+    <div class="language-switcher">
+        <span>Current: { i18n.GetCurrentLocale(ctx) }</span>
+        if i18n.GetCurrentLocale(ctx) == "en" {
+            <a href="/de/dashboard">Switch to Deutsch</a>
+        } else {
+            <a href="/en/dashboard">Switch to English</a>
+        }
+    </div>
 }
 
-// Access current locale and template info
-templ DebugPage() {
-    <p>Current Locale: { i18n.GetCurrentLocale(ctx) }</p>
-    <p>Template: { i18n.GetCurrentTemplate(ctx) }</p>
-    <p>Available Keys: { fmt.Sprint(len(i18n.GetAvailableKeys(ctx))) }</p>
+// Conditional content based on locale
+templ PriceDisplay(amount float64) {
+    <span class="price">
+        if i18n.GetCurrentLocale(ctx) == "de" {
+            { fmt.Sprintf("%.2f €", amount) }
+        } else {
+            { fmt.Sprintf("$%.2f", amount) }
+        }
+    </span>
+}
+
+// Debug information panel
+templ DebugPanel() {
+    <div class="debug-panel">
+        <p><strong>Locale:</strong> { i18n.GetCurrentLocale(ctx) }</p>
+        <p><strong>Template:</strong> { i18n.GetCurrentTemplate(ctx) }</p>
+        <p><strong>Available Keys:</strong> { fmt.Sprint(len(i18n.GetAvailableKeys(ctx))) }</p>
+    </div>
 }
 ```
 
