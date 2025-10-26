@@ -30,5 +30,9 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
         git add CHANGELOG.md
-        git diff --staged --quiet || git commit -m "chore: update changelog [skip ci]"
-        git push
+        if ! git diff --staged --quiet; then
+          git commit -m "chore: update changelog [skip ci]"
+          git push
+        else
+          echo "No changes to commit"
+        fi
