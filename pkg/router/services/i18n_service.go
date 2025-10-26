@@ -166,3 +166,8 @@ func (cis *cleanI18nService) isValidLocale(locale string) bool {
 	}
 	return false
 }
+
+// LoadAllTranslations implements interfaces.I18nService by delegating to TranslationStore
+func (cis *cleanI18nService) LoadAllTranslations(templatePaths []string) error {
+	return cis.translationStore.LoadAllTranslations(templatePaths)
+}

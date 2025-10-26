@@ -28,6 +28,7 @@ type TranslationStore interface {
 	GetTranslation(locale, key string) (string, bool)
 	GetSupportedLocales() []string
 	LoadTranslations(templatePath string) error
+	LoadAllTranslations(templatePaths []string) error
 }
 
 // ContextAwareLayoutComponent ensures layout renders with correct context

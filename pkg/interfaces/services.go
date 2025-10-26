@@ -27,6 +27,7 @@ type I18nService interface {
 	ExtractLocale(req *http.Request) string
 	CreateContext(ctx context.Context, locale, templatePath string) context.Context
 	GetSupportedLocales() []string
+	LoadAllTranslations(templatePaths []string) error
 }
 
 // TemplateService handles template rendering

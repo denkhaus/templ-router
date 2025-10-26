@@ -92,6 +92,12 @@ func (crc *cleanRouterCore) Initialize() error {
 	}
 	crc.routes = routes
 
+	// Load translations for all discovered templates
+	if err := crc.loadTranslationsForDiscoveredRoutes(); err != nil {
+		crc.logger.Warn("Failed to load some translations during initialization", zap.Error(err))
+		// Don't fail initialization for translation loading errors
+	}
+
 	// Discover layouts
 	layouts, err := crc.routeDiscovery.DiscoverLayouts(crc.scanPath)
 	if err != nil {
@@ -215,4 +221,30 @@ func (crc *cleanRouterCore) GetHandlerBuilder() HandlerBuilder {
 // GetRouteRegistrar returns the route registrar for external access
 func (crc *cleanRouterCore) GetRouteRegistrar() RouteRegistrar {
 	return crc.routeRegistrar
+}
+
+// loadTranslationsForDiscoveredRoutes loads translations for all discovered routes
+func (crc *cleanRouterCore) loadTranslationsForDiscoveredRoutes() error {
+	crc.logger.Info("Loading translations for discovered routes", zap.Int("route_count", len(crc.routes)))
+	
+	// Extract template paths from discovered routes
+	templatePaths := make([]string, 0, len(crc.routes))
+	for _, route := range crc.routes {
+		if route.TemplateFile != "" {
+			templatePaths = append(templatePaths, route.TemplateFile)
+		}
+	}
+	
+	// Get translation store from DI container
+	translationStore := do.MustInvoke[interfaces.I18nService](crc.injector)
+	
+	// Load all translations in bulk
+	if err := translationStore.LoadAllTranslations(templatePaths); err != nil {
+		return fmt.Errorf("failed to bulk load translations: %w", err)
+	}
+	
+	crc.logger.Info("Successfully loaded translations for all discovered routes",
+		zap.Int("template_count", len(templatePaths)))
+	
+	return nil
 }

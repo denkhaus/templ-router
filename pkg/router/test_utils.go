@@ -207,6 +207,10 @@ func (m *MockI18nService) GetSupportedLocales() []string {
 	return []string{"en", "de"}
 }
 
+func (m *MockI18nService) LoadAllTranslations(templatePaths []string) error {
+	return nil
+}
+
 type MockTemplateService struct{}
 
 func (m *MockTemplateService) RenderComponent(route interfaces.Route, ctx context.Context, params map[string]string) (templ.Component, error) {

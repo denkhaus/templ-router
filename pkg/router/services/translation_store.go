@@ -1,6 +1,7 @@
 package services
 
 import (
+	"fmt"
 	"path/filepath"
 	"sync"
 
@@ -14,6 +15,7 @@ type simpleTranslationStore struct {
 	configService interfaces.ConfigService
 	logger        *zap.Logger
 	translations  map[string]map[string]map[string]string // [templatePath][locale][key] = value
+	loadedPaths   map[string]bool                         // Track which template paths have been loaded
 	mu            sync.RWMutex
 }
 
@@ -25,6 +27,7 @@ func NewInMemoryTranslationStore(i do.Injector) (TranslationStore, error) {
 		configService: configService,
 		logger:        logger,
 		translations:  make(map[string]map[string]map[string]string),
+		loadedPaths:   make(map[string]bool),
 	}, nil
 }
 
@@ -47,6 +50,7 @@ func (s *simpleTranslationStore) GetTranslation(locale, key string) (string, boo
 	}
 
 	// Fallback to English if not found in requested locale
+	// This language should not be hardcoded and come as Fallback languange from the config Service
 	if locale != "en" {
 		for templatePath, locales := range s.translations {
 			if enTranslations, exists := locales["en"]; exists {
@@ -75,14 +79,41 @@ func (s *simpleTranslationStore) GetSupportedLocales() []string {
 func (s *simpleTranslationStore) LoadTranslations(templatePath string) error {
 	s.logger.Debug("Loading translations for template", zap.String("template_path", templatePath))
 
+	// Check if already loaded to avoid duplicate work
+	s.mu.RLock()
+	alreadyLoaded := s.loadedPaths[templatePath]
+	s.mu.RUnlock()
+
+	if alreadyLoaded {
+		s.logger.Debug("Translations already loaded for template", zap.String("template_path", templatePath))
+		return nil
+	}
+
 	// LIBRARY-AGNOSTIC: Load layout translations first (if not already loaded)
 	layoutPath := filepath.Join(s.configService.GetLayoutRootDirectory(), s.configService.GetLayoutFileName()+s.configService.GetTemplateExtension())
 	if templatePath != layoutPath {
-		s.loadTranslationsForPath(layoutPath)
+		s.mu.RLock()
+		layoutLoaded := s.loadedPaths[layoutPath]
+		s.mu.RUnlock()
+
+		if !layoutLoaded {
+			if err := s.loadTranslationsForPath(layoutPath); err == nil {
+				s.mu.Lock()
+				s.loadedPaths[layoutPath] = true
+				s.mu.Unlock()
+			}
+		}
 	}
 
 	// Load template-specific translations
-	return s.loadTranslationsForPath(templatePath)
+	err := s.loadTranslationsForPath(templatePath)
+	if err == nil {
+		// Mark as loaded on success
+		s.mu.Lock()
+		s.loadedPaths[templatePath] = true
+		s.mu.Unlock()
+	}
+	return err
 }
 
 func (s *simpleTranslationStore) loadTranslationsForPath(templatePath string) error {
@@ -148,6 +179,74 @@ func (s *simpleTranslationStore) loadTranslationsForPath(templatePath string) er
 	s.logger.Info("Successfully loaded translations",
 		zap.String("template_path", templatePath),
 		zap.String("yaml_path", yamlPath))
+
+	return nil
+}
+
+// LoadAllTranslations loads translations for multiple template paths in bulk
+func (s *simpleTranslationStore) LoadAllTranslations(templatePaths []string) error {
+	s.logger.Info("Starting bulk translation loading", zap.Int("template_count", len(templatePaths)))
+
+	var errors []error
+	loadedCount := 0
+	skippedCount := 0
+
+	for _, templatePath := range templatePaths {
+		// Check if already loaded to avoid duplicate work
+		s.mu.RLock()
+		alreadyLoaded := s.loadedPaths[templatePath]
+		s.mu.RUnlock()
+
+		if alreadyLoaded {
+			s.logger.Debug("Skipping already loaded template", zap.String("template_path", templatePath))
+			skippedCount++
+			continue
+		}
+
+		// Load translations for this template
+		if err := s.loadTranslationsForPath(templatePath); err != nil {
+			s.logger.Warn("Failed to load translations for template",
+				zap.String("template_path", templatePath),
+				zap.Error(err))
+			errors = append(errors, err)
+		} else {
+			// Mark as loaded
+			s.mu.Lock()
+			s.loadedPaths[templatePath] = true
+			s.mu.Unlock()
+			loadedCount++
+		}
+	}
+
+	// Also load layout translations if not already loaded
+	layoutPath := filepath.Join(s.configService.GetLayoutRootDirectory(), s.configService.GetLayoutFileName()+s.configService.GetTemplateExtension())
+	s.mu.RLock()
+	layoutLoaded := s.loadedPaths[layoutPath]
+	s.mu.RUnlock()
+
+	if !layoutLoaded {
+		if err := s.loadTranslationsForPath(layoutPath); err != nil {
+			s.logger.Warn("Failed to load layout translations",
+				zap.String("layout_path", layoutPath),
+				zap.Error(err))
+			errors = append(errors, err)
+		} else {
+			s.mu.Lock()
+			s.loadedPaths[layoutPath] = true
+			s.mu.Unlock()
+			loadedCount++
+		}
+	}
+
+	s.logger.Info("Bulk translation loading completed",
+		zap.Int("loaded", loadedCount),
+		zap.Int("skipped", skippedCount),
+		zap.Int("errors", len(errors)))
+
+	// Return aggregated error if any failures occurred
+	if len(errors) > 0 {
+		return fmt.Errorf("failed to load %d translations: %v", len(errors), errors)
+	}
 
 	return nil
 }

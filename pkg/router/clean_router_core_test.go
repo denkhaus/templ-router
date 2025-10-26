@@ -250,6 +250,10 @@ func (m *mockI18nService) GetSupportedLocales() []string {
 	return []string{"en", "de"}
 }
 
+func (m *mockI18nService) LoadAllTranslations(templatePaths []string) error {
+	return nil
+}
+
 type mockTemplateService struct{}
 
 func (m *mockTemplateService) GetTemplate(templatePath string) (templ.Component, error) {
