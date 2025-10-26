@@ -19,6 +19,7 @@ Templ Router is a production-ready library that provides file-based routing, int
 - **Production Use**: Use with caution in production environments
 
 We recommend:
+
 - Pinning to specific versions in your `go.mod`
 - Testing thoroughly before upgrading
 - Following our [changelog](https://github.com/denkhaus/templ-router/blob/main/CHANGELOG.md) for breaking changes
@@ -29,44 +30,150 @@ We recommend:
 ## Features
 
 ### 🚀 Core Architecture
+
 - **Dependency Injection**: Built on [samber/do/v2](https://github.com/samber/do) for clean service management
 - **Pipeline Architecture**: Composable middleware chain (Template → I18n → Auth)
 - **Template Registry**: Generated template registry with automatic route mapping
 - **Data Service Integration**: Automatic resolution of named data services for templates
 
+#### Request Processing Pipeline
+
+Each request flows through a processing pipeline that handles different concerns:
+
+```ini
+Request → Authentication → Internationalization → Template Rendering → Response
+```
+
+**What happens in each step:**
+
+1. **Authentication**: Checks if user has access to the requested page
+2. **Internationalization**: Detects user language and loads translations
+3. **Template Rendering**: Renders the template with data and sends response
+
+This pipeline ensures that templates always receive the correct authentication context and translations for the user's language.
+
 ### 🗂️ File-Based Routing
+
 - Routes automatically generated from file structure using `trgen`
 - Dynamic parameters: `id_/` (underscore suffix), `locale_/` for internationalization
 - Route precedence system for conflict resolution
 - Template-to-route mapping with configurable patterns
 
 ### 🌍 Internationalization (i18n)
+
 - Multi-language support with `locale_/` directory structure
 - YAML-based translations in `.templ.yaml` metadata files
 - Context-based translation system (no global `t()` function)
 - Automatic locale detection and validation from URLs
 
 ### 🔐 Authentication & Authorization
+
 - Three authentication types: `AuthTypePublic`, `AuthTypeUser`, `AuthTypeAdmin`
 - Built-in authentication routes: sign in, sign out, sign up
 - Session-based authentication with configurable expiry
 - Role-based access control with user role validation
-- Template-level and route-level auth configuration hierarchy
+- Hierarchical auth configuration with precedence rules
 - Configurable success redirect routes for positive authentication
 
+#### Authentication Configuration
+
+Configure authentication requirements using `.templ.yaml` files alongside your templates:
+
+```yaml
+# app/admin/page.templ.yaml
+auth:
+  type: "AdminRequired"
+  redirect_url: "/login"
+
+# app/dashboard/page.templ.yaml
+auth:
+  type: "UserRequired"
+  redirect_url: "/login"
+
+# app/public/page.templ.yaml (or omit auth section)
+auth:
+  type: "Public"
+```
+
+**Authentication Types:**
+
+- `Public`: No authentication required (default)
+- `UserRequired`: Any authenticated user can access
+- `AdminRequired`: Only admin users can access
+
+**Configuration Priority:**
+
+1. **Template-level** (`.templ.yaml` files) - takes precedence
+2. **Default** - public access when no auth specified
+
+#### Built-in Authentication Routes
+
+The router automatically provides authentication API endpoints:
+
+```bash
+POST /api/auth/signin      # User sign in
+POST /api/auth/signout     # User sign out
+POST /api/auth/signup      # User registration
+```
+
+These endpoints handle:
+
+- **Session Management**: Automatic session creation and cleanup
+- **Redirects**: Configurable success/failure redirects
+- **Validation**: Input validation and error handling
+
+#### Session Configuration
+
+Configure session behavior through environment variables:
+
+```bash
+# Session settings
+TR_AUTH_SESSION_EXPIRY=24h
+TR_AUTH_SESSION_COOKIE_NAME=session_id
+
+# Redirect routes after successful authentication
+TR_AUTH_SIGNIN_SUCCESS_ROUTE=/dashboard
+TR_AUTH_SIGNUP_SUCCESS_ROUTE=/welcome
+TR_AUTH_SIGNOUT_SUCCESS_ROUTE=/
+
+# Internationalized redirects (locale parameter replaced automatically)
+TR_AUTH_SIGNIN_SUCCESS_ROUTE=/{locale}/dashboard
+```
+
+#### Role-Based Access Control
+
+For admin-only pages, the system checks user roles:
+
+```yaml
+# app/admin/page.templ.yaml
+auth:
+  type: "AdminRequired"
+  redirect_url: "/login"
+  roles: ["admin", "super_admin"]  # Optional: specific roles required
+```
+
+**How it works:**
+
+- `UserRequired`: Any authenticated user can access
+- `AdminRequired`: Only users with admin privileges
+- `roles`: Additional role restrictions (optional)
+
 ### 🎨 Layout & Template System
+
 - Layout inheritance with automatic composition
 - Error template system with precedence-based resolution
 - Template middleware with data service injection
 - Configurable template extensions and metadata
 
 ### 📊 Data Service Integration
+
 - **Automatic Data Injection**: Templates can declare data service requirements
-- **Two Method Patterns**: `GetData()` method or specific `GetDataType()` methods
+- **Two Method Patterns**: `GetData()` method or specific `Get<DataType>()` methods
 - **Parameter Injection**: Route parameters automatically passed to data services
 - **DI Registration**: Data services registered via `do.ProvideNamed()`
 
 ### ⚡ Performance & Validation
+
 - **Cache Service**: Template and route caching for performance optimization
 - **Validation Orchestrator**: Comprehensive parameter, route, and template validation
 - **Error Handling**: Dedicated error template service with fallback mechanisms
@@ -113,46 +220,106 @@ your-project/
 #### 3. Generate Template Registry
 
 ```bash
-# In your project directory
+# Navigate to your application directory (where go.mod is located)
 cd your-project
 trgen --scan-path=app --module-name=github.com/youruser/yourproject
 ```
 
-#### 4. Implement Required Interfaces
+#### 4. Integrate Generated Templates
 
-You need to implement the library interfaces in your project:
+After running `trgen`, you'll have a generated template registry that needs to be integrated:
+
+**What `trgen` generates:**
+
+```bash
+# After running trgen, you'll see:
+your-project/
+└── generated/
+    └── templates/
+        ├── registry.go           # Template registry implementation
+        └── template_mappings.go  # Route-to-template mappings
+```
+
+**Integration in your application:**
 
 ```go
 // Your main.go
 package main
 
 import (
-    "github.com/denkhaus/templ-router/pkg/router"
-    "github.com/denkhaus/templ-router/pkg/interfaces"
+    "context"
+    "net/http"
+    
+    "github.com/denkhaus/templ-router/pkg/di"
+    "github.com/denkhaus/templ-router/pkg/router/middleware"
+    "github.com/go-chi/chi/v5"
     "github.com/samber/do/v2"
-    // Import your generated templates
+    
+    // Import your generated template registry
     "github.com/youruser/yourproject/generated/templates"
+    // Import your data services
+    "github.com/youruser/yourproject/pkg/dataservices"
 )
 
 func main() {
-    // Create DI container
-    injector := do.New()
+    // Create DI container with router services
+    container := di.NewContainer()
+    defer container.Shutdown()
     
-    // Register your services
-    do.Provide(injector, NewYourConfigService)
-    do.Provide(injector, NewYourAuthService)
-    do.ProvideNamed(injector, "UserDataService", NewYourUserDataService)
+    // Register router services with config prefix
+    container.RegisterRouterServices("TR")
     
-    // Register template registry
-    do.Provide(injector, func(i do.Injector) (interfaces.TemplateRegistry, error) {
-        return templates.NewTemplateRegistry(), nil
-    })
+    // Create your template registry
+    templateRegistry, err := templates.NewRegistry(container.GetInjector())
+    if err != nil {
+        panic(err)
+    }
     
-    // Create and start router
-    router := router.NewCleanRouter(injector)
-    router.Start(":8080")
+    // Register application services using options pattern
+    container.RegisterApplicationServices(
+        di.WithTemplateRegistry(templateRegistry),
+        // Add your other services here
+    )
+    
+    // Register your data services as named dependencies
+    injector := container.GetInjector()
+    do.ProvideNamed(injector, "UserDataService", dataservices.NewUserDataService)
+    do.ProvideNamed(injector, "ProductDataService", dataservices.NewProductDataService)
+    
+    // Create Chi router
+    mux := chi.NewRouter()
+    
+    // Add auth context middleware
+    authMiddleware, err := middleware.NewAuthContextMiddleware(injector)
+    if err != nil {
+        panic(err)
+    }
+    mux.Use(authMiddleware.Middleware)
+    
+    // Get clean router and initialize
+    cleanRouter := container.GetRouter()
+    if err := cleanRouter.Initialize(); err != nil {
+        panic(err)
+    }
+    
+    // Register file-based routes
+    if err := cleanRouter.RegisterRoutes(mux); err != nil {
+        panic(err)
+    }
+    
+    // Start server
+    http.ListenAndServe(":8080", mux)
 }
 ```
+
+**How it works:**
+
+1. **trgen scans** your `app/` directory for `.templ` files
+2. **Generates registry** with all discovered templates and routes
+3. **Router uses registry** to map URLs to templates automatically
+4. **No manual route registration** needed - everything is automatic
+
+**Important:** Re-run `trgen` whenever you add, remove, or move template files.
 
 ### For Demo/Development
 
@@ -168,6 +335,7 @@ mage dev
 ```
 
 **Key Difference:**
+
 - **Library Users**: `go get` the library, implement interfaces, use `trgen` on your own templates
 - **Demo/Development**: Clone the repo to run the example or contribute to the library
 
@@ -185,16 +353,23 @@ trgen --version
 
 ### Basic Usage
 
+**Important:** `trgen` must be run from your application directory (where your `go.mod` is located).
+
 ```bash
-# Navigate to your project directory first
+# Navigate to your application directory first
 cd your-project
 
-# Generate template registry with command-line flags
+# Generate template registry with required flags
 trgen --scan-path=app --module-name=github.com/youruser/yourproject
 
 # Or use environment variables
 TEMPLATE_SCAN_PATH=app TEMPLATE_MODULE_NAME=github.com/youruser/yourproject trgen
 ```
+
+**Why from application directory?**
+- `trgen` needs access to your `go.mod` file
+- Generated files are placed relative to your project structure
+- Module name must match your `go.mod`
 
 ### Required Parameters
 
@@ -228,7 +403,7 @@ trgen
 
 ## Project Structure
 
-```
+```ini
 # Your project structure (using templ-router as dependency)
 your-project/
 ├── app/                    # Your template directory
@@ -261,7 +436,7 @@ your-project/
 
 Routes are automatically generated from your file structure:
 
-```
+```sh
 demo/app/page.templ                    → /
 demo/app/login/page.templ              → /login
 demo/app/locale_/page.templ            → /en, /de (based on config)
@@ -353,7 +528,7 @@ The router provides built-in authentication API endpoints:
 ```bash
 # Authentication API endpoints (automatically registered)
 POST /api/auth/signin     # User sign in
-POST /api/auth/signout    # User sign out  
+POST /api/auth/signout    # User sign out
 POST /api/auth/signup     # User registration
 ```
 
@@ -392,15 +567,10 @@ app/signup/page.templ     # Sign up page (GET /signup)
 ### Auth API Integration
 
 ```go
-// Auth API routes are automatically registered
-authHandlers := do.MustInvoke[interfaces.AuthHandlers](injector)
-authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
-    mux.Post(path, handler) // Registers POST /api/auth/* routes
-})
-
-// Your templates use these API endpoints:
+// Auth API routes are already build in
+// Your templates can use these API endpoints:
 // <form hx-post="/api/auth/signin">
-// <form hx-post="/api/auth/signup">  
+// <form hx-post="/api/auth/signup">
 // <form method="POST" action="/api/auth/signout">
 ```
 
@@ -453,6 +623,7 @@ cd your-project
 templ generate
 
 # 2. Generate template registry (after adding/removing templates)
+# Must be run from your application directory
 trgen --scan-path=app --module-name=github.com/youruser/yourproject
 
 # 3. Build and run your application
@@ -460,7 +631,7 @@ go build
 ./your-app
 
 # 4. Development with hot reload (optional)
-# Install air: go install github.com/cosmtrek/air@latest
+# Install air: go install github.com/air-verse/air@latest
 air
 ```
 
@@ -484,7 +655,7 @@ mage generator:install      # Install trgen from source
 
 Environment variables use configurable prefix (set in `RegisterRouterServices(prefix)`):
 
-```bash
+```ini
 # Server Configuration (PREFIX_SECTION_FIELD)
 TR_SERVER_HOST=localhost
 TR_SERVER_PORT=8080
@@ -494,7 +665,7 @@ TR_SERVER_WRITE_TIMEOUT=30s
 TR_SERVER_IDLE_TIMEOUT=120s
 TR_SERVER_SHUTDOWN_TIMEOUT=30s
 
-# Database Configuration  
+# Database Configuration
 TR_DATABASE_HOST=localhost
 TR_DATABASE_PORT=5432
 TR_DATABASE_DATABASE_USER=postgres
@@ -523,31 +694,29 @@ TR_TEMPLATE_GENERATOR_OUTPUT_DIR=generated/templates
 TR_TEMPLATE_GENERATOR_PACKAGE_NAME=templates
 ```
 
-# Email Configuration
-TR_EMAIL_SMTP_HOST=
-TR_EMAIL_SMTP_PORT=587
-TR_EMAIL_SMTP_USERNAME=
-TR_EMAIL_SMTP_PASSWORD=
-TR_EMAIL_SMTP_USE_TLS=true
-TR_EMAIL_FROM_EMAIL=noreply@example.com
-TR_EMAIL_FROM_NAME="Router Application"
-TR_EMAIL_ENABLE_DUMMY_MODE=true
-
 # Security Configuration
+
+```ini
 TR_SECURITY_CSRF_SECRET=change-me-in-production
 TR_SECURITY_CSRF_SECURE=false
 TR_SECURITY_ENABLE_RATE_LIMIT=true
 TR_SECURITY_RATE_LIMIT_REQUESTS=100
 TR_SECURITY_ENABLE_SECURITY_HEADERS=true
+```
 
 # Logging Configuration
+
+```ini
 TR_LOGGING_LEVEL=info
 TR_LOGGING_FORMAT=json
 TR_LOGGING_OUTPUT=stdout
 TR_LOGGING_ENABLE_FILE=false
 TR_LOGGING_FILE_PATH=logs/router.log
+```
 
 # Environment Configuration
+
+```sh
 TR_ENVIRONMENT_KIND=develop
 ```
 
@@ -557,10 +726,10 @@ TR_ENVIRONMENT_KIND=develop
 
 Templates can automatically receive data through the Data Service system:
 
-### Data Service Interface Patterns
-
 **Pattern 1: Simple GetData() Method**
+
 ```go
+
 type ProductDataService interface {
     GetData(ctx context.Context, params map[string]string) (*ProductData, error)
 }
@@ -575,9 +744,9 @@ func (s *productDataServiceImpl) GetData(ctx context.Context, params map[string]
 ```
 
 **Pattern 2: GetData() + Specific Methods**
+
 ```go
 type UserDataService interface {
-    GetData(ctx context.Context, params map[string]string) (*UserData, error)
     GetUserData(ctx context.Context, params map[string]string) (*UserData, error)
 }
 
@@ -588,6 +757,9 @@ func (s *userDataServiceImpl) GetUserData(ctx context.Context, params map[string
     return &UserData{ID: userID, Name: "User " + userID}, nil
 }
 ```
+
+Note: The Method name to access the `UserData` struct must be named `Get<Entity Name>` like `GetUserData`
+Both patterns work in parallel where `GetData` is the fallback method.
 
 ### Data Service Registration
 
@@ -624,7 +796,7 @@ Route parameters are automatically injected into data service methods:
 func (s *userDataServiceImpl) GetUserData(ctx context.Context, params map[string]string) (*UserData, error) {
     userID := params["id"]       // From route: /user/123 → id="123"
     locale := params["locale"]   // From route: /en/user/123 → locale="en"
-    
+
     // Use parameters to fetch localized user data
     return s.fetchUser(userID, locale)
 }
@@ -671,11 +843,11 @@ func main() {
     // Get router and initialize
     router := container.GetRouter()
     router.Initialize()
-    
+
     // Register routes with your HTTP router (chi, gin, etc.)
     mux := chi.NewRouter()
     router.RegisterRoutes(mux)
-    
+
     // Register auth routes
     authHandlers := do.MustInvoke[interfaces.AuthHandlers](injector)
     authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
@@ -703,10 +875,12 @@ trgen --scan-path=app --module-name=github.com/youruser/yourproject --output-dir
 ```
 
 **Required Parameters:**
+
 - `--scan-path`: Directory containing your `.templ` files (e.g., `app`, `templates`)
 - `--module-name`: Your Go module name from `go.mod`
 
 **Generated Output:**
+
 - Creates `generated/templates/registry.go` with template registry
 - Maps file paths to route patterns automatically
 - Detects data service requirements from template signatures
