@@ -74,9 +74,8 @@ func (Changelog) Update() error {
 	lines := strings.Split(string(content), "\n")
 	var newLines []string
 	unreleasedFound := false
-	addedFound := false
 	
-	for i, line := range lines {
+	for _, line := range lines {
 		newLines = append(newLines, line)
 		
 		// Find the [Unreleased] section
@@ -87,7 +86,6 @@ func (Changelog) Update() error {
 		
 		// Find the ### Added section under Unreleased
 		if unreleasedFound && strings.Contains(line, "### Added") {
-			addedFound = true
 			// Add new commits after the ### Added line
 			commitLines := strings.Split(commits, "\n")
 			for _, commit := range commitLines {
@@ -95,7 +93,6 @@ func (Changelog) Update() error {
 					newLines = append(newLines, commit)
 				}
 			}
-			addedFound = false // Reset flag
 			continue
 		}
 	}
