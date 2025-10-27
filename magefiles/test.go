@@ -111,6 +111,17 @@ func (p Test) E2EDataServiceI18n() error {
 	}, "sh", "-c", "cd demo/tests && ginkgo run --focus='TestProduct.*i18n|TestSpecific.*i18n' --randomize-all --race --trace")
 }
 
+// E2EUserWithIdData runs UserWithId DataService tests
+func (p Test) E2EUserWithIdData() error {
+	mg.Deps(p.CheckService)
+
+	fmt.Println("👤💾 Running UserWithId DataService tests...")
+
+	return sh.RunWithV(map[string]string{
+		"TEST_BASE_URL": "http://localhost:8084",
+	}, "sh", "-c", "cd demo/tests && ginkgo run --focus='UserWithId DataService Integration' --randomize-all --race --trace")
+}
+
 // E2EContent runs content validation tests
 func (p Test) E2EContent() error {
 	mg.Deps(p.CheckService)
@@ -243,6 +254,7 @@ func (p Test) DevSetup() error {
 	fmt.Println("   mage test:e2eI18n           - i18n tests")
 	fmt.Println("   mage test:e2eData           - DataService tests")
 	fmt.Println("   mage test:e2eDataServiceI18n - DataService + i18n integration tests")
+	fmt.Println("   mage test:e2eUserWithIdData - UserWithId DataService tests")
 
 	return nil
 }

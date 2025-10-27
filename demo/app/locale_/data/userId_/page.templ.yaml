@@ -1,0 +1,29 @@
+i18n:
+  en:
+    current_locale_label: "Current Language"
+    id_label: "User ID"
+    data_information: "Data Information"
+
+  de:
+    current_locale_label: "Aktuelle Sprache"
+    id_label: "Benutzer ID"
+    data_information: "Dateninformationen"
+
+auth:
+  type: "Public"
+
+metadata:
+  title: "Specific Method DataService Test - Multi-Language Demo"
+  theme: "specific-dataservice-test"
+  description: "Testing specific DataService method without GetData fallback"
+  app_version: "1.0.0"
+
+dynamic:
+  parameters:
+    locale:
+      validation: "^(en|de)$"
+      description: "Language locale code (en or de)"
+      supported_values: ["en", "de"]
+    userId:
+      validation: "[0-9a-z]*"
+      description: "The user ID"

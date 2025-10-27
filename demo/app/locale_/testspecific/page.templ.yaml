@@ -67,7 +67,3 @@ dynamic:
       description: "Language locale code (en or de)"
       supported_values: ["en", "de"]
 
-dataservice:
-  service: "SpecificDataService"
-  method: "GetSpecificData"
-  description: "Tests SpecificOnlyDataService with GetSpecificData method only (no GetData fallback)"

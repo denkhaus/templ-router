@@ -92,6 +92,7 @@ func startupClean(ctx context.Context) error {
 	do.ProvideNamed(container.GetInjector(), "OrderDataService", dataservices.NewOrderDataService)
 	do.ProvideNamed(container.GetInjector(), "BrokenDataService", dataservices.NewBrokenDataService)
 	do.ProvideNamed(container.GetInjector(), "SpecificDataService", dataservices.NewSpecificOnlyDataService)
+	do.ProvideNamed(container.GetInjector(), "UserWithIdDataService", dataservices.NewUserWithIdDataService)
 
 	// Get logger from container
 	logger := container.GetLogger()

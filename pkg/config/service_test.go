@@ -25,11 +25,11 @@ func TestNewConfigService(t *testing.T) {
 		{
 			name: "valid custom configuration",
 			envVars: map[string]string{
-				"TR_SERVER_HOST":     "0.0.0.0",
-				"TR_SERVER_PORT":     "3000",
-				"TR_DATABASE_HOST":   "db.example.com",
-				"TR_DATABASE_PORT":   "5432",
-				"TR_AUTH_MIN_PASSWORD_LENGTH": "12",
+				"TR_SERVER_HOST":                 "0.0.0.0",
+				"TR_SERVER_PORT":                 "3000",
+				"TR_DATABASE_HOST":               "db.example.com",
+				"TR_DATABASE_PORT":               "5432",
+				"TR_AUTH_MIN_PASSWORD_LENGTH":    "12",
 				"TR_AUTH_DEFAULT_ADMIN_PASSWORD": "validpassword123",
 			},
 			expectError: false,
@@ -70,9 +70,9 @@ func TestNewConfigService(t *testing.T) {
 		{
 			name: "default admin enabled but password too short",
 			envVars: map[string]string{
-				"TR_AUTH_CREATE_DEFAULT_ADMIN":    "true",
-				"TR_AUTH_MIN_PASSWORD_LENGTH":     "10",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD":  "short",
+				"TR_AUTH_CREATE_DEFAULT_ADMIN":   "true",
+				"TR_AUTH_MIN_PASSWORD_LENGTH":    "10",
+				"TR_AUTH_DEFAULT_ADMIN_PASSWORD": "short",
 			},
 			expectError: true,
 			errorMsg:    "Password must be at least 10 characters",
@@ -83,7 +83,7 @@ func TestNewConfigService(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Clear environment
 			clearTestEnv(t)
-			
+
 			// Set test environment variables
 			for key, value := range tt.envVars {
 				os.Setenv(key, value)
@@ -114,7 +114,7 @@ func TestNewConfigService(t *testing.T) {
 func TestConfigServiceAccessors(t *testing.T) {
 	// Clear environment and set test values
 	clearTestEnv(t)
-	
+
 	testEnvVars := map[string]string{
 		// Server config
 		"TR_SERVER_HOST":             "test.example.com",
@@ -124,49 +124,49 @@ func TestConfigServiceAccessors(t *testing.T) {
 		"TR_SERVER_WRITE_TIMEOUT":    "60s",
 		"TR_SERVER_IDLE_TIMEOUT":     "180s",
 		"TR_SERVER_SHUTDOWN_TIMEOUT": "45s",
-		
+
 		// Database config
 		"TR_DATABASE_HOST":     "testdb.example.com",
 		"TR_DATABASE_PORT":     "3306",
-		"TR_DATABASE_DATABASE_USER": "testuser",
+		"TR_DATABASE_USER":     "testuser",
 		"TR_DATABASE_PASSWORD": "testpass",
 		"TR_DATABASE_NAME":     "testdb",
 		"TR_DATABASE_SSL_MODE": "require",
-		
+
 		// Auth config
-		"TR_AUTH_REQUIRE_EMAIL_VERIFICATION":  "false",
-		"TR_AUTH_VERIFICATION_TOKEN_EXPIRY":   "48h",
-		"TR_AUTH_SESSION_COOKIE_NAME":         "test_session",
-		"TR_AUTH_SESSION_EXPIRY":              "48h",
-		"TR_AUTH_SESSION_SECURE":              "true",
-		"TR_AUTH_SESSION_HTTP_ONLY":           "false",
-		"TR_AUTH_SESSION_SAME_SITE":           "strict",
-		"TR_AUTH_MIN_PASSWORD_LENGTH":         "12",
-		"TR_AUTH_REQUIRE_STRONG_PASSWORD":     "true",
-		"TR_AUTH_CREATE_DEFAULT_ADMIN":        "false",
-		"TR_AUTH_SIGNIN_ROUTE":                "/auth/login",
-		"TR_AUTH_SIGNIN_SUCCESS_ROUTE":        "/dashboard",
-		"TR_AUTH_SIGNUP_SUCCESS_ROUTE":        "/welcome",
-		"TR_AUTH_SIGNOUT_SUCCESS_ROUTE":       "/goodbye",
-		
+		"TR_AUTH_REQUIRE_EMAIL_VERIFICATION": "false",
+		"TR_AUTH_VERIFICATION_TOKEN_EXPIRY":  "48h",
+		"TR_AUTH_SESSION_COOKIE_NAME":        "test_session",
+		"TR_AUTH_SESSION_EXPIRY":             "48h",
+		"TR_AUTH_SESSION_SECURE":             "true",
+		"TR_AUTH_SESSION_HTTP_ONLY":          "false",
+		"TR_AUTH_SESSION_SAME_SITE":          "strict",
+		"TR_AUTH_MIN_PASSWORD_LENGTH":        "12",
+		"TR_AUTH_REQUIRE_STRONG_PASSWORD":    "true",
+		"TR_AUTH_CREATE_DEFAULT_ADMIN":       "false",
+		"TR_AUTH_SIGNIN_ROUTE":               "/auth/login",
+		"TR_AUTH_SIGNIN_SUCCESS_ROUTE":       "/dashboard",
+		"TR_AUTH_SIGNUP_SUCCESS_ROUTE":       "/welcome",
+		"TR_AUTH_SIGNOUT_SUCCESS_ROUTE":      "/goodbye",
+
 		// Security config
-		"TR_SECURITY_CSRF_SECRET":            "test-csrf-secret",
-		"TR_SECURITY_CSRF_SECURE":            "true",
-		"TR_SECURITY_CSRF_HTTP_ONLY":         "false",
-		"TR_SECURITY_CSRF_SAME_SITE":         "none",
-		"TR_SECURITY_ENABLE_RATE_LIMIT":      "false",
-		"TR_SECURITY_RATE_LIMIT_REQUESTS":    "200",
+		"TR_SECURITY_CSRF_SECRET":             "test-csrf-secret",
+		"TR_SECURITY_CSRF_SECURE":             "true",
+		"TR_SECURITY_CSRF_HTTP_ONLY":          "false",
+		"TR_SECURITY_CSRF_SAME_SITE":          "none",
+		"TR_SECURITY_ENABLE_RATE_LIMIT":       "false",
+		"TR_SECURITY_RATE_LIMIT_REQUESTS":     "200",
 		"TR_SECURITY_ENABLE_SECURITY_HEADERS": "false",
-		"TR_SECURITY_ENABLE_HSTS":            "true",
-		"TR_SECURITY_HSTS_MAX_AGE":           "63072000",
-		
+		"TR_SECURITY_ENABLE_HSTS":             "true",
+		"TR_SECURITY_HSTS_MAX_AGE":            "63072000",
+
 		// Logging config
 		"TR_LOGGING_LEVEL":       "debug",
 		"TR_LOGGING_FORMAT":      "text",
 		"TR_LOGGING_OUTPUT":      "stderr",
 		"TR_LOGGING_ENABLE_FILE": "true",
 		"TR_LOGGING_FILE_PATH":   "/tmp/test.log",
-		
+
 		// Email config
 		"TR_EMAIL_SMTP_HOST":         "smtp.test.com",
 		"TR_EMAIL_SMTP_PORT":         "465",
@@ -177,12 +177,12 @@ func TestConfigServiceAccessors(t *testing.T) {
 		"TR_EMAIL_FROM_NAME":         "Test App",
 		"TR_EMAIL_REPLY_TO_EMAIL":    "support@test.com",
 		"TR_EMAIL_ENABLE_DUMMY_MODE": "false",
-		
+
 		// I18n config
 		"TR_I18N_SUPPORTED_LOCALES": "en,de,fr",
 		"TR_I18N_DEFAULT_LOCALE":    "de",
 		"TR_I18N_FALLBACK_LOCALE":   "en",
-		
+
 		// Layout config
 		"TR_LAYOUT_ROOT_DIRECTORY":     "testapp",
 		"TR_LAYOUT_ASSETS_DIRECTORY":   "testassets",
@@ -191,11 +191,11 @@ func TestConfigServiceAccessors(t *testing.T) {
 		"TR_LAYOUT_TEMPLATE_EXTENSION": ".test.templ",
 		"TR_LAYOUT_METADATA_EXTENSION": ".test.yaml",
 		"TR_LAYOUT_ENABLE_INHERITANCE": "false",
-		
+
 		// Template generator config
 		"TR_TEMPLATE_GENERATOR_OUTPUT_DIR":   "test/generated",
 		"TR_TEMPLATE_GENERATOR_PACKAGE_NAME": "testpkg",
-		
+
 		// Environment config
 		"TR_ENVIRONMENT_KIND": "test",
 	}
@@ -316,15 +316,14 @@ func TestDefaultValues(t *testing.T) {
 	assert.Equal(t, 8080, service.GetServerPort())
 	assert.Equal(t, "http://localhost:8080", service.GetServerBaseURL())
 	assert.Equal(t, 30*time.Second, service.GetServerReadTimeout())
-	
+
 	assert.Equal(t, "localhost", service.GetDatabaseHost())
 	assert.Equal(t, 5432, service.GetDatabasePort())
-	// Note: Database user might default to current system user, so we check it's not empty
-	assert.NotEmpty(t, service.GetDatabaseUser())
+	assert.Equal(t, "postgres", service.GetDatabaseUser())
 	assert.Equal(t, "postgres", service.GetDatabasePassword())
 	assert.Equal(t, "router_db", service.GetDatabaseName())
 	assert.Equal(t, "disable", service.GetDatabaseSSLMode())
-	
+
 	assert.True(t, service.IsEmailVerificationRequired())
 	assert.Equal(t, 24*time.Hour, service.GetVerificationTokenExpiry())
 	assert.Equal(t, "session_id", service.GetSessionCookieName())
@@ -339,24 +338,24 @@ func TestDefaultValues(t *testing.T) {
 	assert.Equal(t, "admin123", service.GetDefaultAdminPassword())
 	assert.Equal(t, "Default", service.GetDefaultAdminFirstName())
 	assert.Equal(t, "Admin", service.GetDefaultAdminLastName())
-	
+
 	assert.Equal(t, "change-me-in-production", service.GetCSRFSecret())
 	assert.False(t, service.IsCSRFSecure())
 	assert.True(t, service.IsCSRFHttpOnly())
 	assert.Equal(t, "strict", service.GetCSRFSameSite())
 	assert.True(t, service.IsRateLimitEnabled())
 	assert.Equal(t, 100, service.GetRateLimitRequests())
-	
+
 	assert.Equal(t, "info", service.GetLogLevel())
 	assert.Equal(t, "json", service.GetLogFormat())
 	assert.Equal(t, "stdout", service.GetLogOutput())
 	assert.False(t, service.IsFileLoggingEnabled())
 	assert.Equal(t, "logs/router.log", service.GetLogFilePath())
-	
+
 	assert.Equal(t, []string{"en", "de"}, service.GetSupportedLocales())
 	assert.Equal(t, "en", service.GetDefaultLocale())
 	assert.Equal(t, "en", service.GetFallbackLocale())
-	
+
 	assert.Equal(t, "app", service.GetLayoutRootDirectory())
 	assert.Equal(t, "assets", service.GetLayoutAssetsDirectory())
 	assert.Equal(t, "assets", service.GetLayoutAssetsRouteName())
@@ -364,10 +363,10 @@ func TestDefaultValues(t *testing.T) {
 	assert.Equal(t, ".templ", service.GetTemplateExtension())
 	assert.Equal(t, ".templ.yaml", service.GetMetadataExtension())
 	assert.True(t, service.IsLayoutInheritanceEnabled())
-	
+
 	assert.Equal(t, "generated/templates", service.GetTemplateOutputDir())
 	assert.Equal(t, "templates", service.GetTemplatePackageName())
-	
+
 	// Test environment detection with defaults
 	assert.True(t, service.IsDevelopment())
 	assert.False(t, service.IsProduction())
@@ -387,8 +386,8 @@ func TestProductionDetection(t *testing.T) {
 		{
 			name: "production by base URL",
 			envVars: map[string]string{
-				"TR_ENVIRONMENT_KIND":    "production",
-				"TR_SERVER_BASE_URL":     "https://myapp.com",
+				"TR_ENVIRONMENT_KIND":     "production",
+				"TR_SERVER_BASE_URL":      "https://myapp.com",
 				"TR_SECURITY_CSRF_SECRET": "production-secret",
 			},
 			isProduction: true,
@@ -396,8 +395,8 @@ func TestProductionDetection(t *testing.T) {
 		{
 			name: "development by environment kind",
 			envVars: map[string]string{
-				"TR_ENVIRONMENT_KIND":    "develop",
-				"TR_SERVER_BASE_URL":     "https://myapp.com",
+				"TR_ENVIRONMENT_KIND":     "develop",
+				"TR_SERVER_BASE_URL":      "https://myapp.com",
 				"TR_SECURITY_CSRF_SECRET": "production-secret",
 			},
 			isProduction: false,
@@ -412,7 +411,7 @@ func TestProductionDetection(t *testing.T) {
 		{
 			name: "still development with default csrf secret",
 			envVars: map[string]string{
-				"TR_SERVER_BASE_URL":     "https://myapp.com",
+				"TR_SERVER_BASE_URL":      "https://myapp.com",
 				"TR_SECURITY_CSRF_SECRET": "change-me-in-production",
 			},
 			isProduction: false,
@@ -422,7 +421,7 @@ func TestProductionDetection(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearTestEnv(t)
-			
+
 			for key, value := range tt.envVars {
 				os.Setenv(key, value)
 			}
@@ -442,10 +441,11 @@ func TestProductionDetection(t *testing.T) {
 
 // Helper function to clear test environment variables
 func clearTestEnv(t *testing.T) {
+	// List of environment variables to clear for clean test state
 	envVars := []string{
 		"TR_SERVER_HOST", "TR_SERVER_PORT", "TR_SERVER_BASE_URL",
 		"TR_SERVER_READ_TIMEOUT", "TR_SERVER_WRITE_TIMEOUT", "TR_SERVER_IDLE_TIMEOUT", "TR_SERVER_SHUTDOWN_TIMEOUT",
-		"TR_DATABASE_HOST", "TR_DATABASE_PORT", "TR_DATABASE_DATABASE_USER", "TR_DATABASE_PASSWORD", "TR_DATABASE_NAME", "TR_DATABASE_SSL_MODE",
+		"TR_DATABASE_HOST", "TR_DATABASE_PORT", "TR_DATABASE_USER", "TR_DATABASE_PASSWORD", "TR_DATABASE_NAME", "TR_DATABASE_SSL_MODE",
 		"TR_AUTH_REQUIRE_EMAIL_VERIFICATION", "TR_AUTH_VERIFICATION_TOKEN_EXPIRY", "TR_AUTH_SESSION_COOKIE_NAME",
 		"TR_AUTH_SESSION_EXPIRY", "TR_AUTH_SESSION_SECURE", "TR_AUTH_SESSION_HTTP_ONLY", "TR_AUTH_SESSION_SAME_SITE",
 		"TR_AUTH_MIN_PASSWORD_LENGTH", "TR_AUTH_REQUIRE_STRONG_PASSWORD", "TR_AUTH_CREATE_DEFAULT_ADMIN",
@@ -462,6 +462,8 @@ func clearTestEnv(t *testing.T) {
 		"TR_LAYOUT_LAYOUT_FILE_NAME", "TR_LAYOUT_TEMPLATE_EXTENSION", "TR_LAYOUT_METADATA_EXTENSION", "TR_LAYOUT_ENABLE_INHERITANCE",
 		"TR_TEMPLATE_GENERATOR_OUTPUT_DIR", "TR_TEMPLATE_GENERATOR_PACKAGE_NAME",
 		"TR_ENVIRONMENT_KIND", "TR_CONFIG_PRINT_SUMMARY",
+		// Also clear system environment variables that might interfere with defaults
+		"USER",
 	}
 
 	for _, envVar := range envVars {

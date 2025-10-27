@@ -122,12 +122,21 @@ func (cpe *ConfigurableParameterExtractor) ExtractParameters(urlPath string, rou
 func (cpe *ConfigurableParameterExtractor) ExtractParametersFromRequest(r *http.Request, route interfaces.Route) map[string]string {
 	params := make(map[string]string)
 
-	// Extract Chi URL parameters
-	if id := chi.URLParam(r, "id"); id != "" {
-		params["id"] = id
-		cpe.logger.Debug("Extracted ID parameter from Chi",
-			zap.String("id", id),
-			zap.String("url_path", r.URL.Path))
+	// Extract all Chi URL parameters generically
+	rctx := chi.RouteContext(r.Context())
+	if rctx != nil {
+		for i, key := range rctx.URLParams.Keys {
+			if i < len(rctx.URLParams.Values) {
+				value := rctx.URLParams.Values[i]
+				if value != "" {
+					params[key] = value
+					cpe.logger.Debug("Extracted URL parameter from Chi",
+						zap.String("key", key),
+						zap.String("value", value),
+						zap.String("url_path", r.URL.Path))
+				}
+			}
+		}
 	}
 
 	// Extract locale from URL path (first segment)

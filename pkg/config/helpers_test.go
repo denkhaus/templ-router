@@ -23,12 +23,12 @@ func TestGetDatabaseDSN(t *testing.T) {
 		{
 			name: "custom values",
 			envVars: map[string]string{
-				"TR_DATABASE_HOST":          "db.example.com",
-				"TR_DATABASE_PORT":          "3306",
-				"TR_DATABASE_DATABASE_USER": "myuser",
-				"TR_DATABASE_PASSWORD":      "mypass",
-				"TR_DATABASE_NAME":          "mydb",
-				"TR_DATABASE_SSL_MODE":      "require",
+				"TR_DATABASE_HOST":     "db.example.com",
+				"TR_DATABASE_PORT":     "3306",
+				"TR_DATABASE_USER":     "myuser",
+				"TR_DATABASE_PASSWORD": "mypass",
+				"TR_DATABASE_NAME":     "mydb",
+				"TR_DATABASE_SSL_MODE": "require",
 			},
 			expected: "host=db.example.com port=3306 user=myuser password=mypass dbname=mydb sslmode=require",
 		},
