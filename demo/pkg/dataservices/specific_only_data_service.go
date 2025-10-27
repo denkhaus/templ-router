@@ -1,8 +1,7 @@
 package dataservices
 
 import (
-	"context"
-
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 )
 
@@ -19,7 +18,7 @@ type SpecificData struct {
 // This service intentionally does NOT implement GetData method
 type SpecificOnlyDataService interface {
 	// NO GetData method here - only the specific method
-	GetSpecificData(ctx context.Context, params map[string]string) (*SpecificData, error)
+	GetSpecificData(routerCtx interfaces.RouterContext) (*SpecificData, error)
 }
 
 // specificOnlyDataServiceImpl is the concrete implementation
@@ -32,8 +31,8 @@ func NewSpecificOnlyDataService(injector do.Injector) (SpecificOnlyDataService, 
 
 // GetSpecificData retrieves data - this is the ONLY method available
 // No GetData method is implemented
-func (s *specificOnlyDataServiceImpl) GetSpecificData(ctx context.Context, params map[string]string) (*SpecificData, error) {
-	locale := params["locale"]
+func (s *specificOnlyDataServiceImpl) GetSpecificData(routerCtx interfaces.RouterContext) (*SpecificData, error) {
+	locale := routerCtx.GetURLParam("locale")
 	if locale == "" {
 		locale = "en"
 	}

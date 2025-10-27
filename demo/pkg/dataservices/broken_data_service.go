@@ -1,8 +1,7 @@
 package dataservices
 
 import (
-	"context"
-
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 )
 
@@ -15,8 +14,8 @@ type BrokenData struct {
 // BrokenDataService is intentionally broken - has NO GetData or GetBrokenData methods
 type BrokenDataService interface {
 	// This service intentionally has wrong method names to test error handling
-	FetchData(ctx context.Context, params map[string]string) (*BrokenData, error)
-	RetrieveData(ctx context.Context, params map[string]string) (*BrokenData, error)
+	FetchData(routerCtx interfaces.RouterContext) (*BrokenData, error)
+	RetrieveData(routerCtx interfaces.RouterContext) (*BrokenData, error)
 }
 
 // brokenDataServiceImpl is the concrete implementation
@@ -28,7 +27,7 @@ func NewBrokenDataService(injector do.Injector) (BrokenDataService, error) {
 }
 
 // FetchData - wrong method name, should be GetData or GetBrokenData
-func (s *brokenDataServiceImpl) FetchData(ctx context.Context, params map[string]string) (*BrokenData, error) {
+func (s *brokenDataServiceImpl) FetchData(routerCtx interfaces.RouterContext) (*BrokenData, error) {
 	return &BrokenData{
 		ID:      "broken-1",
 		Message: "This method should not be called",
@@ -36,7 +35,7 @@ func (s *brokenDataServiceImpl) FetchData(ctx context.Context, params map[string
 }
 
 // RetrieveData - another wrong method name
-func (s *brokenDataServiceImpl) RetrieveData(ctx context.Context, params map[string]string) (*BrokenData, error) {
+func (s *brokenDataServiceImpl) RetrieveData(routerCtx interfaces.RouterContext) (*BrokenData, error) {
 	return &BrokenData{
 		ID:      "broken-2",
 		Message: "This method should also not be called",

@@ -1,8 +1,7 @@
 package dataservices
 
 import (
-	"context"
-
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 )
 
@@ -18,7 +17,7 @@ type ProductData struct {
 
 // ProductDataService provides product data - ONLY has GetData method (no specific method)
 type ProductDataService interface {
-	GetData(ctx context.Context, params map[string]string) (*ProductData, error)
+	GetData(routerCtx interfaces.RouterContext) (*ProductData, error)
 }
 
 // productDataServiceImpl is the concrete implementation
@@ -31,8 +30,8 @@ func NewProductDataService(injector do.Injector) (ProductDataService, error) {
 
 // GetData retrieves product data based on route parameters
 // This service ONLY implements GetData, no specific method like GetProductData
-func (s *productDataServiceImpl) GetData(ctx context.Context, params map[string]string) (*ProductData, error) {
-	productID := params["id"]
+func (s *productDataServiceImpl) GetData(routerCtx interfaces.RouterContext) (*ProductData, error) {
+	productID := routerCtx.GetURLParam("id")
 	if productID == "" {
 		productID = "demo-product"
 	}

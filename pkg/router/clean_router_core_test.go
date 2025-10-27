@@ -268,7 +268,7 @@ func (m *mockTemplateService) GetTemplateKey(templatePath string) (string, error
 	return "mock-key", nil
 }
 
-func (m *mockTemplateService) RenderComponent(route interfaces.Route, ctx context.Context, params map[string]string) (templ.Component, error) {
+func (m *mockTemplateService) RenderComponent(route interfaces.Route, routerCtx interfaces.RouterContext, ctx context.Context) (templ.Component, error) {
 	return nil, nil
 }
 

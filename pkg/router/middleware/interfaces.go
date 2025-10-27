@@ -29,7 +29,7 @@ type I18nService interface {
 
 // TemplateService handles template rendering
 type TemplateService interface {
-	RenderComponent(route interfaces.Route, ctx context.Context, params map[string]string) (templ.Component, error)
+	RenderComponent(route interfaces.Route, routerCtx interfaces.RouterContext, ctx context.Context) (templ.Component, error)
 	RenderLayoutComponent(layoutPath string, content templ.Component, ctx context.Context) (templ.Component, error)
 }
 

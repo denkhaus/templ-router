@@ -56,16 +56,31 @@ func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, err
 }
 
 // RenderComponent implements interfaces.TemplateService with optimized resolution
-func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, ctx context.Context, params map[string]string) (templ.Component, error) {
+func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, routerCtx interfaces.RouterContext, ctx context.Context) (templ.Component, error) {
 	routePath := route.Path
+	
+	// Extract parameters from RouterContext for backward compatibility
+	allParams := make(map[string]string)
+	// Add URL parameters
+	for k, v := range routerCtx.GetAllURLParams() {
+		allParams[k] = v
+	}
+	// Add query parameters with "query_" prefix to avoid conflicts
+	for k, values := range routerCtx.GetAllQueryParams() {
+		if len(values) > 0 {
+			allParams["query_"+k] = values[0]
+		}
+	}
 
 	ots.logger.Debug("Optimized template service rendering component",
 		zap.String("route", routePath),
 		zap.String("template_file", route.TemplateFile),
-		zap.Any("params", params))
+		zap.Any("url_params", routerCtx.GetAllURLParams()),
+		zap.Any("query_params", routerCtx.GetAllQueryParams()),
+		zap.Any("combined_params", allParams))
 
 	// PERFORMANCE: Check cache first - include parameters in cache key for dynamic templates
-	cacheKey := ots.cacheService.BuildTemplateKey(route.TemplateFile, "", params)
+	cacheKey := ots.cacheService.BuildTemplateKey(route.TemplateFile, "", allParams)
 	if cached, found := ots.cacheService.GetTemplate(cacheKey); found {
 		if component, ok := cached.(templ.Component); ok {
 			ots.logger.Debug("Template served from cache",
@@ -75,7 +90,7 @@ func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, ctx
 	}
 
 	// UNIFIED RESOLUTION: Single resolution strategy
-	component, err := ots.resolveTemplate(routePath, params)
+	component, err := ots.resolveTemplate(routePath, routerCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -131,13 +146,24 @@ func (ots *OptimizedTemplateService) RenderLayoutComponent(layoutPath string, co
 }
 
 // resolveTemplate - UNIFIED resolution strategy combining all previous approaches
-func (ots *OptimizedTemplateService) resolveTemplate(routePath string, params map[string]string) (templ.Component, error) {
+func (ots *OptimizedTemplateService) resolveTemplate(routePath string, routerCtx interfaces.RouterContext) (templ.Component, error) {
+	// Extract combined parameters for caching
+	allParams := make(map[string]string)
+	for k, v := range routerCtx.GetAllURLParams() {
+		allParams[k] = v
+	}
+	for k, values := range routerCtx.GetAllQueryParams() {
+		if len(values) > 0 {
+			allParams["query_"+k] = values[0]
+		}
+	}
+
 	// PERFORMANCE: Check route cache first
-	routeCacheKey := ots.cacheService.BuildRouteKey(routePath, params)
+	routeCacheKey := ots.cacheService.BuildRouteKey(routePath, allParams)
 	if templateUUID, found := ots.cacheService.GetRoute(routeCacheKey); found {
 		if uuid, ok := templateUUID.(string); ok {
 			if templateFunc, exists := ots.templateRegistry.GetTemplateFunction(uuid); exists {
-				return ots.executeTemplateFunction(templateFunc, params, routePath, uuid)
+				return ots.executeTemplateFunction(templateFunc, routerCtx, routePath, uuid)
 			}
 		}
 	}
@@ -146,11 +172,11 @@ func (ots *OptimizedTemplateService) resolveTemplate(routePath string, params ma
 	routeMapping := ots.templateRegistry.GetRouteToTemplateMapping()
 	if templateUUID, exists := routeMapping[routePath]; exists {
 		// PERFORMANCE: Cache successful route mapping
-		routeCacheKey := ots.cacheService.BuildRouteKey(routePath, params)
+		routeCacheKey := ots.cacheService.BuildRouteKey(routePath, allParams)
 		ots.cacheService.SetRoute(routeCacheKey, templateUUID)
 
 		if templateFunc, found := ots.templateRegistry.GetTemplateFunction(templateUUID); found {
-			return ots.executeTemplateFunction(templateFunc, params, routePath, templateUUID)
+			return ots.executeTemplateFunction(templateFunc, routerCtx, routePath, templateUUID)
 		}
 	}
 
@@ -159,7 +185,7 @@ func (ots *OptimizedTemplateService) resolveTemplate(routePath string, params ma
 	for _, convertedRoute := range convertedRoutes {
 		if templateUUID, exists := routeMapping[convertedRoute]; exists {
 			// PERFORMANCE: Cache successful conversion
-			routeCacheKey := ots.cacheService.BuildRouteKey(routePath, params)
+			routeCacheKey := ots.cacheService.BuildRouteKey(routePath, allParams)
 			ots.cacheService.SetRoute(routeCacheKey, templateUUID)
 
 			if templateFunc, found := ots.templateRegistry.GetTemplateFunction(templateUUID); found {
@@ -168,7 +194,7 @@ func (ots *OptimizedTemplateService) resolveTemplate(routePath string, params ma
 					zap.String("converted_route", convertedRoute),
 					zap.String("template_uuid", templateUUID))
 
-				return ots.executeTemplateFunction(templateFunc, params, routePath, templateUUID)
+				return ots.executeTemplateFunction(templateFunc, routerCtx, routePath, templateUUID)
 			}
 		}
 	}
@@ -181,7 +207,7 @@ func (ots *OptimizedTemplateService) resolveTemplate(routePath string, params ma
 }
 
 // executeTemplateFunction handles different template function signatures
-func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func() interface{}, params map[string]string, routePath, templateUUID string) (templ.Component, error) {
+func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func() interface{}, routerCtx interfaces.RouterContext, routePath, templateUUID string) (templ.Component, error) {
 	result := templateFunc()
 
 	// Handle parameterless template functions (most common case)
@@ -195,7 +221,7 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 
 	// Handle parameterized templates (e.g., user/product pages)
 	if fn, ok := result.(func(string) templ.Component); ok {
-		id := params["id"]
+		id := routerCtx.GetURLParam("id")
 		if id == "" {
 			return nil, shared.NewValidationError("parameter 'id' is required for parameterized template").
 				WithContext("route", routePath).
@@ -217,7 +243,7 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 			zap.String("result_type", fmt.Sprintf("%T", result)))
 		
 		// Resolve DataService template directly in TemplateService
-		return ots.executeDataServiceTemplate(result, params, routePath, templateUUID)
+		return ots.executeDataServiceTemplate(result, routerCtx, routePath, templateUUID)
 	}
 
 	// Handle direct components (fallback)
@@ -307,7 +333,7 @@ func (ots *OptimizedTemplateService) convertLayoutPathToRoute(layoutPath string)
 }
 
 // executeDataServiceTemplate handles DataService template execution with optimized method calls
-func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc interface{}, params map[string]string, routePath, templateUUID string) (templ.Component, error) {
+func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc interface{}, routerCtx interfaces.RouterContext, routePath, templateUUID string) (templ.Component, error) {
 	// Get DataService info from template registry
 	dataServiceInfo, exists := ots.templateRegistry.GetDataServiceInfo(templateUUID)
 	if !exists {
@@ -336,7 +362,7 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 		zap.String("interface_type", dataServiceInfo.InterfaceType))
 
 	// Call GetData directly on the generic interface (no reflection!)
-	data, err := genericDataService.GetData(context.Background(), params)
+	data, err := genericDataService.GetData(routerCtx)
 	if err != nil {
 		return nil, err
 	}

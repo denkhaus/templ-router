@@ -1,8 +1,7 @@
 package dataservices
 
 import (
-	"context"
-
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 )
 
@@ -18,8 +17,8 @@ type OrderData struct {
 
 // OrderDataService provides order data - has BOTH GetData and GetOrderData methods
 type OrderDataService interface {
-	GetData(ctx context.Context, params map[string]string) (*OrderData, error)
-	GetOrderData(ctx context.Context, params map[string]string) (*OrderData, error)
+	GetData(routerCtx interfaces.RouterContext) (*OrderData, error)
+	GetOrderData(routerCtx interfaces.RouterContext) (*OrderData, error)
 }
 
 // orderDataServiceImpl is the concrete implementation
@@ -31,8 +30,8 @@ func NewOrderDataService(injector do.Injector) (OrderDataService, error) {
 }
 
 // GetData retrieves order data - fallback method
-func (s *orderDataServiceImpl) GetData(ctx context.Context, params map[string]string) (*OrderData, error) {
-	orderID := params["id"]
+func (s *orderDataServiceImpl) GetData(routerCtx interfaces.RouterContext) (*OrderData, error) {
+	orderID := routerCtx.GetURLParam("id")
 	if orderID == "" {
 		orderID = "fallback-order"
 	}
@@ -48,8 +47,8 @@ func (s *orderDataServiceImpl) GetData(ctx context.Context, params map[string]st
 }
 
 // GetOrderData retrieves order data - specific method that should be called preferentially
-func (s *orderDataServiceImpl) GetOrderData(ctx context.Context, params map[string]string) (*OrderData, error) {
-	orderID := params["id"]
+func (s *orderDataServiceImpl) GetOrderData(routerCtx interfaces.RouterContext) (*OrderData, error) {
+	orderID := routerCtx.GetURLParam("id")
 	if orderID == "" {
 		orderID = "specific-order"
 	}

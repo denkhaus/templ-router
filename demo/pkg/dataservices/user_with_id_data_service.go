@@ -1,8 +1,7 @@
 package dataservices
 
 import (
-	"context"
-
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 )
 
@@ -16,7 +15,7 @@ type UserWithIdData struct {
 // This service intentionally does NOT implement GetData method
 type UserWithIdDataService interface {
 	// NO GetData method here - only the specific method
-	GetUserWithIdData(ctx context.Context, params map[string]string) (*UserWithIdData, error)
+	GetUserWithIdData(routerCtx interfaces.RouterContext) (*UserWithIdData, error)
 }
 
 // uaerWithIdDataServiceImpl is the concrete implementation
@@ -29,13 +28,13 @@ func NewUserWithIdDataService(injector do.Injector) (UserWithIdDataService, erro
 
 // GetSpecificData retrieves data - this is the ONLY method available
 // No GetData method is implemented
-func (s *userWithIdDataServiceImpl) GetUserWithIdData(ctx context.Context, params map[string]string) (*UserWithIdData, error) {
-	locale := params["locale"]
+func (s *userWithIdDataServiceImpl) GetUserWithIdData(routerCtx interfaces.RouterContext) (*UserWithIdData, error) {
+	locale := routerCtx.GetURLParam("locale")
 	if locale == "" {
 		locale = "undefined"
 	}
 
-	userId := params["userId"]
+	userId := routerCtx.GetURLParam("userId")
 	if userId == "" {
 		userId = "undefined"
 	}

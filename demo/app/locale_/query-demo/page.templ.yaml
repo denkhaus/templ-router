@@ -1,0 +1,7 @@
+route:
+  requiresDataService: true
+  dataServiceInterface: "UserDataService"
+
+metadata:
+  title: "Query Parameter Demo"
+  description: "Demonstrates RouterContext query parameter functionality"

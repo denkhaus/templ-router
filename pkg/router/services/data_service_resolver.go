@@ -1,7 +1,6 @@
 package services
 
 import (
-	"context"
 	"reflect"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
@@ -79,7 +78,7 @@ type genericDataServiceWrapper struct {
 }
 
 // GetData implements GenericDataService by calling the underlying service's method
-func (w *genericDataServiceWrapper) GetData(ctx context.Context, params map[string]string) (interface{}, error) {
+func (w *genericDataServiceWrapper) GetData(routerCtx interfaces.RouterContext) (interface{}, error) {
 	// Use reflection only in the wrapper, not in the main flow
 	serviceValue := reflect.ValueOf(w.service)
 
@@ -103,8 +102,7 @@ func (w *genericDataServiceWrapper) GetData(ctx context.Context, params map[stri
 
 	// Call the method
 	args := []reflect.Value{
-		reflect.ValueOf(ctx),
-		reflect.ValueOf(params),
+		reflect.ValueOf(routerCtx),
 	}
 
 	results := getDataMethod.Call(args)

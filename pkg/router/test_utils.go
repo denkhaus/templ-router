@@ -213,7 +213,7 @@ func (m *MockI18nService) LoadAllTranslations(templatePaths []string) error {
 
 type MockTemplateService struct{}
 
-func (m *MockTemplateService) RenderComponent(route interfaces.Route, ctx context.Context, params map[string]string) (templ.Component, error) {
+func (m *MockTemplateService) RenderComponent(route interfaces.Route, routerCtx interfaces.RouterContext, ctx context.Context) (templ.Component, error) {
 	return templ.Raw("test content"), nil
 }
 

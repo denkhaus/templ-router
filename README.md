@@ -876,7 +876,7 @@ TR_ROUTER_ENABLE_TRAILING_SLASH=true
 # /dashboard/ → redirects to /dashboard
 # /dashboard → redirects to /dashboard/
 
-# Enable slash cleanup (default: true)  
+# Enable slash cleanup (default: true)
 TR_ROUTER_ENABLE_SLASH_REDIRECT=true
 # /path//to///resource → redirects to /path/to/resource
 
@@ -894,21 +894,83 @@ TR_ROUTER_ENABLE_METHOD_NOT_ALLOWED=true
 
 ## Data Services
 
-Templates can automatically receive data through the Data Service system:
+Data services provide data to templates through dependency injection. The router automatically resolves and calls the appropriate data service based on template requirements.
 
-**Pattern 1: Simple GetData() Method**
+### 🔍 RouterContext - Unified Parameter Access
+
+**NEW**: Data services now use `RouterContext` for unified access to URL parameters, query parameters, and request data:
 
 ```go
+import "github.com/denkhaus/templ-router/pkg/interfaces"
 
-type ProductDataService interface {
-    GetData(ctx context.Context, params map[string]string) (*ProductData, error)
+type UserDataService interface {
+    GetData(routerCtx interfaces.RouterContext) (*UserData, error)
 }
 
-func (s *productDataServiceImpl) GetData(ctx context.Context, params map[string]string) (*ProductData, error) {
-    productID := params["id"] // Route parameters automatically injected
+func (s *userDataServiceImpl) GetData(routerCtx interfaces.RouterContext) (*UserData, error) {
+    // URL Parameters (from route like /{locale}/user/{id})
+    locale := routerCtx.GetURLParam("locale")
+    userID := routerCtx.GetURLParam("id")
+
+    // Query Parameters (from URL like ?page=5&pageSize=10&filter=active)
+    page := routerCtx.GetQueryParam("page")
+    pageSize := routerCtx.GetQueryParam("pageSize")
+    filter := routerCtx.GetQueryParam("filter")
+
+    // Set defaults for query parameters
+    if page == "" {
+        page = "1"
+    }
+    if pageSize == "" {
+        pageSize = "10"
+    }
+
+    return &UserData{
+        ID:       userID,
+        Name:     "User " + userID,
+        Locale:   locale,
+        Page:     page,
+        PageSize: pageSize,
+        Filter:   filter,
+    }, nil
+}
+```
+
+#### RouterContext Methods
+
+```go
+// URL Parameter access (from Chi router path parameters)
+routerCtx.GetURLParam("key")           // Single parameter
+routerCtx.GetAllURLParams()            // All URL parameters
+
+// Query Parameter access (from URL query string)
+routerCtx.GetQueryParam("key")         // First value
+routerCtx.GetQueryParams("key")        // All values for key
+routerCtx.GetAllQueryParams()          // All query parameters
+
+// Advanced access
+routerCtx.Context()                    // context.Context
+routerCtx.Request()                    // *http.Request
+routerCtx.ChiContext()                 // *chi.Context
+```
+
+### Data Service Patterns
+
+**Pattern 1: GetData() Only**
+
+```go
+type ProductDataService interface {
+    GetData(routerCtx interfaces.RouterContext) (*ProductData, error)
+}
+
+func (s *productDataServiceImpl) GetData(routerCtx interfaces.RouterContext) (*ProductData, error) {
+    productID := routerCtx.GetURLParam("id") // Route parameters
+    category := routerCtx.GetQueryParam("category") // Query parameters
+
     return &ProductData{
-        ID:   productID,
-        Name: "Product " + productID,
+        ID:       productID,
+        Name:     "Product " + productID,
+        Category: category,
     }, nil
 }
 ```
@@ -917,14 +979,16 @@ func (s *productDataServiceImpl) GetData(ctx context.Context, params map[string]
 
 ```go
 type UserDataService interface {
-    GetUserData(ctx context.Context, params map[string]string) (*UserData, error)
+    GetData(routerCtx interfaces.RouterContext) (*UserData, error)
+    GetUserData(routerCtx interfaces.RouterContext) (*UserData, error)
 }
 
 // Both methods available - router chooses appropriate one
-func (s *userDataServiceImpl) GetUserData(ctx context.Context, params map[string]string) (*UserData, error) {
-    userID := params["id"]
-    locale := params["locale"] // Multi-language support
-    return &UserData{ID: userID, Name: "User " + userID}, nil
+func (s *userDataServiceImpl) GetUserData(routerCtx interfaces.RouterContext) (*UserData, error) {
+    userID := routerCtx.GetURLParam("id")
+    locale := routerCtx.GetURLParam("locale") // Multi-language support
+
+    return &UserData{ID: userID, Name: "User " + userID, Locale: locale}, nil
 }
 ```
 
@@ -958,14 +1022,30 @@ templ UserProfilePage(user *UserData) {
 // 5. Passes result to template
 ```
 
-### Parameter Injection
+### Query Parameter Demo
 
-Route parameters are automatically injected into data service methods:
+Try the live query parameter demo to see RouterContext in action:
+
+```bash
+# Start the demo application
+cd demo && go run main.go
+
+# Visit these URLs to test query parameters:
+# http://localhost:8080/en/query-demo?page=1&pageSize=10&sort=name
+# http://localhost:8080/de/query-demo?page=2&pageSize=20&filter=premium&sort=date
+```
+
+The demo shows how RouterContext cleanly separates URL parameters from query parameters, preventing conflicts and providing type-safe access.
+
+### Parameter Access Examples
+
+RouterContext provides clean access to all request parameters:
 
 ```go
-func (s *userDataServiceImpl) GetUserData(ctx context.Context, params map[string]string) (*UserData, error) {
-    userID := params["id"]       // From route: /user/123 → id="123"
-    locale := params["locale"]   // From route: /en/user/123 → locale="en"
+func (s *userDataServiceImpl) GetUserData(routerCtx interfaces.RouterContext) (*UserData, error) {
+    userID := routerCtx.GetURLParam("id")       // From route: /user/123 → id="123"
+    locale := routerCtx.GetURLParam("locale")   // From route: /en/user/123 → locale="en"
+    page := routerCtx.GetQueryParam("page")     // From query: ?page=2 → page="2"
 
     // Use parameters to fetch localized user data
     return s.fetchUser(userID, locale)

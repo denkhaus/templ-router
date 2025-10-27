@@ -1,0 +1,100 @@
+package query_demo
+
+import (
+	"fmt"
+	"github.com/denkhaus/templ-router/demo/pkg/dataservices"
+)
+
+// QueryDemoPage demonstrates RouterContext query parameter functionality
+templ Page(data *dataservices.UserData) {
+	<div class="max-w-4xl mx-auto p-6">
+		<div class="bg-white rounded-lg shadow-lg p-8">
+			<h1 class="text-4xl font-bold text-blue-600 mb-6">🔍 Query Parameter Demo</h1>
+			<p class="text-lg text-gray-600 mb-8">This page demonstrates RouterContext query parameter extraction in DataServices.</p>
+			<div class="grid md:grid-cols-2 gap-8">
+				<!-- URL Parameters -->
+				<div class="bg-blue-50 rounded-lg p-6">
+					<h2 class="text-2xl font-semibold text-blue-800 mb-4">📍 URL Parameters</h2>
+					<div class="space-y-2">
+						<div class="flex justify-between">
+							<span class="font-medium">Locale:</span>
+							<span class="text-blue-600 font-mono">{ data.Locale }</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-medium">User ID:</span>
+							<span class="text-blue-600 font-mono">{ data.ID }</span>
+						</div>
+					</div>
+				</div>
+				<!-- Query Parameters -->
+				<div class="bg-green-50 rounded-lg p-6">
+					<h2 class="text-2xl font-semibold text-green-800 mb-4">🔍 Query Parameters</h2>
+					<div class="space-y-2">
+						<div class="flex justify-between">
+							<span class="font-medium">Page:</span>
+							<span class="text-green-600 font-mono">{ data.Page }</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-medium">Page Size:</span>
+							<span class="text-green-600 font-mono">{ data.PageSize }</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-medium">Filter:</span>
+							<span class="text-green-600 font-mono">
+								if data.Filter != "" {
+									{ data.Filter }
+								} else {
+									<em class="text-gray-400">none</em>
+								}
+							</span>
+						</div>
+						<div class="flex justify-between">
+							<span class="font-medium">Sort:</span>
+							<span class="text-green-600 font-mono">{ data.Sort }</span>
+						</div>
+					</div>
+				</div>
+			</div>
+			<!-- User Data -->
+			<div class="mt-8 bg-gray-50 rounded-lg p-6">
+				<h2 class="text-2xl font-semibold text-gray-800 mb-4">👤 User Data</h2>
+				<div class="grid md:grid-cols-2 gap-4">
+					<div>
+						<span class="font-medium">Name:</span>
+						<span class="ml-2">{ data.Name }</span>
+					</div>
+					<div>
+						<span class="font-medium">Email:</span>
+						<span class="ml-2">{ data.Email }</span>
+					</div>
+					<div>
+						<span class="font-medium">Role:</span>
+						<span class="ml-2">{ data.Role }</span>
+					</div>
+					<div>
+						<span class="font-medium">Projects:</span>
+						<span class="ml-2">{ fmt.Sprintf("%d", data.Projects) }</span>
+					</div>
+				</div>
+			</div>
+			<!-- Test Links -->
+			<div class="mt-8 bg-yellow-50 rounded-lg p-6">
+				<h2 class="text-2xl font-semibold text-yellow-800 mb-4">🧪 Test Different Query Parameters</h2>
+				<div class="grid md:grid-cols-2 gap-4">
+					<a href="?page=1&amp;pageSize=5&amp;sort=name" class="block p-3 bg-yellow-100 hover:bg-yellow-200 rounded border text-center transition-colors">
+						Page 1, Size 5, Sort by Name
+					</a>
+					<a href="?page=2&amp;pageSize=20&amp;sort=date&amp;filter=active" class="block p-3 bg-yellow-100 hover:bg-yellow-200 rounded border text-center transition-colors">
+						Page 2, Size 20, Filter Active
+					</a>
+					<a href="?page=3&amp;pageSize=50&amp;filter=premium&amp;sort=priority" class="block p-3 bg-yellow-100 hover:bg-yellow-200 rounded border text-center transition-colors">
+						Page 3, Premium Filter
+					</a>
+					<a href="?" class="block p-3 bg-yellow-100 hover:bg-yellow-200 rounded border text-center transition-colors">
+						Reset (Default Values)
+					</a>
+				</div>
+			</div>
+		</div>
+	</div>
+}

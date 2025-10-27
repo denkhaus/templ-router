@@ -1,8 +1,7 @@
 package dataservices
 
 import (
-	"context"
-
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 )
 
@@ -14,13 +13,19 @@ type UserData struct {
 	Role     string
 	Projects int
 	Tasks    int
+	Locale   string // URL parameter field
+	// Query parameter fields
+	Page     string
+	PageSize string
+	Filter   string
+	Sort     string
 }
 
 // UserDataService provides user data for templates
 // Uses standardized GetData method for all DataServices
 type UserDataService interface {
-	GetData(ctx context.Context, params map[string]string) (*UserData, error)
-	GetUserData(ctx context.Context, params map[string]string) (*UserData, error)
+	GetData(routerCtx interfaces.RouterContext) (*UserData, error)
+	GetUserData(routerCtx interfaces.RouterContext) (*UserData, error)
 }
 
 // userDataServiceImpl is the concrete implementation
@@ -33,16 +38,32 @@ func NewUserDataService(injector do.Injector) (UserDataService, error) {
 	return &userDataServiceImpl{}, nil
 }
 
-// GetData retrieves user data based on route parameters
-func (s *userDataServiceImpl) GetData(ctx context.Context, params map[string]string) (*UserData, error) {
-	// For the test page /{locale}/test, we don't have an ID parameter
-	// Instead, we'll return demo data based on locale or just static demo data
-	locale := params["locale"]
+// GetData retrieves user data based on route parameters and query parameters
+func (s *userDataServiceImpl) GetData(routerCtx interfaces.RouterContext) (*UserData, error) {
+	// URL Parameters
+	locale := routerCtx.GetURLParam("locale")
 	if locale == "" {
 		locale = "en"
 	}
 
-	// Return demo data for the test page
+	// Query Parameters - NEW: RouterContext query parameter support!
+	page := routerCtx.GetQueryParam("page")
+	pageSize := routerCtx.GetQueryParam("pageSize")
+	filter := routerCtx.GetQueryParam("filter")
+	sort := routerCtx.GetQueryParam("sort")
+
+	// Set defaults for query parameters
+	if page == "" {
+		page = "1"
+	}
+	if pageSize == "" {
+		pageSize = "10"
+	}
+	if sort == "" {
+		sort = "name"
+	}
+
+	// Return demo data with query parameter information
 	userData := &UserData{
 		ID:       "demo-test-user",
 		Name:     "DataService Demo User",
@@ -50,7 +71,15 @@ func (s *userDataServiceImpl) GetData(ctx context.Context, params map[string]str
 		Role:     "Test User",
 		Projects: 3,
 		Tasks:    15,
+		// Query parameter data
+		Page:     page,
+		PageSize: pageSize,
+		Filter:   filter,
+		Sort:     sort,
 	}
+	
+	// Add locale to UserData for display
+	userData.Locale = locale
 
 	// Add some variation based on locale
 	switch locale {
@@ -71,15 +100,32 @@ func (s *userDataServiceImpl) GetData(ctx context.Context, params map[string]str
 	return userData, nil
 }
 
-// GetUserData is the new specific method that should be called instead of GetData
-func (s *userDataServiceImpl) GetUserData(ctx context.Context, params map[string]string) (*UserData, error) {
-	// Same logic as GetData but with a different method name to test our implementation
-	locale := params["locale"]
+// GetUserData is the specific method that should be called preferentially over GetData
+func (s *userDataServiceImpl) GetUserData(routerCtx interfaces.RouterContext) (*UserData, error) {
+	// URL Parameters
+	locale := routerCtx.GetURLParam("locale")
 	if locale == "" {
 		locale = "en"
 	}
 
-	// Return demo data for the test page with a marker to show this method was called
+	// Query Parameters - NEW: RouterContext query parameter support!
+	page := routerCtx.GetQueryParam("page")
+	pageSize := routerCtx.GetQueryParam("pageSize")
+	filter := routerCtx.GetQueryParam("filter")
+	sort := routerCtx.GetQueryParam("sort")
+
+	// Set defaults for query parameters
+	if page == "" {
+		page = "1"
+	}
+	if pageSize == "" {
+		pageSize = "10"
+	}
+	if sort == "" {
+		sort = "name"
+	}
+
+	// Return demo data with a marker to show GetUserData method was called
 	userData := &UserData{
 		ID:       "specific-method-user",
 		Name:     "GetUserData Method Called!",
@@ -87,6 +133,12 @@ func (s *userDataServiceImpl) GetUserData(ctx context.Context, params map[string
 		Role:     "Specific Method User",
 		Projects: 5,
 		Tasks:    25,
+		Locale:   locale, // URL parameter
+		// Query parameter data
+		Page:     page,
+		PageSize: pageSize,
+		Filter:   filter,
+		Sort:     sort,
 	}
 
 	// Add some variation based on locale

@@ -50,14 +50,10 @@ func NewTemplateMiddleware(i do.Injector) (TemplateMiddlewareInterface, error) {
 // Handle processes template rendering for a request
 func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Extract parameters from the HTTP request using Chi's URL parameters (modern approach)
-		extractedParams := tm.parameterExtractor.ExtractParametersFromRequest(r, route)
-
-		// Merge with existing params (extracted params take precedence)
-		for k, v := range extractedParams {
-			params[k] = v
-		}
 		ctx := r.Context()
+
+		// Create RouterContext with unified access to all request data
+		routerCtx := NewRouterContext(ctx, r)
 
 		// Load template config and add to context for router.M() access
 		ctx = tm.addTemplateConfigToContext(ctx, route.TemplateFile)
@@ -65,7 +61,8 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 		tm.logger.Debug("Rendering template",
 			zap.String("template", route.TemplateFile),
 			zap.String("path", route.Path),
-			zap.Any("params", params),
+			zap.Any("url_params", routerCtx.GetAllURLParams()),
+			zap.Any("query_params", routerCtx.GetAllQueryParams()),
 			zap.Bool("requires_data_service", route.RequiresDataService),
 			zap.String("data_service_interface", route.DataServiceInterface))
 
@@ -73,7 +70,7 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 		var component templ.Component
 		var err error
 		
-		component, err = tm.templateService.RenderComponent(route, ctx, params)
+		component, err = tm.templateService.RenderComponent(route, routerCtx, ctx)
 		if err != nil {
 			tm.logger.Error("Template rendering failed",
 				zap.String("route", route.Path),

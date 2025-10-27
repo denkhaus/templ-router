@@ -1,6 +1,12 @@
 package interfaces
 
-import "context"
+import (
+	"context"
+	"net/http"
+	"net/url"
+
+	"github.com/go-chi/chi/v5"
+)
 
 // DataServiceInfo holds information about required data services
 type DataServiceInfo struct {
@@ -9,10 +15,32 @@ type DataServiceInfo struct {
 	// MethodName is always "GetData" - no need to store it
 }
 
+// RouterContext provides unified access to request data for Data Services
+// It encapsulates URL parameters, query parameters, HTTP request, and Chi context
+type RouterContext interface {
+	// Context returns the underlying context.Context
+	Context() context.Context
+
+	// URL Parameter access (from Chi router path parameters like /{id})
+	GetURLParam(key string) string
+	GetAllURLParams() map[string]string
+
+	// Query Parameter access (from URL query string like ?page=5&size=10)
+	GetQueryParam(key string) string
+	GetQueryParams(key string) []string
+	GetAllQueryParams() url.Values
+
+	// Original request access for advanced scenarios
+	Request() *http.Request
+
+	// Chi-specific context access
+	ChiContext() *chi.Context
+}
+
 // DataService is the generic interface that all data services must implement
 // T represents the data type that the service returns
 type DataService[T any] interface {
-	GetData(ctx context.Context, params map[string]string) (T, error)
+	GetData(routerCtx RouterContext) (T, error)
 }
 
 // DataServiceResolver resolves data services from DI container
@@ -29,6 +57,6 @@ type DataServiceResolver interface {
 
 // GenericDataService provides a reflection-free interface for data services
 type GenericDataService interface {
-	// GetData returns data for the given context and parameters
-	GetData(ctx context.Context, params map[string]string) (interface{}, error)
+	// GetData returns data for the given router context
+	GetData(routerCtx RouterContext) (interface{}, error)
 }
