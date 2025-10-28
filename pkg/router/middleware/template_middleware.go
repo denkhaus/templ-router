@@ -130,11 +130,15 @@ func (tm *templateMiddleware) addTemplateConfigToContext(ctx context.Context, te
 		zap.String("yaml_path", yamlPath))
 
 	// Load shared config
-	sharedConfig, err := shared.ParseYAMLMetadata(yamlPath)
+	configFileFound, sharedConfig, err := shared.ParseYAMLMetadata(yamlPath)
 	if err != nil {
-		tm.logger.Debug("No template config found or failed to load",
-			zap.String("yaml_path", yamlPath),
-			zap.Error(err))
+		if configFileFound {
+			tm.logger.Debug("Failed to load template config",
+				zap.String("yaml_path", yamlPath),
+				zap.Error(err),
+			)
+		}
+
 		return ctx // Return original context if no config
 	}
 

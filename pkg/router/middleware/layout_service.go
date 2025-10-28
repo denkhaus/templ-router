@@ -102,11 +102,14 @@ func (ls *layoutServiceImpl) WrapInLayout(component templ.Component, layout *int
 
 	// Load layout metadata and merge with existing template metadata
 	if layout.YamlPath != "" {
-		layoutConfig, err := shared.ParseYAMLMetadata(layout.YamlPath)
+		configFileFound, layoutConfig, err := shared.ParseYAMLMetadata(layout.YamlPath)
 		if err != nil {
-			ls.logger.Warn("Failed to load layout metadata",
-				zap.String("yaml_path", layout.YamlPath),
-				zap.Error(err))
+			if configFileFound {
+				ls.logger.Warn("Failed to load layout metadata",
+					zap.String("yaml_path", layout.YamlPath),
+					zap.Error(err),
+				)
+			}
 		} else {
 			// CRITICAL FIX: Template metadata should override layout metadata
 			// Get existing template config from context

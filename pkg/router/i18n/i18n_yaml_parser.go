@@ -17,10 +17,9 @@ type ExtendedConfigFile struct {
 
 // ParseYAMLMetadataExtended parses YAML with support for multi-locale i18n and nested structures
 func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *ExtendedConfigFile, error) {
-	configFileFound := false
 
 	if filePath == "" {
-		return configFileFound, nil, fmt.Errorf("file path cannot be empty")
+		return false, nil, fmt.Errorf("file path cannot be empty")
 	}
 
 	if logger == nil {
@@ -30,12 +29,10 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *Exte
 	logger.Debug("Parsing extended YAML metadata with nested i18n support", zap.String("file_path", filePath))
 
 	// Use the enhanced shared parser that supports nested structures
-	sharedConfig, err := shared.ParseYAMLMetadata(filePath)
+	configFileFound, sharedConfig, err := shared.ParseYAMLMetadata(filePath)
 	if err != nil {
 		return configFileFound, nil, fmt.Errorf("failed to parse YAML file %s: %w", filePath, err)
 	}
-
-	configFileFound = true
 
 	// Check if this is a multi-locale configuration
 	hasMultiLocale := len(sharedConfig.MultiLocaleI18n) > 0
@@ -118,7 +115,6 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *Exte
 		MultiLocaleI18n: nil, // Empty for single-locale
 	}, nil
 }
-
 
 // HasMultiLocaleSupport checks if this config supports multiple locales
 func (ecf *ExtendedConfigFile) HasMultiLocaleSupport() bool {

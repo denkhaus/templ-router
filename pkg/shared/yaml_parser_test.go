@@ -43,7 +43,7 @@ func TestParseYAMLMetadata_NestedI18n_MultiLocale(t *testing.T) {
 	tmpFile.Close()
 
 	// Parse the YAML
-	config, err := ParseYAMLMetadata(tmpFile.Name())
+	_, config, err := ParseYAMLMetadata(tmpFile.Name())
 	require.NoError(t, err)
 
 	// Verify multi-locale i18n is populated with flattened nested keys
@@ -89,7 +89,7 @@ func TestParseYAMLMetadata_NestedI18n_SimpleStructure(t *testing.T) {
 	tmpFile.Close()
 
 	// Parse the YAML
-	config, err := ParseYAMLMetadata(tmpFile.Name())
+	_, config, err := ParseYAMLMetadata(tmpFile.Name())
 	require.NoError(t, err)
 
 	// Verify I18nMappings is populated with flattened nested keys
@@ -118,7 +118,7 @@ func TestParseYAMLMetadata_FlatI18n(t *testing.T) {
 	tmpFile.Close()
 
 	// Parse the YAML
-	config, err := ParseYAMLMetadata(tmpFile.Name())
+	_, config, err := ParseYAMLMetadata(tmpFile.Name())
 	require.NoError(t, err)
 
 	// Verify I18nMappings is populated
