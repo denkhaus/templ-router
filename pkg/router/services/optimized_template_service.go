@@ -28,7 +28,7 @@ type OptimizedTemplateService struct {
 
 	// Route converter for dynamic route handling
 	routeConverter RouteConverter
-	
+
 	// DataService resolver for DataService templates
 	dataResolver interfaces.DataServiceResolver
 }
@@ -58,7 +58,7 @@ func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, err
 // RenderComponent implements interfaces.TemplateService with optimized resolution
 func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, routerCtx interfaces.RouterContext, ctx context.Context) (templ.Component, error) {
 	routePath := route.Path
-	
+
 	// Extract parameters from RouterContext for backward compatibility
 	allParams := make(map[string]string)
 	// Add URL parameters
@@ -241,7 +241,7 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 			zap.String("route", routePath),
 			zap.String("template_uuid", templateUUID),
 			zap.String("result_type", fmt.Sprintf("%T", result)))
-		
+
 		// Resolve DataService template directly in TemplateService
 		return ots.executeDataServiceTemplate(result, routerCtx, routePath, templateUUID)
 	}
@@ -266,37 +266,34 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 // DataService templates have signature: func(*SomeDataType) templ.Component
 func (ots *OptimizedTemplateService) isDataServiceTemplate(result interface{}) bool {
 	resultType := reflect.TypeOf(result)
-	
+
 	// Must be a function
 	if resultType.Kind() != reflect.Func {
 		return false
 	}
-	
+
 	// Must have exactly 1 input parameter and 1 output parameter
 	if resultType.NumIn() != 1 || resultType.NumOut() != 1 {
 		return false
 	}
-	
+
 	// Input parameter must be a pointer to a struct (DataService data type)
 	inputType := resultType.In(0)
 	if inputType.Kind() != reflect.Ptr {
 		return false
 	}
-	
+
 	// The pointer must point to a struct
 	if inputType.Elem().Kind() != reflect.Struct {
 		return false
 	}
-	
+
 	// Output must be templ.Component
 	outputType := resultType.Out(0)
 	// Check if output implements templ.Component interface
 	templComponentType := reflect.TypeOf((*templ.Component)(nil)).Elem()
-	if !outputType.Implements(templComponentType) {
-		return false
-	}
-	
-	return true
+
+	return outputType.Implements(templComponentType)
 }
 
 // convertLayoutPathToRoute converts layout path to route pattern (fail-fast)
@@ -370,7 +367,7 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 	// Execute template function with reflection (only remaining reflection usage)
 	ots.logger.Debug("Executing template function with reflection",
 		zap.String("template_uuid", templateUUID))
-	
+
 	return ots.executeTemplateWithReflection(templateFunc, data, routePath, templateUUID)
 }
 
@@ -378,7 +375,7 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 func (ots *OptimizedTemplateService) executeTemplateWithReflection(templateFunc interface{}, data interface{}, routePath, templateUUID string) (templ.Component, error) {
 	// Call template function with data using reflection
 	funcValue := reflect.ValueOf(templateFunc)
-	
+
 	if funcValue.Kind() != reflect.Func {
 		return nil, shared.NewTemplateError("invalid template function type").
 			WithDetails("Template must be a function").
@@ -420,72 +417,6 @@ func (ots *OptimizedTemplateService) executeTemplateWithReflection(templateFunc 
 }
 
 // executeDataServiceTemplateWithReflection executes DataService template using reflection (fallback)
-func (ots *OptimizedTemplateService) executeDataServiceTemplateWithReflection(templateFunc interface{}, params map[string]string, routePath, templateUUID string, dataServiceInfo interfaces.DataServiceInfo) (templ.Component, error) {
-	// Resolve data service from DI
-	dataService, err := ots.dataResolver.ResolveDataService(dataServiceInfo.InterfaceType)
-	if err != nil {
-		return nil, shared.NewDependencyInjectionError("failed to resolve data service").
-			WithDetails("DataService not found in DI container").
-			WithCause(err).
-			WithContext("interface_type", dataServiceInfo.InterfaceType).
-			WithContext("route", routePath).
-			WithContext("template_uuid", templateUUID)
-	}
-
-	// Call specific method based on data type, fallback to GetData
-	serviceValue := reflect.ValueOf(dataService)
-	methodName := shared.DeriveMethodNameFromDataType(dataServiceInfo.ParameterType)
-	getDataMethod := serviceValue.MethodByName(methodName)
-	
-	// Fallback to GetData if specific method doesn't exist
-	if !getDataMethod.IsValid() {
-		getDataMethod = serviceValue.MethodByName("GetData")
-		methodName = "GetData"
-	}
-	
-	if !getDataMethod.IsValid() {
-		return nil, shared.NewServiceError("data service method not found").
-			WithDetails("Neither specific method nor GetData method exists on data service").
-			WithContext("method_name", methodName).
-			WithContext("interface_type", dataServiceInfo.InterfaceType).
-			WithContext("route", routePath).
-			WithContext("template_uuid", templateUUID)
-	}
-	
-	ots.logger.Debug("Using data service method with reflection fallback",
-		zap.String("method_name", methodName),
-		zap.String("data_service_interface", dataServiceInfo.InterfaceType))
-
-	// Prepare arguments: ctx, params
-	args := []reflect.Value{
-		reflect.ValueOf(context.Background()),
-		reflect.ValueOf(params),
-	}
-
-	// Call the method
-	results := getDataMethod.Call(args)
-	if len(results) != 2 {
-		return nil, shared.NewServiceError("invalid data service method signature").
-			WithDetails("GetData method should return (data, error)").
-			WithContext("method_name", methodName).
-			WithContext("result_count", len(results)).
-			WithContext("interface_type", dataServiceInfo.InterfaceType).
-			WithContext("route", routePath)
-	}
-
-	// Check for error
-	if !results[1].IsNil() {
-		err := results[1].Interface().(error)
-		return nil, err
-	}
-
-	data := results[0].Interface()
-
-	// Execute template with reflection
-	return ots.executeTemplateWithReflection(templateFunc, data, routePath, templateUUID)
-}
-
-
 
 // ClearCache clears the template cache (useful for development)
 func (ots *OptimizedTemplateService) ClearCache() {

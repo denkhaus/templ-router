@@ -123,11 +123,23 @@ func (s *simpleTranslationStore) loadTranslationsForPath(templatePath string) er
 	yamlPath := templatePath + ".yaml"
 
 	// Try to load the YAML file
-	config, err := i18n.ParseYAMLMetadataExtended(yamlPath, s.logger)
+	configFileFound, config, err := i18n.ParseYAMLMetadataExtended(yamlPath, s.logger)
 	if err != nil {
-		s.logger.Debug("No YAML file found or failed to parse",
+
+		if configFileFound {
+			s.logger.Error("Failed to parse config file",
+				zap.String("yaml_path", yamlPath),
+				zap.Error(err),
+			)
+
+			return err
+		}
+
+		s.logger.Debug("Failed to processNo config file",
 			zap.String("yaml_path", yamlPath),
-			zap.Error(err))
+			zap.Error(err),
+		)
+
 		return nil // Not an error if no YAML file exists
 	}
 

@@ -160,11 +160,10 @@ func (m mockOTSComponent) Render(ctx context.Context, w io.Writer) error {
 // Mock RouterContext for testing
 type mockOTSRouterContext struct {
 	mock.Mock
-	ctx         context.Context
-	urlParams   map[string]string
-	queryParams url.Values
-	request     *http.Request
-	chiCtx      *chi.Context
+	ctx       context.Context
+	urlParams map[string]string
+	request   *http.Request
+	chiCtx    *chi.Context
 }
 
 func (m *mockOTSRouterContext) Context() context.Context {
@@ -219,7 +218,7 @@ func (m *mockOTSRouterContext) ChiContext() *chi.Context {
 // Test helper to create OptimizedTemplateService with mocks
 func createTestOTS(t *testing.T) (*OptimizedTemplateService, *mockOTSTemplateRegistry, *mockOTSCacheService, *mockOTSDataServiceResolver, *mockOTSRouteConverter) {
 	logger := zap.NewNop()
-	
+
 	mockRegistry := &mockOTSTemplateRegistry{}
 	mockCache := &mockOTSCacheService{}
 	mockDataResolver := &mockOTSDataServiceResolver{}
@@ -292,7 +291,7 @@ func TestOptimizedTemplateService_RenderComponent_DirectRouteMatch(t *testing.T)
 	cacheKey := "test-cache-key"
 	routeCacheKey := "route-cache-key"
 	templateUUID := "template-123"
-	
+
 	mockCache.On("BuildTemplateKey", "test.templ", "", params).Return(cacheKey)
 	mockCache.On("GetTemplate", cacheKey).Return(nil, false)
 	mockCache.On("BuildRouteKey", "/test", params).Return(routeCacheKey)
@@ -301,7 +300,7 @@ func TestOptimizedTemplateService_RenderComponent_DirectRouteMatch(t *testing.T)
 	// Mock direct route mapping
 	routeMapping := map[string]string{"/test": templateUUID}
 	mockRegistry.On("GetRouteToTemplateMapping").Return(routeMapping)
-	
+
 	// Mock template function that returns a parameterless function
 	templateFunc := func() interface{} {
 		return func() templ.Component {
@@ -309,7 +308,7 @@ func TestOptimizedTemplateService_RenderComponent_DirectRouteMatch(t *testing.T)
 		}
 	}
 	mockRegistry.On("GetTemplateFunction", templateUUID).Return(templateFunc, true)
-	
+
 	// Mock cache operations
 	mockCache.On("SetRoute", routeCacheKey, templateUUID).Return()
 	mockCache.On("SetTemplate", cacheKey, mock.Anything).Return()
@@ -348,7 +347,7 @@ func TestOptimizedTemplateService_RenderComponent_ParameterizedTemplate_MissingI
 	cacheKey := "test-cache-key"
 	routeCacheKey := "route-cache-key"
 	templateUUID := "template-123"
-	
+
 	mockCache.On("BuildTemplateKey", "user.templ", "", params).Return(cacheKey)
 	mockCache.On("GetTemplate", cacheKey).Return(nil, false)
 	mockCache.On("BuildRouteKey", "/user/123", params).Return(routeCacheKey)
@@ -357,7 +356,7 @@ func TestOptimizedTemplateService_RenderComponent_ParameterizedTemplate_MissingI
 	// Mock direct route mapping
 	routeMapping := map[string]string{"/user/123": templateUUID}
 	mockRegistry.On("GetRouteToTemplateMapping").Return(routeMapping)
-	
+
 	// Mock template function that returns a parameterized function
 	templateFunc := func() interface{} {
 		return func(id string) templ.Component {
@@ -375,13 +374,13 @@ func TestOptimizedTemplateService_RenderComponent_ParameterizedTemplate_MissingI
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	
+
 	// Check that it's a validation error
 	var appErr *shared.AppError
 	assert.ErrorAs(t, err, &appErr)
 	assert.Equal(t, shared.ErrorTypeValidation, appErr.Type)
 	assert.Contains(t, appErr.Message, "parameter 'id' is required")
-	
+
 	mockRegistry.AssertExpectations(t)
 	mockCache.AssertExpectations(t)
 	mockRouterCtx.AssertExpectations(t)
@@ -408,7 +407,7 @@ func TestOptimizedTemplateService_RenderComponent_RouteNotFound(t *testing.T) {
 	// Mock cache miss
 	cacheKey := "test-cache-key"
 	routeCacheKey := "route-cache-key"
-	
+
 	mockCache.On("BuildTemplateKey", "nonexistent.templ", "", params).Return(cacheKey)
 	mockCache.On("GetTemplate", cacheKey).Return(nil, false)
 	mockCache.On("BuildRouteKey", "/nonexistent", params).Return(routeCacheKey)
@@ -417,7 +416,7 @@ func TestOptimizedTemplateService_RenderComponent_RouteNotFound(t *testing.T) {
 	// Mock empty route mapping
 	routeMapping := map[string]string{}
 	mockRegistry.On("GetRouteToTemplateMapping").Return(routeMapping)
-	
+
 	// Mock route converter returning no variations
 	mockConverter.On("GenerateRouteVariations", "/nonexistent").Return([]string{})
 
@@ -428,7 +427,7 @@ func TestOptimizedTemplateService_RenderComponent_RouteNotFound(t *testing.T) {
 	assert.Error(t, err)
 	assert.Nil(t, result)
 	assert.Equal(t, middleware.ErrTemplateNotFound, err)
-	
+
 	mockRegistry.AssertExpectations(t)
 	mockCache.AssertExpectations(t)
 	mockConverter.AssertExpectations(t)
@@ -439,10 +438,10 @@ func TestOptimizedTemplateService_convertLayoutPathToRoute(t *testing.T) {
 	service, _, _, _, _ := createTestOTS(t)
 
 	tests := []struct {
-		name         string
-		layoutPath   string
-		expected     string
-		expectEmpty  bool
+		name        string
+		layoutPath  string
+		expected    string
+		expectEmpty bool
 	}{
 		{
 			name:       "valid layout path",
@@ -469,7 +468,7 @@ func TestOptimizedTemplateService_convertLayoutPathToRoute(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := service.convertLayoutPathToRoute(tt.layoutPath)
-			
+
 			if tt.expectEmpty {
 				assert.Empty(t, result)
 			} else {

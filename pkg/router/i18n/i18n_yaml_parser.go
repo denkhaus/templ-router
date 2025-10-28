@@ -17,9 +17,11 @@ type ExtendedConfigFile struct {
 }
 
 // ParseYAMLMetadataExtended parses YAML with support for multi-locale i18n
-func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedConfigFile, error) {
+func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *ExtendedConfigFile, error) {
+	configFileFound := false
+
 	if filePath == "" {
-		return nil, fmt.Errorf("file path cannot be empty")
+		return configFileFound, nil, fmt.Errorf("file path cannot be empty")
 	}
 
 	if logger == nil {
@@ -31,7 +33,7 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedCo
 	// Read the YAML file
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read YAML file %s: %w", filePath, err)
+		return configFileFound, nil, fmt.Errorf("failed to read YAML file %s: %w", filePath, err)
 	}
 
 	// First, try to parse as multi-locale format
@@ -44,8 +46,9 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedCo
 		Dynamic interface{}                  `yaml:"dynamic"`
 	}
 
+	configFileFound = true
 	if err := yaml.Unmarshal(data, &multiLocaleConfig); err != nil {
-		return nil, fmt.Errorf("failed to parse YAML in file %s: %w", filePath, err)
+		return configFileFound, nil, fmt.Errorf("failed to parse YAML in file %s: %w", filePath, err)
 	}
 
 	// Check if it's multi-locale format
@@ -94,7 +97,7 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedCo
 				MultiLocaleI18n: multiLocaleConfig.I18n,
 			}
 
-			return extendedConfig, nil
+			return configFileFound, extendedConfig, nil
 		}
 	}
 
@@ -105,7 +108,7 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedCo
 	metadataParser := &metadata.MetadataParser{}
 	simpleConfig, err := metadataParser.ParseYAMLMetadata(filePath)
 	if err != nil {
-		return nil, err
+		return configFileFound, nil, err
 	}
 
 	// Convert interfaces.ConfigFile back to router.ConfigFile for compatibility
@@ -132,7 +135,7 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (*ExtendedCo
 		}
 	}
 
-	return &ExtendedConfigFile{
+	return configFileFound, &ExtendedConfigFile{
 		ConfigFile:      routerConfig,
 		MultiLocaleI18n: nil,
 	}, nil
