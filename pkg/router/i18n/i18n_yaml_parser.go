@@ -6,6 +6,7 @@ import (
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/metadata"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v3"
 )
@@ -48,7 +49,7 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *Exte
 
 	configFileFound = true
 	if err := yaml.Unmarshal(data, &multiLocaleConfig); err != nil {
-		return configFileFound, nil, fmt.Errorf("failed to parse YAML in file %s: %w", filePath, err)
+		return configFileFound, nil, fmt.Errorf("failed to parse YAML in file %s: %v", filePath, err)
 	}
 
 	// Check if it's multi-locale format
@@ -56,7 +57,7 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *Exte
 		// Check if the first level contains locale codes
 		isMultiLocale := false
 		for key := range multiLocaleConfig.I18n {
-			if isValidLocaleCode(key) {
+			if shared.IsValidLocaleCode(key) {
 				isMultiLocale = true
 				break
 			}
@@ -141,17 +142,6 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *Exte
 	}, nil
 }
 
-// isValidLocaleCode checks if a string looks like a locale code
-func isValidLocaleCode(code string) bool {
-	// Simple check for common locale patterns
-	validCodes := []string{"en", "de", "fr", "es", "it", "pt", "ru", "ja", "ko", "zh", "ar", "hi"}
-	for _, valid := range validCodes {
-		if code == valid {
-			return true
-		}
-	}
-	return false
-}
 
 // HasMultiLocaleSupport checks if this config supports multiple locales
 func (ecf *ExtendedConfigFile) HasMultiLocaleSupport() bool {

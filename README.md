@@ -61,10 +61,12 @@ This pipeline ensures that templates always receive the correct authentication c
 
 ### 🌍 Internationalization (i18n)
 
-- Multi-language support with `locale_/` directory structure
-- YAML-based translations in `.templ.yaml` metadata files
-- Context-based translation system (no global `t()` function)
-- Automatic locale detection and validation from URLs
+- **Multi-language support** with `locale_/` directory structure
+- **YAML-based translations** in `.templ.yaml` metadata files with nested structure support
+- **Context-based translation system** (no global `t()` function)
+- **Automatic locale detection** and validation from URLs
+- **Flexible i18n formats**: flat, nested, and multi-locale configurations
+- **Dot notation support** for deeply nested translation keys
 
 ### 🔐 Authentication & Authorization
 
@@ -466,7 +468,83 @@ templ AdminPage() {
 
 Each template can have an optional `.templ.yaml` configuration file. Here are real examples from the demo:
 
-### Admin Page (Restricted Access)
+## Internationalization (i18n) Configuration Examples
+
+The i18n system supports multiple configuration formats to accommodate different project needs and organizational preferences.
+
+### 1. Multi-Locale Nested Structure (Recommended)
+
+Perfect for complex applications with organized translation hierarchies:
+
+```yaml
+# app/locale_/dashboard/page.templ.yaml
+i18n:
+  en:
+    feedback:
+      title: "Feedback Dashboard"
+      subtitle: "Overview of customer feedback and analytics"
+      export: "Export Data"
+      refresh: "Refresh Data"
+      reviews: "reviews"
+      stats:
+        total_reviews: "Total Reviews"
+        average_rating: "Average Rating"
+        productions: "Productions"
+        cache_hit_rate: "Cache Hit Rate"
+      productions:
+        title: "Productions"
+        subtitle: "Overview of all productions with review statistics"
+      recent:
+        title: "Recent Reviews"
+        subtitle: "Latest customer feedback and comments"
+      actions:
+        create_new: "Create New"
+        bulk_export: "Bulk Export"
+        settings: "Settings"
+  de:
+    feedback:
+      title: "Feedback Dashboard"
+      subtitle: "Übersicht über Kundenfeedback und Analysen"
+      export: "Daten exportieren"
+      refresh: "Daten aktualisieren"
+      reviews: "Bewertungen"
+      stats:
+        total_reviews: "Gesamtbewertungen"
+        average_rating: "Durchschnittsbewertung"
+        productions: "Produktionen"
+        cache_hit_rate: "Cache-Trefferrate"
+      productions:
+        title: "Produktionen"
+        subtitle: "Übersicht aller Produktionen mit Bewertungsstatistiken"
+      recent:
+        title: "Aktuelle Bewertungen"
+        subtitle: "Neuestes Kundenfeedback und Kommentare"
+      actions:
+        create_new: "Neu erstellen"
+        bulk_export: "Massenexport"
+        settings: "Einstellungen"
+
+auth:
+  type: "UserRequired"
+  redirect_url: "/login"
+```
+
+**Usage in templates with dot notation:**
+```go
+templ DashboardPage() {
+    <h1>{ i18n.T(ctx, "feedback.title") }</h1>
+    <p>{ i18n.T(ctx, "feedback.subtitle") }</p>
+    <div class="stats">
+        <span>{ i18n.T(ctx, "feedback.stats.total_reviews") }</span>
+        <span>{ i18n.T(ctx, "feedback.stats.average_rating") }</span>
+    </div>
+    <button>{ i18n.T(ctx, "feedback.actions.create_new") }</button>
+}
+```
+
+### 2. Multi-Locale Flat Structure
+
+Simple key-value pairs for straightforward translations:
 
 ```yaml
 # app/locale_/admin/page.templ.yaml
@@ -478,6 +556,8 @@ i18n:
     user_management_desc: "Manage user accounts, roles, and permissions"
     system_settings_title: "System Settings"
     system_settings_desc: "Configure application settings and preferences"
+    btn_save: "Save Changes"
+    btn_cancel: "Cancel"
 
   de:
     admin_warning: "Admin-Bereich - Eingeschränkter Zugang"
@@ -486,49 +566,224 @@ i18n:
     user_management_desc: "Benutzerkonten, Rollen und Berechtigungen verwalten"
     system_settings_title: "Systemeinstellungen"
     system_settings_desc: "Anwendungseinstellungen und Präferenzen konfigurieren"
+    btn_save: "Änderungen speichern"
+    btn_cancel: "Abbrechen"
 
 auth:
   type: "AdminRequired"
   redirect_url: "/login"
-
-dynamic:
-  parameters:
-    locale:
-      validation: "^(en|de)$"
-      description: "Language locale code (en or de)"
-      supported_values: ["en", "de"]
 ```
 
-### Dashboard Page (User Required)
+### 3. Single-Locale Nested Structure
+
+For applications that don't need multi-language support but want organized translations:
 
 ```yaml
-# app/locale_/dashboard/page.templ.yaml
+# app/components/navigation/page.templ.yaml
+i18n:
+  navigation:
+    main:
+      home: "Home"
+      about: "About Us"
+      services: "Services"
+      contact: "Contact"
+    user:
+      profile: "My Profile"
+      settings: "Account Settings"
+      logout: "Sign Out"
+    admin:
+      dashboard: "Admin Dashboard"
+      users: "User Management"
+      reports: "System Reports"
+  buttons:
+    primary:
+      submit: "Submit"
+      save: "Save"
+      continue: "Continue"
+    secondary:
+      cancel: "Cancel"
+      back: "Go Back"
+      reset: "Reset Form"
+```
+
+**Usage with dot notation:**
+```go
+templ NavigationComponent() {
+    <nav>
+        <a href="/">{ i18n.T(ctx, "navigation.main.home") }</a>
+        <a href="/about">{ i18n.T(ctx, "navigation.main.about") }</a>
+        <a href="/services">{ i18n.T(ctx, "navigation.main.services") }</a>
+    </nav>
+    <div class="user-menu">
+        <a href="/profile">{ i18n.T(ctx, "navigation.user.profile") }</a>
+        <button>{ i18n.T(ctx, "navigation.user.logout") }</button>
+    </div>
+}
+```
+
+### 4. Single-Locale Flat Structure
+
+Traditional flat key-value structure:
+
+```yaml
+# app/simple/page.templ.yaml
+i18n:
+  page_title: "Welcome to Our Application"
+  page_subtitle: "Get started with our amazing features"
+  btn_get_started: "Get Started"
+  btn_learn_more: "Learn More"
+  feature_1_title: "Fast Performance"
+  feature_1_desc: "Lightning-fast response times"
+  feature_2_title: "Secure by Design"
+  feature_2_desc: "Enterprise-grade security"
+```
+
+### 5. Mixed Depth Nested Structure
+
+Combining different nesting levels as needed:
+
+```yaml
+# app/locale_/ecommerce/page.templ.yaml
 i18n:
   en:
-    page_title: "Dashboard"
-    page_subtitle: "Overview of your application metrics and recent activity"
-    stats_users: "Total Users"
-    stats_projects: "Active Projects"
-    recent_activity_title: "Recent Activity"
-    quick_actions_title: "Quick Actions"
+    # Top-level keys
+    site_name: "Amazing Store"
+    welcome_message: "Welcome to our online store!"
+    
+    # Nested product information
+    products:
+      categories:
+        electronics: "Electronics"
+        clothing: "Clothing"
+        books: "Books"
+        home_garden: "Home & Garden"
+      actions:
+        add_to_cart: "Add to Cart"
+        buy_now: "Buy Now"
+        view_details: "View Details"
+        compare: "Compare Products"
+      filters:
+        price_range: "Price Range"
+        brand: "Brand"
+        rating: "Customer Rating"
+        availability: "Availability"
+    
+    # Deeply nested checkout process
+    checkout:
+      steps:
+        cart: "Shopping Cart"
+        shipping: "Shipping Information"
+        payment: "Payment Details"
+        confirmation: "Order Confirmation"
+      shipping:
+        methods:
+          standard: "Standard Delivery (5-7 days)"
+          express: "Express Delivery (2-3 days)"
+          overnight: "Overnight Delivery"
+        address:
+          street: "Street Address"
+          city: "City"
+          postal_code: "Postal Code"
+          country: "Country"
+      payment:
+        methods:
+          credit_card: "Credit Card"
+          paypal: "PayPal"
+          bank_transfer: "Bank Transfer"
+        security:
+          ssl_notice: "Your payment information is secure and encrypted"
+          privacy_notice: "We never store your payment details"
 
   de:
-    page_title: "Dashboard"
-    page_subtitle: "Übersicht Ihrer Anwendungsmetriken und aktuellen Aktivitäten"
-    stats_users: "Gesamte Benutzer"
-    stats_projects: "Aktive Projekte"
-    recent_activity_title: "Letzte Aktivitäten"
-    quick_actions_title: "Schnellaktionen"
-
-auth:
-  type: "Public"
-
-metadata:
-  title: "Dashboard - Multi-Language Demo"
-  theme: "dashboard"
-  app_version: "1.2.3"
-  description: "Application dashboard with metrics"
+    site_name: "Fantastischer Shop"
+    welcome_message: "Willkommen in unserem Online-Shop!"
+    
+    products:
+      categories:
+        electronics: "Elektronik"
+        clothing: "Kleidung"
+        books: "Bücher"
+        home_garden: "Haus & Garten"
+      actions:
+        add_to_cart: "In den Warenkorb"
+        buy_now: "Jetzt kaufen"
+        view_details: "Details anzeigen"
+        compare: "Produkte vergleichen"
+      filters:
+        price_range: "Preisspanne"
+        brand: "Marke"
+        rating: "Kundenbewertung"
+        availability: "Verfügbarkeit"
+    
+    checkout:
+      steps:
+        cart: "Warenkorb"
+        shipping: "Versandinformationen"
+        payment: "Zahlungsdetails"
+        confirmation: "Bestellbestätigung"
+      shipping:
+        methods:
+          standard: "Standardversand (5-7 Tage)"
+          express: "Expressversand (2-3 Tage)"
+          overnight: "Über-Nacht-Versand"
+        address:
+          street: "Straße"
+          city: "Stadt"
+          postal_code: "Postleitzahl"
+          country: "Land"
+      payment:
+        methods:
+          credit_card: "Kreditkarte"
+          paypal: "PayPal"
+          bank_transfer: "Banküberweisung"
+        security:
+          ssl_notice: "Ihre Zahlungsinformationen sind sicher und verschlüsselt"
+          privacy_notice: "Wir speichern niemals Ihre Zahlungsdetails"
 ```
+
+**Usage in complex templates:**
+```go
+templ CheckoutPage() {
+    <h1>{ i18n.T(ctx, "site_name") }</h1>
+    <div class="checkout-steps">
+        <span>{ i18n.T(ctx, "checkout.steps.cart") }</span>
+        <span>{ i18n.T(ctx, "checkout.steps.shipping") }</span>
+        <span>{ i18n.T(ctx, "checkout.steps.payment") }</span>
+    </div>
+    
+    <div class="shipping-methods">
+        <label>
+            <input type="radio" name="shipping" value="standard"/>
+            { i18n.T(ctx, "checkout.shipping.methods.standard") }
+        </label>
+        <label>
+            <input type="radio" name="shipping" value="express"/>
+            { i18n.T(ctx, "checkout.shipping.methods.express") }
+        </label>
+    </div>
+    
+    <div class="security-notice">
+        <p>{ i18n.T(ctx, "checkout.payment.security.ssl_notice") }</p>
+    </div>
+}
+```
+
+### Key Benefits of Nested i18n Structure
+
+1. **Organization**: Group related translations logically
+2. **Maintainability**: Easier to find and update related translations
+3. **Scalability**: Handle complex applications with hundreds of translation keys
+4. **Readability**: Clear hierarchy makes translation files self-documenting
+5. **Flexibility**: Mix flat and nested structures as needed
+6. **Dot Notation**: Access nested keys with simple `"parent.child.key"` syntax
+
+### Best Practices
+
+- **Use nested structures** for complex applications with many translation keys
+- **Group related translations** under common parent keys (e.g., `buttons`, `forms`, `navigation`)
+- **Keep nesting levels reasonable** (2-4 levels deep maximum)
+- **Use consistent naming conventions** across your translation files
+- **Organize by feature or component** rather than by page when possible
 
 ### Login Page (Public Access)
 
@@ -638,7 +893,7 @@ app/signup/page.templ     # Sign up page (GET /signup)
 
 ## Internationalization
 
-Translation files use locale-specific keys:
+Translation files support both flat and nested structures with locale-specific keys:
 
 ```yaml
 # demo/app/locale_/dashboard/page.templ.yaml
@@ -646,9 +901,41 @@ i18n:
   en:
     page_title: "Dashboard"
     page_subtitle: "Overview of your application metrics"
+    navigation:
+      home: "Home"
+      settings: "Settings"
+      logout: "Sign Out"
+    stats:
+      users: "Total Users"
+      projects: "Active Projects"
+      revenue: "Monthly Revenue"
   de:
     page_title: "Dashboard"
     page_subtitle: "Übersicht Ihrer Anwendungsmetriken"
+    navigation:
+      home: "Startseite"
+      settings: "Einstellungen"
+      logout: "Abmelden"
+    stats:
+      users: "Gesamte Benutzer"
+      projects: "Aktive Projekte"
+      revenue: "Monatlicher Umsatz"
+```
+
+**Access nested keys with dot notation:**
+```go
+templ DashboardPage() {
+    <h1>{ i18n.T(ctx, "page_title") }</h1>
+    <p>{ i18n.T(ctx, "page_subtitle") }</p>
+    <nav>
+        <a href="/">{ i18n.T(ctx, "navigation.home") }</a>
+        <a href="/settings">{ i18n.T(ctx, "navigation.settings") }</a>
+    </nav>
+    <div class="stats">
+        <span>{ i18n.T(ctx, "stats.users") }: 1,234</span>
+        <span>{ i18n.T(ctx, "stats.projects") }: 56</span>
+    </div>
+}
 ```
 
 ### I18n Helper Functions

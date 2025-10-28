@@ -135,11 +135,6 @@ func (s *simpleTranslationStore) loadTranslationsForPath(templatePath string) er
 			return err
 		}
 
-		s.logger.Debug("Failed to processNo config file",
-			zap.String("yaml_path", yamlPath),
-			zap.Error(err),
-		)
-
 		return nil // Not an error if no YAML file exists
 	}
 
