@@ -2,13 +2,11 @@ package i18n
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/metadata"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"go.uber.org/zap"
-	"gopkg.in/yaml.v3"
 )
 
 // ExtendedConfigFile extends ConfigFile to support multi-locale i18n
@@ -17,7 +15,7 @@ type ExtendedConfigFile struct {
 	MultiLocaleI18n map[string]map[string]string `yaml:"i18n"`
 }
 
-// ParseYAMLMetadataExtended parses YAML with support for multi-locale i18n
+// ParseYAMLMetadataExtended parses YAML with support for multi-locale i18n and nested structures
 func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *ExtendedConfigFile, error) {
 	configFileFound := false
 
@@ -29,116 +27,95 @@ func ParseYAMLMetadataExtended(filePath string, logger *zap.Logger) (bool, *Exte
 		logger = zap.NewNop()
 	}
 
-	logger.Debug("Parsing extended YAML metadata", zap.String("file_path", filePath))
+	logger.Debug("Parsing extended YAML metadata with nested i18n support", zap.String("file_path", filePath))
 
-	// Read the YAML file
-	data, err := os.ReadFile(filePath)
+	// Use the enhanced shared parser that supports nested structures
+	sharedConfig, err := shared.ParseYAMLMetadata(filePath)
 	if err != nil {
-		return configFileFound, nil, fmt.Errorf("failed to read YAML file %s: %w", filePath, err)
-	}
-
-	// First, try to parse as multi-locale format
-	var multiLocaleConfig struct {
-		Route   interface{}                  `yaml:"route"`
-		I18n    map[string]map[string]string `yaml:"i18n"`
-		Auth    interface{}                  `yaml:"auth"`
-		Layout  interface{}                  `yaml:"layout"`
-		Error   interface{}                  `yaml:"error"`
-		Dynamic interface{}                  `yaml:"dynamic"`
+		return configFileFound, nil, fmt.Errorf("failed to parse YAML file %s: %w", filePath, err)
 	}
 
 	configFileFound = true
-	if err := yaml.Unmarshal(data, &multiLocaleConfig); err != nil {
-		return configFileFound, nil, fmt.Errorf("failed to parse YAML in file %s: %v", filePath, err)
-	}
 
-	// Check if it's multi-locale format
-	if len(multiLocaleConfig.I18n) > 0 {
-		// Check if the first level contains locale codes
-		isMultiLocale := false
-		for key := range multiLocaleConfig.I18n {
-			if shared.IsValidLocaleCode(key) {
-				isMultiLocale = true
-				break
-			}
-		}
+	// Check if this is a multi-locale configuration
+	hasMultiLocale := len(sharedConfig.MultiLocaleI18n) > 0
 
-		if isMultiLocale {
-			logger.Debug("Detected multi-locale YAML format",
-				zap.String("file_path", filePath),
-				zap.Int("locales_count", len(multiLocaleConfig.I18n)))
+	if hasMultiLocale {
+		logger.Debug("Detected multi-locale YAML format with nested support",
+			zap.String("file_path", filePath),
+			zap.Int("locales_count", len(sharedConfig.MultiLocaleI18n)))
 
-			// Convert interfaces.AuthSettings back to router.AuthSettings for compatibility
-			authSettings := &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}
-			// Create a settings parser to handle auth settings
+		// Convert shared.AuthSettings to interfaces.AuthSettings
+		authSettings := &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}
+		if sharedConfig.AuthSettings != nil {
+			// Create a settings parser to handle auth settings conversion
 			settingsParser := metadata.NewMetadataSettingsParser()
-			if parsedAuth := settingsParser.ParseAuthSettings(multiLocaleConfig.Auth); parsedAuth != nil {
-				// Simple conversion - just copy the type
-				switch parsedAuth.Type {
-				case interfaces.AuthTypePublic:
-					authSettings.Type = interfaces.AuthTypePublic
-				case interfaces.AuthTypeUser:
-					authSettings.Type = interfaces.AuthTypeUser
-				case interfaces.AuthTypeAdmin:
-					authSettings.Type = interfaces.AuthTypeAdmin
-				}
+			if parsedAuth := settingsParser.ParseAuthSettings(sharedConfig.AuthSettings); parsedAuth != nil {
+				authSettings = parsedAuth
 			}
+		}
 
-			// Create extended config
-			extendedConfig := &ExtendedConfigFile{
-				ConfigFile: &interfaces.ConfigFile{
-					FilePath:         filePath,
-					TemplateFilePath: filePath[:len(filePath)-len(".yaml")] + ".templ",
-					RouteMetadata:    multiLocaleConfig.Route,
-					AuthSettings:     authSettings,
-					LayoutSettings:   multiLocaleConfig.Layout,
-					ErrorSettings:    multiLocaleConfig.Error,
-					I18nMappings:     make(map[string]string), // Will be populated per locale
-				},
-				MultiLocaleI18n: multiLocaleConfig.I18n,
-			}
+		// Convert DynamicSettings if present
+		var dynamicSettings *interfaces.DynamicSettings
+		if sharedConfig.DynamicSettings != nil {
+			settingsParser := metadata.NewMetadataSettingsParser()
+			dynamicSettings = settingsParser.ParseDynamicSettings(sharedConfig.DynamicSettings)
+		}
 
-			return configFileFound, extendedConfig, nil
+		// Create extended config with multi-locale support
+		extendedConfig := &ExtendedConfigFile{
+			ConfigFile: &interfaces.ConfigFile{
+				FilePath:         sharedConfig.FilePath,
+				TemplateFilePath: sharedConfig.TemplateFilePath,
+				RouteMetadata:    sharedConfig.RouteMetadata,
+				AuthSettings:     authSettings,
+				LayoutSettings:   sharedConfig.LayoutSettings,
+				ErrorSettings:    sharedConfig.ErrorSettings,
+				DynamicSettings:  dynamicSettings,
+				I18nMappings:     make(map[string]string), // Empty for multi-locale
+				MultiLocaleI18n:  sharedConfig.MultiLocaleI18n,
+			},
+			MultiLocaleI18n: sharedConfig.MultiLocaleI18n,
+		}
+
+		return configFileFound, extendedConfig, nil
+	}
+
+	// Single-locale configuration (could be nested or flat)
+	logger.Debug("Using single-locale YAML format with nested support", zap.String("file_path", filePath))
+
+	// Convert shared.AuthSettings to interfaces.AuthSettings
+	authSettings := &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}
+	if sharedConfig.AuthSettings != nil {
+		settingsParser := metadata.NewMetadataSettingsParser()
+		if parsedAuth := settingsParser.ParseAuthSettings(sharedConfig.AuthSettings); parsedAuth != nil {
+			authSettings = parsedAuth
 		}
 	}
 
-	// Fall back to simple format
-	logger.Debug("Using simple YAML format", zap.String("file_path", filePath))
-
-	// Create a metadata parser to handle simple format
-	metadataParser := &metadata.MetadataParser{}
-	simpleConfig, err := metadataParser.ParseYAMLMetadata(filePath)
-	if err != nil {
-		return configFileFound, nil, err
+	// Convert DynamicSettings if present
+	var dynamicSettings *interfaces.DynamicSettings
+	if sharedConfig.DynamicSettings != nil {
+		settingsParser := metadata.NewMetadataSettingsParser()
+		dynamicSettings = settingsParser.ParseDynamicSettings(sharedConfig.DynamicSettings)
 	}
 
-	// Convert interfaces.ConfigFile back to router.ConfigFile for compatibility
+	// Create extended config for single-locale
 	routerConfig := &interfaces.ConfigFile{
-		FilePath:         simpleConfig.FilePath,
-		TemplateFilePath: simpleConfig.TemplateFilePath,
-		RouteMetadata:    simpleConfig.RouteMetadata,
-		I18nMappings:     simpleConfig.I18nMappings,
-		MultiLocaleI18n:  simpleConfig.MultiLocaleI18n,
-		LayoutSettings:   simpleConfig.LayoutSettings,
-		ErrorSettings:    simpleConfig.ErrorSettings,
-		// Convert AuthSettings back
-		AuthSettings: &interfaces.AuthSettings{Type: interfaces.AuthTypePublic},
-	}
-
-	if simpleConfig.AuthSettings != nil {
-		switch simpleConfig.AuthSettings.Type {
-		case interfaces.AuthTypePublic:
-			routerConfig.AuthSettings.Type = interfaces.AuthTypePublic
-		case interfaces.AuthTypeUser:
-			routerConfig.AuthSettings.Type = interfaces.AuthTypeUser
-		case interfaces.AuthTypeAdmin:
-			routerConfig.AuthSettings.Type = interfaces.AuthTypeAdmin
-		}
+		FilePath:         sharedConfig.FilePath,
+		TemplateFilePath: sharedConfig.TemplateFilePath,
+		RouteMetadata:    sharedConfig.RouteMetadata,
+		I18nMappings:     sharedConfig.I18nMappings, // Contains flattened nested keys
+		MultiLocaleI18n:  sharedConfig.MultiLocaleI18n,
+		LayoutSettings:   sharedConfig.LayoutSettings,
+		ErrorSettings:    sharedConfig.ErrorSettings,
+		DynamicSettings:  dynamicSettings,
+		AuthSettings:     authSettings,
 	}
 
 	return configFileFound, &ExtendedConfigFile{
 		ConfigFile:      routerConfig,
-		MultiLocaleI18n: nil,
+		MultiLocaleI18n: nil, // Empty for single-locale
 	}, nil
 }
 

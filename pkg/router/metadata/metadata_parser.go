@@ -28,7 +28,7 @@ func (mp *MetadataParser) convertSharedToRouterConfig(sharedConfig *shared.Confi
 		AuthSettings:     settingsParser.ParseAuthSettings(sharedConfig.AuthSettings),
 		LayoutSettings:   sharedConfig.LayoutSettings,
 		ErrorSettings:    sharedConfig.ErrorSettings,
-		DynamicSettings:  settingsParser.parseDynamicSettings(sharedConfig.DynamicSettings),
+		DynamicSettings:  settingsParser.ParseDynamicSettings(sharedConfig.DynamicSettings),
 	}
 }
 

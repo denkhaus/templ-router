@@ -38,15 +38,22 @@ func (msp *MetadataSettingsParser) ParseAuthSettings(authData interface{}) *inte
 	if authType, exists := authMap["type"]; exists {
 		if authTypeStr, ok := authType.(string); ok {
 			switch authTypeStr {
-			case "public":
+			case "Public", "public":
 				settings.Type = interfaces.AuthTypePublic
-			case "protected", "user":
+			case "UserRequired", "User", "protected", "user":
 				settings.Type = interfaces.AuthTypeUser
-			case "admin":
+			case "AdminRequired", "Admin", "admin":
 				settings.Type = interfaces.AuthTypeAdmin
 			default:
 				settings.Type = interfaces.AuthTypePublic
 			}
+		}
+	}
+
+	// Parse redirect URL
+	if redirectURL, exists := authMap["redirect_url"]; exists {
+		if redirectURLStr, ok := redirectURL.(string); ok {
+			settings.RedirectURL = redirectURLStr
 		}
 	}
 
@@ -65,8 +72,8 @@ func (msp *MetadataSettingsParser) ParseAuthSettings(authData interface{}) *inte
 	return settings
 }
 
-// parseDynamicSettings parses dynamic parameter settings from YAML into DynamicSettings struct
-func (msp *MetadataSettingsParser) parseDynamicSettings(dynamicData interface{}) *interfaces.DynamicSettings {
+// ParseDynamicSettings parses dynamic parameter settings from YAML into DynamicSettings struct
+func (msp *MetadataSettingsParser) ParseDynamicSettings(dynamicData interface{}) *interfaces.DynamicSettings {
 	if dynamicData == nil {
 		return nil
 	}
