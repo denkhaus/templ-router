@@ -16,11 +16,11 @@ type configService struct {
 func NewConfigService(envVarPraefix string) func(i do.Injector) (interfaces.ConfigService, error) {
 	return func(i do.Injector) (interfaces.ConfigService, error) {
 		var cfg configImpl
-		if err := envconfig.Process("TR", &cfg); err != nil {
+		if err := envconfig.Process(envVarPraefix, &cfg); err != nil {
 			return nil, shared.NewConfigurationError("failed to load configuration from environment variables").
 				WithDetails("Environment variable processing failed").
 				WithCause(err).
-				WithContext("prefix", "TR")
+				WithContext("prefix", envVarPraefix)
 		}
 
 		if err := cfg.Validate(); err != nil {
