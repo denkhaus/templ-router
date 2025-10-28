@@ -11,6 +11,7 @@ import (
 	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -93,9 +94,9 @@ func (m *mockRouterConfigService) IsDevelopment() bool            { return true 
 func (m *mockRouterConfigService) IsProduction() bool             { return false }
 
 // Router configuration methods
-func (m *mockRouterConfigService) GetRouterEnableTrailingSlash() bool     { return true }
-func (m *mockRouterConfigService) GetRouterEnableSlashRedirect() bool     { return true }
-func (m *mockRouterConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+func (m *mockRouterConfigService) GetRouterEnableTrailingSlash() bool    { return true }
+func (m *mockRouterConfigService) GetRouterEnableSlashRedirect() bool    { return true }
+func (m *mockRouterConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
 
 type mockRouterAssetsService struct{}
 
@@ -231,7 +232,13 @@ func (m *mockI18nService) GetCurrentLocale(r *http.Request) string {
 	return "en"
 }
 
-func (m *mockI18nService) CreateContext(ctx context.Context, templatePath string, locale string) context.Context {
+func (m *mockI18nService) CreateContext(ctx context.Context, templatePath string) context.Context {
+	// Extract locale from context (set by middleware)
+	locale, ok := ctx.Value(shared.LocaleKey).(string)
+	if !ok {
+		locale = "en" // fallback for tests
+	}
+	
 	i18nData := &i18n.I18nData{
 		Locale:          locale,
 		CurrentTemplate: templatePath,
@@ -239,7 +246,7 @@ func (m *mockI18nService) CreateContext(ctx context.Context, templatePath string
 		FallbackLocale:  "en",
 		Logger:          zap.NewNop(),
 	}
-	return context.WithValue(ctx, i18n.I18nDataKey, i18nData)
+	return context.WithValue(ctx, shared.I18nDataKey, i18nData)
 }
 
 func (m *mockI18nService) ExtractLocale(r *http.Request) string {

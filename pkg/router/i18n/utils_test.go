@@ -3,6 +3,8 @@ package i18n
 import (
 	"context"
 	"testing"
+
+	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
 func TestLocalizeRouteIfRequired(t *testing.T) {
@@ -67,7 +69,7 @@ func TestLocalizeRouteIfRequired(t *testing.T) {
 			// Create context with locale
 			ctx := context.Background()
 			if tt.locale != "" {
-				ctx = context.WithValue(ctx, I18nLocaleKey, tt.locale)
+				ctx = context.WithValue(ctx, shared.LocaleKey, tt.locale)
 			}
 
 			result := LocalizeRouteIfRequired(ctx, tt.path)
@@ -116,7 +118,7 @@ func TestLocalizeRouteIfRequired_EdgeCases(t *testing.T) {
 			// Create context with locale
 			ctx := context.Background()
 			if tt.locale != "" {
-				ctx = context.WithValue(ctx, I18nLocaleKey, tt.locale)
+				ctx = context.WithValue(ctx, shared.LocaleKey, tt.locale)
 			}
 
 			result := LocalizeRouteIfRequired(ctx, tt.path)

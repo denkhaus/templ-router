@@ -7,6 +7,7 @@ import (
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/i18n"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -67,7 +68,16 @@ func (cis *cleanI18nService) ExtractLocale(req *http.Request) string {
 }
 
 // CreateContext implements middleware.I18nService
-func (cis *cleanI18nService) CreateContext(ctx context.Context, locale, templatePath string) context.Context {
+func (cis *cleanI18nService) CreateContext(ctx context.Context, templatePath string) context.Context {
+	// Extract locale from context (set by middleware)
+	locale, ok := ctx.Value(shared.LocaleKey).(string)
+	if !ok {
+		locale = cis.configService.GetDefaultLocale()
+		cis.logger.Warn("No locale found in context, using default",
+			zap.String("default_locale", locale),
+			zap.String("template_path", templatePath))
+	}
+
 	cis.logger.Debug("Creating i18n context",
 		zap.String("locale", locale),
 		zap.String("template_path", templatePath))
@@ -143,10 +153,9 @@ func (cis *cleanI18nService) CreateContext(ctx context.Context, locale, template
 		store.mu.RUnlock()
 	}
 
-	// Set the context values that router.T() expects
-	ctx = context.WithValue(ctx, i18n.I18nDataKey, i18nData)
-	ctx = context.WithValue(ctx, i18n.I18nLocaleKey, locale)
-	ctx = context.WithValue(ctx, i18n.I18nTemplateKey, templatePath)
+	// Set the context values that i18n.T() expects
+	ctx = context.WithValue(ctx, shared.I18nDataKey, i18nData)
+	ctx = context.WithValue(ctx, shared.I18nTemplateKey, templatePath)
 
 	return ctx
 }

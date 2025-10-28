@@ -3,21 +3,10 @@ package i18n
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
-	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"go.uber.org/zap"
-)
-
-// I18nContextKey is the context key for i18n data
-type I18nContextKey string
-
-const (
-	I18nDataKey     I18nContextKey = "router_i18n_data"
-	I18nLocaleKey   I18nContextKey = "router_i18n_locale"
-	I18nTemplateKey I18nContextKey = "router_i18n_template"
 )
 
 // I18nData holds translation data for the current request
@@ -30,179 +19,9 @@ type I18nData struct {
 	mu              sync.RWMutex
 }
 
-// I18nRegistry manages all template translations
-type I18nRegistry struct {
-	// templateTranslations[templatePath][locale][key] = translation
-	templateTranslations map[string]map[string]map[string]string
-	// requiredKeys[templatePath] = set of required keys for that template
-	requiredKeys map[string]map[string]bool
-	logger       *zap.Logger
-	mu           sync.RWMutex
-}
-
-// NewI18nRegistry creates a new i18n registry
-func NewI18nRegistry(logger *zap.Logger) *I18nRegistry {
-	if logger == nil {
-		// Create structured error for better debugging
-		err := shared.NewServiceError("logger is required for I18nRegistry").
-			WithDetails("no fallback to no-op logger available")
-		fmt.Printf("Service Error: %s\n", err.Error())
-		return nil
-	}
-
-	return &I18nRegistry{
-		templateTranslations: make(map[string]map[string]map[string]string),
-		requiredKeys:         make(map[string]map[string]bool),
-		logger:               logger,
-	}
-}
-
-// RegisterTemplateTranslations registers translations for a template
-func (reg *I18nRegistry) RegisterTemplateTranslations(templatePath string, config *interfaces.ConfigFile) error {
-	if templatePath == "" {
-		return fmt.Errorf("template path cannot be empty")
-	}
-
-	reg.mu.Lock()
-	defer reg.mu.Unlock()
-
-	if reg.templateTranslations[templatePath] == nil {
-		reg.templateTranslations[templatePath] = make(map[string]map[string]string)
-	}
-
-	// Process different i18n formats from YAML
-	if config != nil {
-		if err := reg.processYAMLTranslations(templatePath, config); err != nil {
-			return fmt.Errorf("failed to process YAML translations for %s: %w", templatePath, err)
-		}
-	}
-
-	reg.logger.Debug("Registered translations for template",
-		zap.String("template_path", templatePath),
-		zap.Int("locales_count", len(reg.templateTranslations[templatePath])))
-
-	return nil
-}
-
-// processYAMLTranslations processes different YAML i18n formats
-func (reg *I18nRegistry) processYAMLTranslations(templatePath string, config *interfaces.ConfigFile) error {
-	// Check if we have multi-locale format (preferred)
-	if len(config.MultiLocaleI18n) > 0 {
-		return reg.processMultiLocaleFormat(templatePath, config)
-	}
-
-	// Check if we have simple key-value format (fallback)
-	if len(config.I18nMappings) > 0 {
-		return reg.processSimpleFormat(templatePath, config)
-	}
-
-	return nil
-}
-
-// processSimpleFormat processes simple key-value YAML
-// Format: i18n: { key: "value", key2: "value2" }
-func (reg *I18nRegistry) processSimpleFormat(templatePath string, config *interfaces.ConfigFile) error {
-	// Default to English for simple format
-	defaultLocale := "en"
-
-	if reg.templateTranslations[templatePath][defaultLocale] == nil {
-		reg.templateTranslations[templatePath][defaultLocale] = make(map[string]string)
-	}
-
-	for key, value := range config.I18nMappings {
-		reg.templateTranslations[templatePath][defaultLocale][key] = value
-	}
-
-	reg.logger.Debug("Processed simple format translations",
-		zap.String("template_path", templatePath),
-		zap.String("locale", defaultLocale),
-		zap.Int("keys_count", len(config.I18nMappings)))
-
-	return nil
-}
-
-// RegisterRequiredKey registers a key as required for a template (called during template parsing)
-func (reg *I18nRegistry) RegisterRequiredKey(templatePath, key string) {
-	reg.mu.Lock()
-	defer reg.mu.Unlock()
-
-	if reg.requiredKeys[templatePath] == nil {
-		reg.requiredKeys[templatePath] = make(map[string]bool)
-	}
-
-	reg.requiredKeys[templatePath][key] = true
-
-	reg.logger.Debug("Registered required translation key",
-		zap.String("template_path", templatePath),
-		zap.String("key", key))
-}
-
-// ValidateAllTranslations validates that all required keys have translations for all supported locales
-func (reg *I18nRegistry) ValidateAllTranslations(supportedLocales []string) error {
-	reg.mu.RLock()
-	defer reg.mu.RUnlock()
-
-	var errors []string
-
-	for templatePath, requiredKeys := range reg.requiredKeys {
-		templateTranslations, hasTemplate := reg.templateTranslations[templatePath]
-		if !hasTemplate {
-			errors = append(errors, fmt.Sprintf("MISSING: Template '%s' has no translations defined", templatePath))
-			continue
-		}
-
-		for key := range requiredKeys {
-			for _, locale := range supportedLocales {
-				localeTranslations, hasLocale := templateTranslations[locale]
-				if !hasLocale {
-					errors = append(errors, fmt.Sprintf("MISSING: Template '%s': missing locale '%s'", templatePath, locale))
-					continue
-				}
-
-				if _, hasKey := localeTranslations[key]; !hasKey {
-					errors = append(errors, fmt.Sprintf("MISSING: Template '%s': missing key '%s' for locale '%s'", templatePath, key, locale))
-				}
-			}
-		}
-	}
-
-	if len(errors) > 0 {
-		errorMsg := fmt.Sprintf("\n=== Translation Validation Failed ===\n\nMissing translations found:\n%s\n\nFix: Add the missing keys to the corresponding .templ.yaml files\n",
-			strings.Join(errors, "\n"))
-		return fmt.Errorf("%s", errorMsg)
-	}
-
-	reg.logger.Info("All translations validated successfully",
-		zap.Int("templates", len(reg.requiredKeys)),
-		zap.Int("locales", len(supportedLocales)))
-
-	return nil
-}
-
-// processMultiLocaleFormat processes YAML with multiple locales
-// Format: i18n: { en: { key: "value" }, de: { key: "wert" } }
-func (reg *I18nRegistry) processMultiLocaleFormat(templatePath string, config *interfaces.ConfigFile) error {
-	for locale, translations := range config.MultiLocaleI18n {
-		if reg.templateTranslations[templatePath][locale] == nil {
-			reg.templateTranslations[templatePath][locale] = make(map[string]string)
-		}
-
-		for key, value := range translations {
-			reg.templateTranslations[templatePath][locale][key] = value
-		}
-
-		reg.logger.Debug("Processed multi-locale format translations",
-			zap.String("template_path", templatePath),
-			zap.String("locale", locale),
-			zap.Int("keys_count", len(translations)))
-	}
-
-	return nil
-}
-
 // T translates a key using the current context
 func T(ctx context.Context, key string) string {
-	data, ok := ctx.Value(I18nDataKey).(*I18nData)
+	data, ok := ctx.Value(shared.I18nDataKey).(*I18nData)
 	if !ok {
 		// Graceful fallback when i18n context is missing
 		return fmt.Sprintf("[MISSING_I18N_CONTEXT: %s]", key)
@@ -233,7 +52,7 @@ func T(ctx context.Context, key string) string {
 
 // GetCurrentLocale returns the current locale from context
 func GetCurrentLocale(ctx context.Context) string {
-	locale, ok := ctx.Value(I18nLocaleKey).(string)
+	locale, ok := ctx.Value(shared.LocaleKey).(string)
 	if !ok {
 		// Graceful fallback to default locale
 		return "en"
@@ -243,7 +62,7 @@ func GetCurrentLocale(ctx context.Context) string {
 
 // GetCurrentTemplate returns the current template from context
 func GetCurrentTemplate(ctx context.Context) string {
-	template, ok := ctx.Value(I18nTemplateKey).(string)
+	template, ok := ctx.Value(shared.I18nTemplateKey).(string)
 	if !ok {
 		// Graceful fallback
 		return "unknown"
@@ -253,7 +72,7 @@ func GetCurrentTemplate(ctx context.Context) string {
 
 // GetAvailableKeys returns all available translation keys for current template
 func GetAvailableKeys(ctx context.Context) []string {
-	data, ok := ctx.Value(I18nDataKey).(*I18nData)
+	data, ok := ctx.Value(shared.I18nDataKey).(*I18nData)
 	if !ok {
 		return nil
 	}

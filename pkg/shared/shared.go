@@ -18,5 +18,11 @@ func DeriveMethodNameFromDataType(parameterType string) string {
 
 type ContextType string
 
-const RequestKey ContextType = "request"
-const UserContextKey ContextType = "user"
+const (
+	UserContextKey    ContextType = "user"
+	LocaleKey         ContextType = "locale"
+	TemplateConfigKey ContextType = "template_config"
+	TemplatePathKey   ContextType = "template_path"
+	I18nDataKey       ContextType = "router_i18n_data"
+	I18nTemplateKey   ContextType = "router_i18n_template"
+)

@@ -199,7 +199,7 @@ func (m *MockI18nService) ExtractLocale(req *http.Request) string {
 	return "en"
 }
 
-func (m *MockI18nService) CreateContext(ctx context.Context, locale, templatePath string) context.Context {
+func (m *MockI18nService) CreateContext(ctx context.Context, templatePath string) context.Context {
 	return ctx
 }
 

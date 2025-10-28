@@ -10,7 +10,7 @@ import (
 // M retrieves a metadata value from the current template's YAML configuration
 func M(ctx context.Context, key string) string {
 	// Extract config from context
-	configValue := ctx.Value("template_config")
+	configValue := ctx.Value(shared.TemplateConfigKey)
 	if configValue == nil {
 		return "[MISSING_METADATA_CONTEXT: " + key + "]" // No config available
 	}

@@ -25,7 +25,7 @@ type AuthService interface {
 // I18nService handles internationalization
 type I18nService interface {
 	ExtractLocale(req *http.Request) string
-	CreateContext(ctx context.Context, locale, templatePath string) context.Context
+	CreateContext(ctx context.Context, templatePath string) context.Context
 	GetSupportedLocales() []string
 	LoadAllTranslations(templatePaths []string) error
 }

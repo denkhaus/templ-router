@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -79,7 +80,7 @@ func (im *i18nMiddleware) renderLanguageNotSupportedPage(w http.ResponseWriter, 
 	// Get supported languages dynamically from i18n service
 	supportedLocales := im.i18nService.GetSupportedLocales()
 	supportedLanguages := make([]SupportedLanguage, 0, len(supportedLocales))
-	
+
 	// Map locale codes to language names and continue text (ASCII only)
 	languageMap := map[string]SupportedLanguage{
 		"en": {Code: "en", Name: "English", ContinueText: "Continue in English"},
@@ -93,7 +94,7 @@ func (im *i18nMiddleware) renderLanguageNotSupportedPage(w http.ResponseWriter, 
 		"zh": {Code: "zh", Name: "Chinese", ContinueText: "Continue in Chinese"},
 		"ja": {Code: "ja", Name: "Japanese", ContinueText: "Continue in Japanese"},
 	}
-	
+
 	// Build supported languages list from actual supported locales
 	for _, localeCode := range supportedLocales {
 		if lang, exists := languageMap[localeCode]; exists {
@@ -119,7 +120,7 @@ func (im *i18nMiddleware) renderLanguageNotSupportedPage(w http.ResponseWriter, 
 
 	// Execute template
 	if err := tmpl.Execute(w, data); err != nil {
-		im.logger.Error("Failed to execute language not supported template", 
+		im.logger.Error("Failed to execute language not supported template",
 			zap.Error(err),
 			zap.String("locale", locale))
 		// Template execution failed, write simple fallback
@@ -154,30 +155,14 @@ func (im *i18nMiddleware) Handle(next http.Handler, templatePath string) http.Ha
 			zap.String("template_path", templatePath),
 			zap.String("path", r.URL.Path))
 
-		// Create i18n context
-		ctx := im.i18nService.CreateContext(r.Context(), locale, templatePath)
+		// Add locale to context FIRST (before service call)
+		ctx := context.WithValue(r.Context(), shared.LocaleKey, locale)
+		ctx = context.WithValue(ctx, shared.TemplatePathKey, templatePath)
 
-		// Add locale to context for easy access
-		ctx = context.WithValue(ctx, "locale", locale)
-		ctx = context.WithValue(ctx, "template_path", templatePath)
+		// Create i18n context (service will read locale from context)
+		ctx = im.i18nService.CreateContext(ctx, templatePath)
 
 		// Continue with updated context
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
-}
-
-// GetLocaleFromContext extracts locale from context
-func GetLocaleFromContext(ctx context.Context) string {
-	if locale, ok := ctx.Value("locale").(string); ok {
-		return locale
-	}
-	return "en" // default fallback
-}
-
-// GetTemplatePathFromContext extracts template path from context
-func GetTemplatePathFromContext(ctx context.Context) string {
-	if templatePath, ok := ctx.Value("template_path").(string); ok {
-		return templatePath
-	}
-	return ""
 }

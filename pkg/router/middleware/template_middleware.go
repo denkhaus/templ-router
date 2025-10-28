@@ -69,7 +69,7 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 		// Render the page component (TemplateService now handles DataService templates directly)
 		var component templ.Component
 		var err error
-		
+
 		component, err = tm.templateService.RenderComponent(route, routerCtx, ctx)
 		if err != nil {
 			tm.logger.Error("Template rendering failed",
@@ -139,7 +139,7 @@ func (tm *templateMiddleware) addTemplateConfigToContext(ctx context.Context, te
 	}
 
 	// Add shared config to context for router.M() access
-	ctx = context.WithValue(ctx, "template_config", sharedConfig)
+	ctx = context.WithValue(ctx, shared.TemplateConfigKey, sharedConfig)
 	tm.logger.Info("Added template metadata to context",
 		zap.String("yaml_path", yamlPath),
 		zap.Any("metadata", sharedConfig.RouteMetadata))

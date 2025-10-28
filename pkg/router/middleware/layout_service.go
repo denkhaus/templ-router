@@ -110,11 +110,11 @@ func (ls *layoutServiceImpl) WrapInLayout(component templ.Component, layout *int
 		} else {
 			// CRITICAL FIX: Template metadata should override layout metadata
 			// Get existing template config from context
-			if existingConfig := ctx.Value("template_config"); existingConfig != nil {
+			if existingConfig := ctx.Value(shared.TemplateConfigKey); existingConfig != nil {
 				if templateConfig, ok := existingConfig.(*shared.ConfigFile); ok {
 					// Merge configs: template metadata takes precedence over layout metadata
 					mergedConfig := mergeConfigs(layoutConfig, templateConfig)
-					ctx = context.WithValue(ctx, "template_config", mergedConfig)
+					ctx = context.WithValue(ctx, shared.TemplateConfigKey, mergedConfig)
 
 					// Safe access to metadata
 					templateTitle := ""
@@ -144,14 +144,14 @@ func (ls *layoutServiceImpl) WrapInLayout(component templ.Component, layout *int
 						zap.String("layout_title", layoutTitle))
 				} else {
 					// Fallback: use layout config if template config is invalid
-					ctx = context.WithValue(ctx, "template_config", layoutConfig)
+					ctx = context.WithValue(ctx, shared.TemplateConfigKey, layoutConfig)
 					ls.logger.Info("Added layout metadata to context (fallback)",
 						zap.String("yaml_path", layout.YamlPath),
 						zap.Any("metadata", layoutConfig.RouteMetadata))
 				}
 			} else {
 				// No existing template config, use layout config
-				ctx = context.WithValue(ctx, "template_config", layoutConfig)
+				ctx = context.WithValue(ctx, shared.TemplateConfigKey, layoutConfig)
 				ls.logger.Info("Added layout metadata to context (no template config)",
 					zap.String("yaml_path", layout.YamlPath),
 					zap.Any("metadata", layoutConfig.RouteMetadata))

@@ -85,9 +85,9 @@ var _ = ginkgo.Describe("RouterContext Query Parameter Integration", func() {
 					gomega.Expect(html).Should(gomega.ContainSubstring("none</em>"))
 				}
 				
-				// Verify user data is still displayed
-				gomega.Expect(html).Should(gomega.ContainSubstring("DataService Demo User"))
-				gomega.Expect(html).Should(gomega.ContainSubstring("demo@example.com"))
+				// Verify user data is still displayed (GetUserData method is called)
+				gomega.Expect(html).Should(gomega.ContainSubstring("GetUserData Method Called!"))
+				gomega.Expect(html).Should(gomega.ContainSubstring("getuserdata@example.com"))
 			}
 		})
 
@@ -111,9 +111,9 @@ var _ = ginkgo.Describe("RouterContext Query Parameter Integration", func() {
 			gomega.Expect(html).Should(gomega.ContainSubstring("Sort:</span>\n\t\t\t\t\t\t\t<span class=\"text-green-600 font-mono\">date</span>"))
 			gomega.Expect(html).Should(gomega.ContainSubstring("premium"))
 			
-			// Verify German user data
-			gomega.Expect(html).Should(gomega.ContainSubstring("DataService Demo Benutzer"))
-			gomega.Expect(html).Should(gomega.ContainSubstring("demo@beispiel.de"))
+			// Verify German user data (GetUserData method is called)
+			gomega.Expect(html).Should(gomega.ContainSubstring("GetUserData Methode aufgerufen!"))
+			gomega.Expect(html).Should(gomega.ContainSubstring("getuserdata@beispiel.de"))
 		})
 
 		ginkgo.It("should display test links correctly", func() {

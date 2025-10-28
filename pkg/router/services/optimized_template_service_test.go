@@ -3,12 +3,15 @@ package services
 import (
 	"context"
 	"io"
+	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/shared"
+	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"go.uber.org/zap"
@@ -154,6 +157,65 @@ func (m mockOTSComponent) Render(ctx context.Context, w io.Writer) error {
 	return nil
 }
 
+// Mock RouterContext for testing
+type mockOTSRouterContext struct {
+	mock.Mock
+	ctx         context.Context
+	urlParams   map[string]string
+	queryParams url.Values
+	request     *http.Request
+	chiCtx      *chi.Context
+}
+
+func (m *mockOTSRouterContext) Context() context.Context {
+	args := m.Called()
+	if args.Get(0) != nil {
+		return args.Get(0).(context.Context)
+	}
+	return m.ctx
+}
+
+func (m *mockOTSRouterContext) GetURLParam(key string) string {
+	args := m.Called(key)
+	return args.String(0)
+}
+
+func (m *mockOTSRouterContext) GetAllURLParams() map[string]string {
+	args := m.Called()
+	return args.Get(0).(map[string]string)
+}
+
+func (m *mockOTSRouterContext) GetQueryParam(key string) string {
+	args := m.Called(key)
+	return args.String(0)
+}
+
+func (m *mockOTSRouterContext) GetQueryParams(key string) []string {
+	args := m.Called(key)
+	return args.Get(0).([]string)
+}
+
+func (m *mockOTSRouterContext) GetAllQueryParams() url.Values {
+	args := m.Called()
+	return args.Get(0).(url.Values)
+}
+
+func (m *mockOTSRouterContext) Request() *http.Request {
+	args := m.Called()
+	if args.Get(0) != nil {
+		return args.Get(0).(*http.Request)
+	}
+	return m.request
+}
+
+func (m *mockOTSRouterContext) ChiContext() *chi.Context {
+	args := m.Called()
+	if args.Get(0) != nil {
+		return args.Get(0).(*chi.Context)
+	}
+	return m.chiCtx
+}
+
 // Test helper to create OptimizedTemplateService with mocks
 func createTestOTS(t *testing.T) (*OptimizedTemplateService, *mockOTSTemplateRegistry, *mockOTSCacheService, *mockOTSDataServiceResolver, *mockOTSRouteConverter) {
 	logger := zap.NewNop()
@@ -184,6 +246,14 @@ func TestOptimizedTemplateService_RenderComponent_CacheHit(t *testing.T) {
 	params := map[string]string{"id": "123"}
 	ctx := context.Background()
 
+	// Create mock RouterContext
+	mockRouterCtx := &mockOTSRouterContext{
+		ctx:       ctx,
+		urlParams: params,
+	}
+	mockRouterCtx.On("GetAllURLParams").Return(params)
+	mockRouterCtx.On("GetAllQueryParams").Return(url.Values{})
+
 	// Mock cache hit
 	cacheKey := "test-cache-key"
 	mockComponent := mockOTSComponent{}
@@ -191,12 +261,13 @@ func TestOptimizedTemplateService_RenderComponent_CacheHit(t *testing.T) {
 	mockCache.On("GetTemplate", cacheKey).Return(mockComponent, true)
 
 	// Execute
-	result, err := service.RenderComponent(route, ctx, params)
+	result, err := service.RenderComponent(route, mockRouterCtx, ctx)
 
 	// Assert
 	assert.NoError(t, err)
 	assert.Equal(t, mockComponent, result)
 	mockCache.AssertExpectations(t)
+	mockRouterCtx.AssertExpectations(t)
 }
 
 func TestOptimizedTemplateService_RenderComponent_DirectRouteMatch(t *testing.T) {
@@ -208,6 +279,14 @@ func TestOptimizedTemplateService_RenderComponent_DirectRouteMatch(t *testing.T)
 	}
 	params := map[string]string{}
 	ctx := context.Background()
+
+	// Create mock RouterContext
+	mockRouterCtx := &mockOTSRouterContext{
+		ctx:       ctx,
+		urlParams: params,
+	}
+	mockRouterCtx.On("GetAllURLParams").Return(params)
+	mockRouterCtx.On("GetAllQueryParams").Return(url.Values{})
 
 	// Mock cache miss
 	cacheKey := "test-cache-key"
@@ -236,13 +315,14 @@ func TestOptimizedTemplateService_RenderComponent_DirectRouteMatch(t *testing.T)
 	mockCache.On("SetTemplate", cacheKey, mock.Anything).Return()
 
 	// Execute
-	result, err := service.RenderComponent(route, ctx, params)
+	result, err := service.RenderComponent(route, mockRouterCtx, ctx)
 
 	// Assert
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 	mockRegistry.AssertExpectations(t)
 	mockCache.AssertExpectations(t)
+	mockRouterCtx.AssertExpectations(t)
 }
 
 func TestOptimizedTemplateService_RenderComponent_ParameterizedTemplate_MissingID(t *testing.T) {
@@ -254,6 +334,15 @@ func TestOptimizedTemplateService_RenderComponent_ParameterizedTemplate_MissingI
 	}
 	params := map[string]string{} // Missing ID parameter
 	ctx := context.Background()
+
+	// Create mock RouterContext
+	mockRouterCtx := &mockOTSRouterContext{
+		ctx:       ctx,
+		urlParams: params,
+	}
+	mockRouterCtx.On("GetAllURLParams").Return(params)
+	mockRouterCtx.On("GetAllQueryParams").Return(url.Values{})
+	mockRouterCtx.On("GetURLParam", "id").Return("") // Missing ID parameter
 
 	// Mock cache miss
 	cacheKey := "test-cache-key"
@@ -281,7 +370,7 @@ func TestOptimizedTemplateService_RenderComponent_ParameterizedTemplate_MissingI
 	mockCache.On("SetRoute", routeCacheKey, templateUUID).Return()
 
 	// Execute
-	result, err := service.RenderComponent(route, ctx, params)
+	result, err := service.RenderComponent(route, mockRouterCtx, ctx)
 
 	// Assert
 	assert.Error(t, err)
@@ -295,6 +384,7 @@ func TestOptimizedTemplateService_RenderComponent_ParameterizedTemplate_MissingI
 	
 	mockRegistry.AssertExpectations(t)
 	mockCache.AssertExpectations(t)
+	mockRouterCtx.AssertExpectations(t)
 }
 
 func TestOptimizedTemplateService_RenderComponent_RouteNotFound(t *testing.T) {
@@ -306,6 +396,14 @@ func TestOptimizedTemplateService_RenderComponent_RouteNotFound(t *testing.T) {
 	}
 	params := map[string]string{}
 	ctx := context.Background()
+
+	// Create mock RouterContext
+	mockRouterCtx := &mockOTSRouterContext{
+		ctx:       ctx,
+		urlParams: params,
+	}
+	mockRouterCtx.On("GetAllURLParams").Return(params)
+	mockRouterCtx.On("GetAllQueryParams").Return(url.Values{})
 
 	// Mock cache miss
 	cacheKey := "test-cache-key"
@@ -324,7 +422,7 @@ func TestOptimizedTemplateService_RenderComponent_RouteNotFound(t *testing.T) {
 	mockConverter.On("GenerateRouteVariations", "/nonexistent").Return([]string{})
 
 	// Execute
-	result, err := service.RenderComponent(route, ctx, params)
+	result, err := service.RenderComponent(route, mockRouterCtx, ctx)
 
 	// Assert
 	assert.Error(t, err)
@@ -334,6 +432,7 @@ func TestOptimizedTemplateService_RenderComponent_RouteNotFound(t *testing.T) {
 	mockRegistry.AssertExpectations(t)
 	mockCache.AssertExpectations(t)
 	mockConverter.AssertExpectations(t)
+	mockRouterCtx.AssertExpectations(t)
 }
 
 func TestOptimizedTemplateService_convertLayoutPathToRoute(t *testing.T) {

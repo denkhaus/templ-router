@@ -60,8 +60,8 @@ var _ = ginkgo.Describe("Simple RouterContext Test", func() {
 			gomega.Expect(html).Should(gomega.ContainSubstring(">5</span>")) // page value
 			gomega.Expect(html).Should(gomega.ContainSubstring(">15</span>")) // pageSize value
 			
-			// Check user data is still displayed
-			gomega.Expect(html).Should(gomega.ContainSubstring("DataService Demo User"))
+			// Check user data is still displayed (GetUserData method is called)
+			gomega.Expect(html).Should(gomega.ContainSubstring("GetUserData Method Called!"))
 		})
 
 		ginkgo.It("should work with German locale", func() {
@@ -81,9 +81,9 @@ var _ = ginkgo.Describe("Simple RouterContext Test", func() {
 			// Check for server errors
 			gomega.Expect(html).ShouldNot(gomega.ContainSubstring("500 Internal Server Error"))
 			
-			// Check German user data
-			gomega.Expect(html).Should(gomega.ContainSubstring("DataService Demo Benutzer"))
-			gomega.Expect(html).Should(gomega.ContainSubstring("demo@beispiel.de"))
+			// Check German user data (GetUserData method is called)
+			gomega.Expect(html).Should(gomega.ContainSubstring("GetUserData Methode aufgerufen!"))
+			gomega.Expect(html).Should(gomega.ContainSubstring("getuserdata@beispiel.de"))
 			
 			// Check query parameters
 			gomega.Expect(html).Should(gomega.ContainSubstring(">3</span>")) // page value
