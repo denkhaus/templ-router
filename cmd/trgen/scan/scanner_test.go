@@ -11,7 +11,7 @@ import (
 func TestScanTemplateFiles(t *testing.T) {
 	// Create temporary test directory structure
 	tempDir := t.TempDir()
-	
+
 	// Create test files with proper Go syntax
 	testFiles := map[string]string{
 		"app/page_templ.go": `package app
@@ -106,7 +106,7 @@ func NotATemplate() {
 			t.Errorf("Failed to change back to original directory: %v", err)
 		}
 	}()
-	
+
 	err = os.Chdir(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to change to temp directory: %v", err)
@@ -140,7 +140,7 @@ require (
 	// Since package loading in tests is complex and may fail,
 	// we just verify that the function doesn't crash and returns a valid result
 	t.Logf("Found %d templates", len(templates))
-	
+
 	// If templates were found, verify they have the correct structure
 	for _, tmpl := range templates {
 		if tmpl.FunctionName == "" {
@@ -152,19 +152,19 @@ require (
 		if tmpl.TemplateKey == "" {
 			t.Errorf("Template should have non-empty template key")
 		}
-		
+
 		// Verify sanitized package names
 		if tmpl.PackageName == "error-demo" {
 			t.Errorf("Package name should be sanitized, got: %s", tmpl.PackageName)
 		}
-		
+
 		t.Logf("Template: %s.%s -> %s", tmpl.PackageName, tmpl.FunctionName, tmpl.RoutePattern)
 	}
 }
 
 func TestScanTemplateFilesEmptyDirectory(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	config := types.Config{
 		ScanPath:   "app",
 		ModuleName: "github.com/test/project",
@@ -175,13 +175,13 @@ func TestScanTemplateFilesEmptyDirectory(t *testing.T) {
 	defer func() {
 		if err := os.Chdir(originalDir); err != nil {
 			t.Errorf("Failed to change back to original directory: %v", err)
-					}
-				}()
-		err = os.Chdir(tempDir)
+		}
+	}()
+	err := os.Chdir(tempDir)
 	if err != nil {
 		t.Fatalf("Failed to change to temp directory: %v", err)
 	}
-	
+
 	config.ScanPath = "nonexistent"
 	templates, _, err := ScanTemplatesWithPackages(config)
 	if err == nil {
@@ -194,14 +194,14 @@ func TestScanTemplateFilesEmptyDirectory(t *testing.T) {
 
 func TestScanTemplateFilesNoTemplFiles(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	// Create directory with non-template files
 	appDir := filepath.Join(tempDir, "app")
 	err := os.MkdirAll(appDir, 0755)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
-	
+
 	err = os.WriteFile(filepath.Join(appDir, "regular.go"), []byte(`package app
 
 func RegularFunction() {
@@ -220,7 +220,7 @@ func RegularFunction() {
 	originalDir, _ := os.Getwd()
 	defer os.Chdir(originalDir)
 	os.Chdir(tempDir)
-	
+
 	templates, _, err := ScanTemplatesWithPackages(config)
 	if err != nil {
 		t.Fatalf("ScanTemplateFiles failed: %v", err)
