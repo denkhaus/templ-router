@@ -68,7 +68,9 @@ func TestLoadConfig(t *testing.T) {
 			// Clean up after test
 			defer func() {
 				for key := range tt.envVars {
-					os.Unsetenv(key)
+					if err := os.Unsetenv(key); err != nil {
+						t.Errorf("Failed to unset environment variable %s: %v", key, err)
+					}
 				}
 			}()
 

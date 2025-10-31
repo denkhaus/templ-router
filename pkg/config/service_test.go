@@ -463,7 +463,7 @@ func clearTestEnv(t *testing.T) {
 		"TR_TEMPLATE_GENERATOR_OUTPUT_DIR", "TR_TEMPLATE_GENERATOR_PACKAGE_NAME",
 		"TR_ENVIRONMENT_KIND", "TR_CONFIG_PRINT_SUMMARY",
 		// Also clear system environment variables that might interfere with defaults
-		"USER",
+		"USER", "NAME",
 	}
 
 	for _, envVar := range envVars {

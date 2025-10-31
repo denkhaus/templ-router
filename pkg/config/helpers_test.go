@@ -46,7 +46,9 @@ func TestGetDatabaseDSN(t *testing.T) {
 			clearTestEnv(t)
 			
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				if err := os.Setenv(key, value); err != nil {
+					t.Fatalf("Failed to set environment variable %s: %v", key, err)
+				}
 			}
 
 			injector := do.New()
@@ -99,7 +101,9 @@ func TestGetServerAddress(t *testing.T) {
 			clearTestEnv(t)
 			
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				if err := os.Setenv(key, value); err != nil {
+					t.Fatalf("Failed to set environment variable %s: %v", key, err)
+				}
 			}
 
 			injector := do.New()
@@ -179,7 +183,9 @@ func TestIsProduction(t *testing.T) {
 			clearTestEnv(t)
 			
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				if err := os.Setenv(key, value); err != nil {
+					t.Fatalf("Failed to set environment variable %s: %v", key, err)
+				}
 			}
 
 			injector := do.New()
@@ -232,7 +238,9 @@ func TestIsDevelopment(t *testing.T) {
 			clearTestEnv(t)
 			
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				if err := os.Setenv(key, value); err != nil {
+					t.Fatalf("Failed to set environment variable %s: %v", key, err)
+				}
 			}
 
 			injector := do.New()

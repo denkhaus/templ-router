@@ -101,7 +101,11 @@ func NotATemplate() {
 	if err != nil {
 		t.Fatalf("Failed to get current directory: %v", err)
 	}
-	defer os.Chdir(originalDir)
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Errorf("Failed to change back to original directory: %v", err)
+		}
+	}()
 	
 	err = os.Chdir(tempDir)
 	if err != nil {
@@ -168,8 +172,15 @@ func TestScanTemplateFilesEmptyDirectory(t *testing.T) {
 
 	// Change to temp directory first
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
-	os.Chdir(tempDir)
+	defer func() {
+		if err := os.Chdir(originalDir); err != nil {
+			t.Errorf("Failed to change back to original directory: %v", err)
+					}
+				}()
+		err = os.Chdir(tempDir)
+	if err != nil {
+		t.Fatalf("Failed to change to temp directory: %v", err)
+	}
 	
 	config.ScanPath = "nonexistent"
 	templates, _, err := ScanTemplatesWithPackages(config)

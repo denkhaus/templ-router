@@ -171,7 +171,11 @@ func (p Test) CheckService() error {
 	if err != nil {
 		return fmt.Errorf("❌ Docker service not running on localhost:8084. Start with: mage docker:up")
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("error closing response body: %w", cerr)
+		}
+	}()
 
 	if resp.StatusCode != 200 {
 		return fmt.Errorf("❌ Service unhealthy (status: %d). Check with: mage docker:logs", resp.StatusCode)

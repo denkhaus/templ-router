@@ -217,11 +217,15 @@ func TestLogSummary(t *testing.T) {
 			configSvc.config.LogSummary()
 
 			// Restore stdout and read captured output
-			w.Close()
+			if err := w.Close(); err != nil {
+				t.Fatalf("Failed to close pipe writer: %v", err)
+			}
 			os.Stdout = oldStdout
 			
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			if _, err := buf.ReadFrom(r); err != nil {
+				t.Fatalf("Failed to read from pipe: %v", err)
+			}
 			output := buf.String()
 
 			// Check that expected strings are in the log
@@ -261,8 +265,11 @@ func TestLogSummaryWithPrintSummaryEnabled(t *testing.T) {
 	require.NotNil(t, service)
 
 	// Restore stdout and read captured output
-	w.Close()
-	os.Stdout = oldStdout
+	
+		if err := w.Close(); err != nil {
+			t.Fatalf("Failed to close pipe writer: %v", err)
+		}
+		os.Stdout = oldStdout
 	
 	var buf bytes.Buffer
 	buf.ReadFrom(r)

@@ -133,7 +133,11 @@ func generateInterfaceRegistry(config types.Config, templates []types.TemplateIn
 	if err != nil {
 		return fmt.Errorf("failed to create interface registry file: %w", err)
 	}
-	defer file.Close()
+	defer func() {
+		if cerr := file.Close(); cerr != nil && err == nil {
+			err = fmt.Errorf("error closing file: %w", cerr)
+		}
+	}()
 
 	// Execute template
 	if err := tmpl.Execute(file, data); err != nil {

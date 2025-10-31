@@ -107,7 +107,9 @@ func Clean() error {
 	}
 
 	// Clean Go test cache
-	sh.Run("go", "clean", "-testcache")
+		if err := sh.Run("go", "clean", "-testcache"); err != nil {
+		fmt.Printf("Warning: Could not clean Go test cache: %v\n", err)
+	}
 
 	return nil
 }
