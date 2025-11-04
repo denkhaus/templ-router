@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -20,14 +19,14 @@ type RouteValidator interface {
 type routeValidator struct {
 	logger     *zap.Logger
 	config     interfaces.ConfigService
-	fileSystem middleware.FileSystemChecker
+	fileSystem interfaces.FileSystemChecker
 }
 
 // NewRouteValidator creates a new route validator for DI
 func NewRouteValidator(i do.Injector) (RouteValidator, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 	config := do.MustInvoke[interfaces.ConfigService](i)
-	fileSystem := do.MustInvoke[middleware.FileSystemChecker](i)
+	fileSystem := do.MustInvoke[interfaces.FileSystemChecker](i)
 
 	return &routeValidator{
 		logger:     logger,

@@ -4,25 +4,9 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
-
-// MiddlewareSetup defines the contract for middleware configuration
-type MiddlewareSetup interface {
-	GetAuthService() interfaces.AuthService
-	GetI18nService() interfaces.I18nService
-	GetTemplateService() interfaces.TemplateService
-	GetLayoutService() interfaces.LayoutService
-	GetErrorService() interfaces.ErrorService
-	GetAuthMiddleware() middleware.AuthMiddlewareInterface
-	GetI18nMiddleware() middleware.I18nMiddlewareInterface
-	GetTemplateMiddleware() middleware.TemplateMiddlewareInterface
-	GetRouterMiddleware() middleware.RouterMiddlewareInterface
-	ConfigureMiddlewareChain(route interfaces.Route, authSettings interface{}) []interface{}
-	ValidateMiddlewareSetup() error
-}
 
 // middlewareSetup handles middleware configuration and setup (private implementation)
 // SEPARATED FROM: clean_router.go (Separation of Concerns)
@@ -35,16 +19,16 @@ type middlewareSetup struct {
 	errorService    interfaces.ErrorService
 
 	// Middleware components
-	authMiddleware     middleware.AuthMiddlewareInterface
-	i18nMiddleware     middleware.I18nMiddlewareInterface
-	templateMiddleware middleware.TemplateMiddlewareInterface
-	routerMiddleware   middleware.RouterMiddlewareInterface
+	authMiddleware     interfaces.AuthMiddlewareInterface
+	i18nMiddleware     interfaces.I18nMiddlewareInterface
+	templateMiddleware interfaces.TemplateMiddlewareInterface
+	routerMiddleware   interfaces.RouterMiddlewareInterface
 
 	logger *zap.Logger
 }
 
 // NewMiddlewareSetup creates a new middleware setup
-func NewMiddlewareSetup(i do.Injector) (MiddlewareSetup, error) {
+func NewMiddlewareSetup(i do.Injector) (interfaces.MiddlewareSetup, error) {
 	// Inject clean services
 	authService := do.MustInvoke[interfaces.AuthService](i)
 	i18nService := do.MustInvoke[interfaces.I18nService](i)
@@ -53,10 +37,10 @@ func NewMiddlewareSetup(i do.Injector) (MiddlewareSetup, error) {
 	errorService := do.MustInvoke[interfaces.ErrorService](i)
 
 	// Inject middleware components
-	authMiddleware := do.MustInvoke[middleware.AuthMiddlewareInterface](i)
-	i18nMiddleware := do.MustInvoke[middleware.I18nMiddlewareInterface](i)
-	templateMiddleware := do.MustInvoke[middleware.TemplateMiddlewareInterface](i)
-	routerMiddleware := do.MustInvoke[middleware.RouterMiddlewareInterface](i)
+	authMiddleware := do.MustInvoke[interfaces.AuthMiddlewareInterface](i)
+	i18nMiddleware := do.MustInvoke[interfaces.I18nMiddlewareInterface](i)
+	templateMiddleware := do.MustInvoke[interfaces.TemplateMiddlewareInterface](i)
+	routerMiddleware := do.MustInvoke[interfaces.RouterMiddlewareInterface](i)
 
 	logger := do.MustInvoke[*zap.Logger](i)
 
@@ -100,22 +84,22 @@ func (ms *middlewareSetup) GetErrorService() interfaces.ErrorService {
 }
 
 // GetAuthMiddleware returns the auth middleware
-func (ms *middlewareSetup) GetAuthMiddleware() middleware.AuthMiddlewareInterface {
+func (ms *middlewareSetup) GetAuthMiddleware() interfaces.AuthMiddlewareInterface {
 	return ms.authMiddleware
 }
 
 // GetI18nMiddleware returns the i18n middleware
-func (ms *middlewareSetup) GetI18nMiddleware() middleware.I18nMiddlewareInterface {
+func (ms *middlewareSetup) GetI18nMiddleware() interfaces.I18nMiddlewareInterface {
 	return ms.i18nMiddleware
 }
 
 // GetTemplateMiddleware returns the template middleware
-func (ms *middlewareSetup) GetTemplateMiddleware() middleware.TemplateMiddlewareInterface {
+func (ms *middlewareSetup) GetTemplateMiddleware() interfaces.TemplateMiddlewareInterface {
 	return ms.templateMiddleware
 }
 
 // GetRouterMiddleware returns the router middleware
-func (ms *middlewareSetup) GetRouterMiddleware() middleware.RouterMiddlewareInterface {
+func (ms *middlewareSetup) GetRouterMiddleware() interfaces.RouterMiddlewareInterface {
 	return ms.routerMiddleware
 }
 

@@ -16,7 +16,7 @@ import (
 // layoutServiceImpl implements LayoutService
 type layoutServiceImpl struct {
 	config            interfaces.ConfigService
-	fileSystemChecker FileSystemChecker
+	fileSystemChecker interfaces.FileSystemChecker
 	templateService   interfaces.TemplateService
 	logger            *zap.Logger
 }
@@ -24,7 +24,7 @@ type layoutServiceImpl struct {
 // NewLayoutService creates a new layout service for DI
 func NewLayoutService(i do.Injector) (interfaces.LayoutService, error) {
 	config := do.MustInvoke[interfaces.ConfigService](i)
-	fileSystemChecker := do.MustInvoke[FileSystemChecker](i)
+	fileSystemChecker := do.MustInvoke[interfaces.FileSystemChecker](i)
 	templateService := do.MustInvoke[interfaces.TemplateService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 	return &layoutServiceImpl{

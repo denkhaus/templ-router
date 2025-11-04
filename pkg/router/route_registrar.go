@@ -11,26 +11,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// RouteRegistrar defines the contract for route registration
-type RouteRegistrar interface {
-	RegisterRoutes(routes []interfaces.Route) error
-	RegisterStaticRoutes()
-	Register404Handler()
-	RegisterMethodNotAllowedHandler()
-}
-
 // routeRegistrar handles route registration logic (private implementation)
 type routeRegistrar struct {
 	router          *chi.Mux
-	handlerBuilder  HandlerBuilder
-	middlewareSetup MiddlewareSetup
+	handlerBuilder  interfaces.HandlerBuilder
+	middlewareSetup interfaces.MiddlewareSetup
 	configService   interfaces.ConfigService
 	assetService    interfaces.AssetsService
 	logger          *zap.Logger
 }
 
 // NewRouteRegistrar creates a new route registrar
-func NewRouteRegistrar(i do.Injector, router *chi.Mux) (RouteRegistrar, error) {
+func NewRouteRegistrar(i do.Injector, router *chi.Mux) (interfaces.RouteRegistrar, error) {
 	handlerBuilder, err := NewHandlerBuilder(i)
 	if err != nil {
 		return nil, err
@@ -175,7 +167,6 @@ func (rr *routeRegistrar) RegisterMethodNotAllowedHandler() {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 	})
 }
-
 
 // registerLocaleSpecificRoutes registers specific routes for each valid locale
 func (rr *routeRegistrar) registerLocaleSpecificRoutes(route interfaces.Route) error {

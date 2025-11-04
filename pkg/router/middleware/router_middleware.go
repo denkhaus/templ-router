@@ -8,7 +8,6 @@ import (
 	"go.uber.org/zap"
 )
 
-
 // routerMiddleware handles router-level middleware configuration (private implementation)
 type routerMiddleware struct {
 	configService interfaces.ConfigService
@@ -16,7 +15,7 @@ type routerMiddleware struct {
 }
 
 // NewRouterMiddleware creates a new router middleware for DI
-func NewRouterMiddleware(i do.Injector) (RouterMiddlewareInterface, error) {
+func NewRouterMiddleware(i do.Injector) (interfaces.RouterMiddlewareInterface, error) {
 	configService := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
@@ -26,8 +25,8 @@ func NewRouterMiddleware(i do.Injector) (RouterMiddlewareInterface, error) {
 	}, nil
 }
 
-// ConfigureRouterMiddleware configures router-level middleware based on configuration
-func (rm *routerMiddleware) ConfigureRouterMiddleware(chiRouter *chi.Mux) error {
+// Configure configures router-level middleware based on configuration
+func (rm *routerMiddleware) Configure(chiRouter *chi.Mux) error {
 	rm.logger.Debug("Configuring router middleware")
 
 	// Configure trailing slash redirection

@@ -9,7 +9,6 @@ import (
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/i18n"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
@@ -140,14 +139,14 @@ func (m *mockRouteDiscovery) DiscoverRoutes(scanPath string) ([]interfaces.Route
 	}, nil
 }
 
-func (m *mockRouteDiscovery) DiscoverLayouts(scanPath string) ([]LayoutTemplate, error) {
-	return []LayoutTemplate{
+func (m *mockRouteDiscovery) DiscoverLayouts(scanPath string) ([]interfaces.LayoutTemplate, error) {
+	return []interfaces.LayoutTemplate{
 		{FilePath: "app/layout.templ", DirectoryPath: "app", LayoutLevel: 0},
 	}, nil
 }
 
-func (m *mockRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]ErrorTemplate, error) {
-	return []ErrorTemplate{
+func (m *mockRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfaces.ErrorTemplate, error) {
+	return []interfaces.ErrorTemplate{
 		{FilePath: "app/error.templ", DirectoryPath: "app", ErrorTypes: []string{"404"}},
 	}, nil
 }
@@ -238,7 +237,7 @@ func (m *mockI18nService) CreateContext(ctx context.Context, templatePath string
 	if !ok {
 		locale = "en" // fallback for tests
 	}
-	
+
 	i18nData := &i18n.I18nData{
 		Locale:          locale,
 		CurrentTemplate: templatePath,
@@ -390,7 +389,7 @@ func (m *mockTemplateMiddleware) HandleTemplateError(err error, w http.ResponseW
 // Mock RouterMiddleware
 type mockRouterMiddleware struct{}
 
-func (m *mockRouterMiddleware) ConfigureRouterMiddleware(chiRouter *chi.Mux) error {
+func (m *mockRouterMiddleware) Configure(chiRouter *chi.Mux) error {
 	// Mock implementation - do nothing
 	return nil
 }
@@ -441,8 +440,8 @@ func createRouterTestContainer() do.Injector {
 	do.ProvideValue[*zap.Logger](injector, zap.NewNop())
 	do.ProvideValue[interfaces.AssetsService](injector, &mockRouterAssetsService{})
 	do.ProvideValue[interfaces.TemplateRegistry](injector, &mockRouterTemplateRegistry{})
-	do.ProvideValue[RouteDiscovery](injector, &mockRouteDiscovery{})
-	do.ProvideValue[ConfigLoader](injector, &mockConfigLoader{})
+	do.ProvideValue[interfaces.RouteDiscovery](injector, &mockRouteDiscovery{})
+	do.ProvideValue[interfaces.ConfigLoader](injector, &mockConfigLoader{})
 	do.ProvideValue[interfaces.AuthService](injector, &mockAuthService{})
 	do.ProvideValue[interfaces.I18nService](injector, &mockI18nService{})
 	do.ProvideValue[interfaces.TemplateService](injector, &mockTemplateService{})
@@ -452,10 +451,10 @@ func createRouterTestContainer() do.Injector {
 	do.ProvideValue[interfaces.ErrorService](injector, &mockErrorService{})
 
 	// Register middleware interfaces (required by middleware setup)
-	do.ProvideValue[middleware.AuthMiddlewareInterface](injector, &mockAuthMiddleware{})
-	do.ProvideValue[middleware.I18nMiddlewareInterface](injector, &mockI18nMiddleware{})
-	do.ProvideValue[middleware.TemplateMiddlewareInterface](injector, &mockTemplateMiddleware{})
-	do.ProvideValue[middleware.RouterMiddlewareInterface](injector, &mockRouterMiddleware{})
+	do.ProvideValue[interfaces.AuthMiddlewareInterface](injector, &mockAuthMiddleware{})
+	do.ProvideValue[interfaces.I18nMiddlewareInterface](injector, &mockI18nMiddleware{})
+	do.ProvideValue[interfaces.TemplateMiddlewareInterface](injector, &mockTemplateMiddleware{})
+	do.ProvideValue[interfaces.RouterMiddlewareInterface](injector, &mockRouterMiddleware{})
 
 	// Register AuthHandlers (required by RegisterRoutes)
 	do.ProvideValue[interfaces.AuthHandlers](injector, &mockRouterAuthHandlers{})

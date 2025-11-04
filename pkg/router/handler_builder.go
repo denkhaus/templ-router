@@ -9,25 +9,18 @@ import (
 	"go.uber.org/zap"
 )
 
-// HandlerBuilder defines the contract for handler building
-type HandlerBuilder interface {
-	BuildHandler(route interfaces.Route) http.Handler
-	BuildStaticHandler(path string) http.Handler
-	BuildErrorHandler(statusCode int, message string) http.HandlerFunc
-}
-
 // handlerBuilder handles HTTP handler building logic (private implementation)
 // SEPARATED FROM: clean_router.go (Separation of Concerns)
 type handlerBuilder struct {
 	handlerPipeline *pipeline.HandlerPipeline
-	configLoader    ConfigLoader
+	configLoader    interfaces.ConfigLoader
 	logger          *zap.Logger
 }
 
 // NewHandlerBuilder creates a new handler builder
-func NewHandlerBuilder(i do.Injector) (HandlerBuilder, error) {
+func NewHandlerBuilder(i do.Injector) (interfaces.HandlerBuilder, error) {
 	handlerPipeline := do.MustInvoke[*pipeline.HandlerPipeline](i)
-	configLoader := do.MustInvoke[ConfigLoader](i)
+	configLoader := do.MustInvoke[interfaces.ConfigLoader](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &handlerBuilder{

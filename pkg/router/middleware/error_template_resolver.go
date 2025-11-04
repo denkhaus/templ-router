@@ -17,14 +17,14 @@ type ErrorTemplateResolver interface {
 // errorTemplateResolverImpl implements ErrorTemplateResolver (PRIVATE)
 type errorTemplateResolverImpl struct {
 	configService     interfaces.ConfigService
-	fileSystemChecker FileSystemChecker
+	fileSystemChecker interfaces.FileSystemChecker
 	logger            *zap.Logger
 }
 
 // NewErrorTemplateResolver creates a new error template resolver (RETURNS INTERFACE)
 func NewErrorTemplateResolver(i do.Injector) (ErrorTemplateResolver, error) {
 	configService := do.MustInvoke[interfaces.ConfigService](i)
-	fileSystemChecker := do.MustInvoke[FileSystemChecker](i)
+	fileSystemChecker := do.MustInvoke[interfaces.FileSystemChecker](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &errorTemplateResolverImpl{

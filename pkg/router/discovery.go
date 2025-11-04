@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 )
 
 // DiscoverFiles scans the app directory for *.templ and *.yaml files using FileSystemChecker
-func DiscoverFiles(scanPath string, fileSystem middleware.FileSystemChecker) ([]string, []string, error) {
+func DiscoverFiles(scanPath string, fileSystem interfaces.FileSystemChecker) ([]string, []string, error) {
 	if scanPath == "" {
 		return nil, nil, fmt.Errorf("scan path cannot be empty")
 	}

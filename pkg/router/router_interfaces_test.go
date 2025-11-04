@@ -11,11 +11,11 @@ import (
 
 type testRouterCore struct {
 	routes          []interfaces.Route
-	layouts         []LayoutTemplate
-	errorTemplates  []ErrorTemplate
-	middlewareSetup MiddlewareSetup
-	handlerBuilder  HandlerBuilder
-	routeRegistrar  RouteRegistrar
+	layouts         []interfaces.LayoutTemplate
+	errorTemplates  []interfaces.ErrorTemplate
+	middlewareSetup interfaces.MiddlewareSetup
+	handlerBuilder  interfaces.HandlerBuilder
+	routeRegistrar  interfaces.RouteRegistrar
 	initialized     bool
 }
 
@@ -32,41 +32,41 @@ func (t *testRouterCore) GetRoutes() []interfaces.Route {
 	return t.routes
 }
 
-func (t *testRouterCore) GetLayoutTemplates() []LayoutTemplate {
+func (t *testRouterCore) GetLayoutTemplates() []interfaces.LayoutTemplate {
 	return t.layouts
 }
 
-func (t *testRouterCore) GetErrorTemplates() []ErrorTemplate {
+func (t *testRouterCore) GetErrorTemplates() []interfaces.ErrorTemplate {
 	return t.errorTemplates
 }
 
-func (t *testRouterCore) GetMiddlewareSetup() MiddlewareSetup {
+func (t *testRouterCore) GetMiddlewareSetup() interfaces.MiddlewareSetup {
 	return t.middlewareSetup
 }
 
-func (t *testRouterCore) GetHandlerBuilder() HandlerBuilder {
+func (t *testRouterCore) GetHandlerBuilder() interfaces.HandlerBuilder {
 	return t.handlerBuilder
 }
 
-func (t *testRouterCore) GetRouteRegistrar() RouteRegistrar {
+func (t *testRouterCore) GetRouteRegistrar() interfaces.RouteRegistrar {
 	return t.routeRegistrar
 }
 
 type testRouteDiscovery struct {
 	routes         []interfaces.Route
-	layouts        []LayoutTemplate
-	errorTemplates []ErrorTemplate
+	layouts        []interfaces.LayoutTemplate
+	errorTemplates []interfaces.ErrorTemplate
 }
 
 func (t *testRouteDiscovery) DiscoverRoutes(scanPath string) ([]interfaces.Route, error) {
 	return t.routes, nil
 }
 
-func (t *testRouteDiscovery) DiscoverLayouts(scanPath string) ([]LayoutTemplate, error) {
+func (t *testRouteDiscovery) DiscoverLayouts(scanPath string) ([]interfaces.LayoutTemplate, error) {
 	return t.layouts, nil
 }
 
-func (t *testRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]ErrorTemplate, error) {
+func (t *testRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfaces.ErrorTemplate, error) {
 	return t.errorTemplates, nil
 }
 
@@ -89,17 +89,17 @@ func (t *testConfigLoader) LoadAuthSettings(templatePath string) (*interfaces.Au
 
 func TestRouterCore_InterfaceCompliance(t *testing.T) {
 	// Verify that our test implementation satisfies the RouterCore interface
-	var _ RouterCore = (*testRouterCore)(nil)
+	var _ interfaces.RouterCore = (*testRouterCore)(nil)
 
 	router := &testRouterCore{
 		routes: []interfaces.Route{
 			{Path: "/", TemplateFile: "index.templ"},
 			{Path: "/about", TemplateFile: "about.templ"},
 		},
-		layouts: []LayoutTemplate{
+		layouts: []interfaces.LayoutTemplate{
 			{FilePath: "/app/layout.templ", DirectoryPath: "/app"},
 		},
-		errorTemplates: []ErrorTemplate{
+		errorTemplates: []interfaces.ErrorTemplate{
 			{FilePath: "/app/error.templ", DirectoryPath: "/app", ErrorTypes: []string{"404"}},
 		},
 	}
@@ -152,16 +152,16 @@ func TestRouterCore_InterfaceCompliance(t *testing.T) {
 
 func TestRouteDiscovery_InterfaceCompliance(t *testing.T) {
 	// Verify that our test implementation satisfies the RouteDiscovery interface
-	var _ RouteDiscovery = (*testRouteDiscovery)(nil)
+	var _ interfaces.RouteDiscovery = (*testRouteDiscovery)(nil)
 
 	discovery := &testRouteDiscovery{
 		routes: []interfaces.Route{
 			{Path: "/test", TemplateFile: "test.templ"},
 		},
-		layouts: []LayoutTemplate{
+		layouts: []interfaces.LayoutTemplate{
 			{FilePath: "/app/test-layout.templ"},
 		},
-		errorTemplates: []ErrorTemplate{
+		errorTemplates: []interfaces.ErrorTemplate{
 			{FilePath: "/app/test-error.templ"},
 		},
 	}
@@ -205,7 +205,7 @@ func TestRouteDiscovery_InterfaceCompliance(t *testing.T) {
 
 func TestConfigLoader_InterfaceCompliance(t *testing.T) {
 	// Verify that our test implementation satisfies the ConfigLoader interface
-	var _ ConfigLoader = (*testConfigLoader)(nil)
+	var _ interfaces.ConfigLoader = (*testConfigLoader)(nil)
 
 	loader := &testConfigLoader{
 		config: &interfaces.ConfigFile{
@@ -267,7 +267,7 @@ func TestRouterInterfaces_MethodSignatures(t *testing.T) {
 	// by attempting to call them with the expected parameters
 
 	// RouterCore interface methods
-	var router RouterCore = &testRouterCore{}
+	var router interfaces.RouterCore = &testRouterCore{}
 
 	_ = router.Initialize()
 	_ = router.RegisterRoutes(chi.NewMux())
@@ -279,14 +279,14 @@ func TestRouterInterfaces_MethodSignatures(t *testing.T) {
 	_ = router.GetRouteRegistrar()
 
 	// RouteDiscovery interface methods
-	var discovery RouteDiscovery = &testRouteDiscovery{}
+	var discovery interfaces.RouteDiscovery = &testRouteDiscovery{}
 
 	_, _ = discovery.DiscoverRoutes("/app")
 	_, _ = discovery.DiscoverLayouts("/app")
 	_, _ = discovery.DiscoverErrorTemplates("/app")
 
 	// ConfigLoader interface methods
-	var loader ConfigLoader = &testConfigLoader{}
+	var loader interfaces.ConfigLoader = &testConfigLoader{}
 
 	_, _ = loader.LoadRouteConfig("test.templ")
 	_, _ = loader.LoadConfig("/app/test.templ")
@@ -298,8 +298,8 @@ func TestRouterInterfaces_ReturnTypes(t *testing.T) {
 
 	router := &testRouterCore{
 		routes:         []interfaces.Route{{Path: "/test"}},
-		layouts:        []LayoutTemplate{{FilePath: "/test"}},
-		errorTemplates: []ErrorTemplate{{FilePath: "/test"}},
+		layouts:        []interfaces.LayoutTemplate{{FilePath: "/test"}},
+		errorTemplates: []interfaces.ErrorTemplate{{FilePath: "/test"}},
 	}
 
 	// Test return types

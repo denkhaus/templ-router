@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -12,9 +11,9 @@ import (
 
 // HandlerPipeline creates clean, composable HTTP handlers using middleware pattern
 type HandlerPipeline struct {
-	authMiddleware     middleware.AuthMiddlewareInterface
-	i18nMiddleware     middleware.I18nMiddlewareInterface
-	templateMiddleware middleware.TemplateMiddlewareInterface
+	authMiddleware     interfaces.AuthMiddlewareInterface
+	i18nMiddleware     interfaces.I18nMiddlewareInterface
+	templateMiddleware interfaces.TemplateMiddlewareInterface
 	templateRegistry   interfaces.TemplateRegistry
 	logger             *zap.Logger
 }
@@ -34,9 +33,9 @@ type ConfigFile struct {
 }
 
 func NewHandlerPipeline(i do.Injector) (*HandlerPipeline, error) {
-	authMiddleware := do.MustInvoke[middleware.AuthMiddlewareInterface](i)
-	i18nMiddleware := do.MustInvoke[middleware.I18nMiddlewareInterface](i)
-	templateMiddleware := do.MustInvoke[middleware.TemplateMiddlewareInterface](i)
+	authMiddleware := do.MustInvoke[interfaces.AuthMiddlewareInterface](i)
+	i18nMiddleware := do.MustInvoke[interfaces.I18nMiddlewareInterface](i)
+	templateMiddleware := do.MustInvoke[interfaces.TemplateMiddlewareInterface](i)
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 

@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(knot project create:*)",
+      "Bash(knot task create:*)",
+      "Bash(knot task update-state:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

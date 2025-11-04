@@ -22,33 +22,33 @@ type cleanRouterCore struct {
 	injector      do.Injector // Store injector for proper DI
 
 	// Separated components (Separation of Concerns)
-	routeRegistrar  RouteRegistrar
-	handlerBuilder  HandlerBuilder
-	middlewareSetup MiddlewareSetup
+	routeRegistrar  interfaces.RouteRegistrar
+	handlerBuilder  interfaces.HandlerBuilder
+	middlewareSetup interfaces.MiddlewareSetup
 
 	// Handler pipeline
 	handlerPipeline *pipeline.HandlerPipeline
 
 	// Route discovery and processing
-	routeDiscovery RouteDiscovery
-	configLoader   ConfigLoader
+	routeDiscovery interfaces.RouteDiscovery
+	configLoader   interfaces.ConfigLoader
 
 	// Data storage (clean, no business logic)
 	routes          []interfaces.Route
-	layoutTemplates []LayoutTemplate
-	errorTemplates  []ErrorTemplate
+	layoutTemplates []interfaces.LayoutTemplate
+	errorTemplates  []interfaces.ErrorTemplate
 }
 
 // NewCleanRouterCore creates a new clean router with separated concerns for DI
-func NewCleanRouterCore(i do.Injector) (RouterCore, error) {
+func NewCleanRouterCore(i do.Injector) (interfaces.RouterCore, error) {
 	// Inject core dependencies
 	config := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 	handlerPipeline := do.MustInvoke[*pipeline.HandlerPipeline](i)
-	routeDiscovery := do.MustInvoke[RouteDiscovery](i)
+	routeDiscovery := do.MustInvoke[interfaces.RouteDiscovery](i)
 	assetsService := do.MustInvoke[interfaces.AssetsService](i)
 	authHandlers := do.MustInvoke[interfaces.AuthHandlers](i)
-	configLoader := do.MustInvoke[ConfigLoader](i)
+	configLoader := do.MustInvoke[interfaces.ConfigLoader](i)
 
 	// Create separated components
 	handlerBuilder, err := NewHandlerBuilder(i)
@@ -199,34 +199,34 @@ func (crc *cleanRouterCore) GetRoutes() []interfaces.Route {
 }
 
 // GetLayoutTemplates returns all discovered layout templates
-func (crc *cleanRouterCore) GetLayoutTemplates() []LayoutTemplate {
+func (crc *cleanRouterCore) GetLayoutTemplates() []interfaces.LayoutTemplate {
 	return crc.layoutTemplates
 }
 
 // GetErrorTemplates returns all discovered error templates
-func (crc *cleanRouterCore) GetErrorTemplates() []ErrorTemplate {
+func (crc *cleanRouterCore) GetErrorTemplates() []interfaces.ErrorTemplate {
 	return crc.errorTemplates
 }
 
 // GetMiddlewareSetup returns the middleware setup for external access
-func (crc *cleanRouterCore) GetMiddlewareSetup() MiddlewareSetup {
+func (crc *cleanRouterCore) GetMiddlewareSetup() interfaces.MiddlewareSetup {
 	return crc.middlewareSetup
 }
 
 // GetHandlerBuilder returns the handler builder for external access
-func (crc *cleanRouterCore) GetHandlerBuilder() HandlerBuilder {
+func (crc *cleanRouterCore) GetHandlerBuilder() interfaces.HandlerBuilder {
 	return crc.handlerBuilder
 }
 
 // GetRouteRegistrar returns the route registrar for external access
-func (crc *cleanRouterCore) GetRouteRegistrar() RouteRegistrar {
+func (crc *cleanRouterCore) GetRouteRegistrar() interfaces.RouteRegistrar {
 	return crc.routeRegistrar
 }
 
 // loadTranslationsForDiscoveredRoutes loads translations for all discovered routes
 func (crc *cleanRouterCore) loadTranslationsForDiscoveredRoutes() error {
 	crc.logger.Info("Loading translations for discovered routes", zap.Int("route_count", len(crc.routes)))
-	
+
 	// Extract template paths from discovered routes
 	templatePaths := make([]string, 0, len(crc.routes))
 	for _, route := range crc.routes {
@@ -234,17 +234,17 @@ func (crc *cleanRouterCore) loadTranslationsForDiscoveredRoutes() error {
 			templatePaths = append(templatePaths, route.TemplateFile)
 		}
 	}
-	
+
 	// Get translation store from DI container
 	translationStore := do.MustInvoke[interfaces.I18nService](crc.injector)
-	
+
 	// Load all translations in bulk
 	if err := translationStore.LoadAllTranslations(templatePaths); err != nil {
 		return fmt.Errorf("failed to bulk load translations: %w", err)
 	}
-	
+
 	crc.logger.Info("Successfully loaded translations for all discovered routes",
 		zap.Int("template_count", len(templatePaths)))
-	
+
 	return nil
 }

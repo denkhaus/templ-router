@@ -28,7 +28,7 @@ type authMiddleware struct {
 // AuthType methods moved to interfaces package
 
 // NewAuthMiddleware creates a new auth middleware for DI
-func NewAuthMiddleware(i do.Injector) (AuthMiddlewareInterface, error) {
+func NewAuthMiddleware(i do.Injector) (interfaces.AuthMiddlewareInterface, error) {
 	authService := do.MustInvoke[interfaces.AuthService](i)
 	configService := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)

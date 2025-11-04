@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -18,7 +17,7 @@ type configLoaderImpl struct {
 }
 
 // NewConfigLoader creates a new config loader implementation for DI
-func NewConfigLoader(i do.Injector) (router.ConfigLoader, error) {
+func NewConfigLoader(i do.Injector) (interfaces.ConfigLoader, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 	return &configLoaderImpl{
 		logger: logger,

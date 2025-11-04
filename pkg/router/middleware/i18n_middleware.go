@@ -38,7 +38,7 @@ type SupportedLanguage struct {
 // I18nService interface for clean dependency
 
 // NewI18nMiddleware creates a new i18n middleware for DI
-func NewI18nMiddleware(i do.Injector) (I18nMiddlewareInterface, error) {
+func NewI18nMiddleware(i do.Injector) (interfaces.I18nMiddlewareInterface, error) {
 	i18nService := do.MustInvoke[interfaces.I18nService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 

@@ -67,10 +67,10 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 	// UNIFIED TEMPLATE ARCHITECTURE - Performance Optimized
 	// Note: This will use the externally registered TemplateRegistry
 	do.Provide(c.injector, services.NewOptimizedTemplateService)
-	
+
 	// Data Service Resolution
 	do.Provide(c.injector, services.NewDataServiceResolver)
-	
+
 	// Template Data Service for data-driven templates
 
 	// UNIFIED VALIDATION ARCHITECTURE - Orchestrated Validation Logic
@@ -95,11 +95,19 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 	// Register clean router (refactored with separation of concerns)
 	do.Provide(c.injector, router.NewCleanRouterCore)
 
+	// Register router bootstrap for streamlined setup
+	do.Provide(c.injector, router.NewRouterBootstrap)
+
 }
 
 // GetRouter returns the clean router from the container
-func (c *Container) GetRouter() router.RouterCore {
-	return do.MustInvoke[router.RouterCore](c.injector)
+func (c *Container) GetRouter() interfaces.RouterCore {
+	return do.MustInvoke[interfaces.RouterCore](c.injector)
+}
+
+// GetRouterBootstrap returns the router bootstrap service from the container
+func (c *Container) GetRouterBootstrap() *router.RouterBootstrap {
+	return do.MustInvoke[*router.RouterBootstrap](c.injector)
 }
 
 // GetLogger returns the logger from the container

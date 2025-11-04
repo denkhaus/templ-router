@@ -8,7 +8,6 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
@@ -27,27 +26,27 @@ func (m *MockConfigService) GetLayoutRootDirectory() string {
 	}
 	return "/app"
 }
-func (m *MockConfigService) GetServerHost() string                     { return "localhost" }
-func (m *MockConfigService) GetServerPort() int                        { return 8080 }
-func (m *MockConfigService) GetServerBaseURL() string                  { return "http://localhost:8080" }
-func (m *MockConfigService) GetSupportedLocales() []string             { return []string{"en", "de"} }
-func (m *MockConfigService) GetDefaultLocale() string                  { return "en" }
-func (m *MockConfigService) GetFallbackLocale() string                 { return "en" }
-func (m *MockConfigService) GetLayoutFileName() string                 { return "layout.templ" }
-func (m *MockConfigService) GetLayoutAssetsDirectory() string          { return "assets" }
-func (m *MockConfigService) GetLayoutAssetsRouteName() string          { return "/assets/" }
-func (m *MockConfigService) GetTemplateExtension() string              { return ".templ" }
-func (m *MockConfigService) GetMetadataExtension() string              { return ".yaml" }
-func (m *MockConfigService) IsLayoutInheritanceEnabled() bool          { return true }
-func (m *MockConfigService) GetTemplateOutputDir() string              { return "generated" }
-func (m *MockConfigService) GetTemplatePackageName() string            { return "templates" }
-func (m *MockConfigService) IsDevelopment() bool                       { return true }
-func (m *MockConfigService) IsProduction() bool                        { return false }
+func (m *MockConfigService) GetServerHost() string            { return "localhost" }
+func (m *MockConfigService) GetServerPort() int               { return 8080 }
+func (m *MockConfigService) GetServerBaseURL() string         { return "http://localhost:8080" }
+func (m *MockConfigService) GetSupportedLocales() []string    { return []string{"en", "de"} }
+func (m *MockConfigService) GetDefaultLocale() string         { return "en" }
+func (m *MockConfigService) GetFallbackLocale() string        { return "en" }
+func (m *MockConfigService) GetLayoutFileName() string        { return "layout.templ" }
+func (m *MockConfigService) GetLayoutAssetsDirectory() string { return "assets" }
+func (m *MockConfigService) GetLayoutAssetsRouteName() string { return "/assets/" }
+func (m *MockConfigService) GetTemplateExtension() string     { return ".templ" }
+func (m *MockConfigService) GetMetadataExtension() string     { return ".yaml" }
+func (m *MockConfigService) IsLayoutInheritanceEnabled() bool { return true }
+func (m *MockConfigService) GetTemplateOutputDir() string     { return "generated" }
+func (m *MockConfigService) GetTemplatePackageName() string   { return "templates" }
+func (m *MockConfigService) IsDevelopment() bool              { return true }
+func (m *MockConfigService) IsProduction() bool               { return false }
 
 // Router configuration methods
-func (m *MockConfigService) GetRouterEnableTrailingSlash() bool     { return true }
-func (m *MockConfigService) GetRouterEnableSlashRedirect() bool     { return true }
-func (m *MockConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+func (m *MockConfigService) GetRouterEnableTrailingSlash() bool        { return true }
+func (m *MockConfigService) GetRouterEnableSlashRedirect() bool        { return true }
+func (m *MockConfigService) GetRouterEnableMethodNotAllowed() bool     { return true }
 func (m *MockConfigService) GetServerReadTimeout() time.Duration       { return 30 * time.Second }
 func (m *MockConfigService) GetServerWriteTimeout() time.Duration      { return 30 * time.Second }
 func (m *MockConfigService) GetServerIdleTimeout() time.Duration       { return 60 * time.Second }
@@ -103,8 +102,8 @@ func (m *MockAssetsService) SetupRoutes(mux *chi.Mux)             {}
 
 type MockRouteDiscovery struct {
 	Routes         []interfaces.Route
-	Layouts        []LayoutTemplate
-	ErrorTemplates []ErrorTemplate
+	Layouts        []interfaces.LayoutTemplate
+	ErrorTemplates []interfaces.ErrorTemplate
 	ShouldError    bool
 }
 
@@ -115,14 +114,14 @@ func (m *MockRouteDiscovery) DiscoverRoutes(scanPath string) ([]interfaces.Route
 	return m.Routes, nil
 }
 
-func (m *MockRouteDiscovery) DiscoverLayouts(scanPath string) ([]LayoutTemplate, error) {
+func (m *MockRouteDiscovery) DiscoverLayouts(scanPath string) ([]interfaces.LayoutTemplate, error) {
 	if m.ShouldError {
 		return nil, errors.New("mock layout discovery error")
 	}
 	return m.Layouts, nil
 }
 
-func (m *MockRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]ErrorTemplate, error) {
+func (m *MockRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfaces.ErrorTemplate, error) {
 	if m.ShouldError {
 		return nil, errors.New("mock error template discovery error")
 	}
@@ -269,7 +268,7 @@ func (m *MockTemplateMiddleware) Handle(route interfaces.Route, params map[strin
 
 type MockRouterMiddleware struct{}
 
-func (m *MockRouterMiddleware) ConfigureRouterMiddleware(chiRouter *chi.Mux) error {
+func (m *MockRouterMiddleware) Configure(chiRouter *chi.Mux) error {
 	// Mock implementation - do nothing
 	return nil
 }
@@ -292,17 +291,17 @@ func CreateTestContainer() do.Injector {
 		return &pipeline.HandlerPipeline{}, nil
 	})
 
-	do.Provide(injector, func(i do.Injector) (RouteDiscovery, error) {
+	do.Provide(injector, func(i do.Injector) (interfaces.RouteDiscovery, error) {
 		return &MockRouteDiscovery{
 			Routes: []interfaces.Route{
 				{Path: "/", TemplateFile: "index.templ", IsDynamic: false},
 				{Path: "/about", TemplateFile: "about.templ", IsDynamic: false},
 				{Path: "/user/{id}", TemplateFile: "user.templ", IsDynamic: true},
 			},
-			Layouts: []LayoutTemplate{
+			Layouts: []interfaces.LayoutTemplate{
 				{FilePath: "/app/layout.templ", DirectoryPath: "/app"},
 			},
-			ErrorTemplates: []ErrorTemplate{
+			ErrorTemplates: []interfaces.ErrorTemplate{
 				{FilePath: "/app/error.templ", DirectoryPath: "/app", ErrorTypes: []string{"404"}},
 			},
 		}, nil
@@ -312,7 +311,7 @@ func CreateTestContainer() do.Injector {
 		return &MockAssetsService{}, nil
 	})
 
-	do.Provide(injector, func(i do.Injector) (ConfigLoader, error) {
+	do.Provide(injector, func(i do.Injector) (interfaces.ConfigLoader, error) {
 		return &MockConfigLoader{}, nil
 	})
 
@@ -338,19 +337,19 @@ func CreateTestContainer() do.Injector {
 	})
 
 	// Register all middleware interfaces for complete testing
-	do.Provide(injector, func(i do.Injector) (middleware.AuthMiddlewareInterface, error) {
+	do.Provide(injector, func(i do.Injector) (interfaces.AuthMiddlewareInterface, error) {
 		return &MockAuthMiddleware{}, nil
 	})
 
-	do.Provide(injector, func(i do.Injector) (middleware.I18nMiddlewareInterface, error) {
+	do.Provide(injector, func(i do.Injector) (interfaces.I18nMiddlewareInterface, error) {
 		return &MockI18nMiddleware{}, nil
 	})
 
-	do.Provide(injector, func(i do.Injector) (middleware.TemplateMiddlewareInterface, error) {
+	do.Provide(injector, func(i do.Injector) (interfaces.TemplateMiddlewareInterface, error) {
 		return &MockTemplateMiddleware{}, nil
 	})
 
-	do.Provide(injector, func(i do.Injector) (middleware.RouterMiddlewareInterface, error) {
+	do.Provide(injector, func(i do.Injector) (interfaces.RouterMiddlewareInterface, error) {
 		return &MockRouterMiddleware{}, nil
 	})
 

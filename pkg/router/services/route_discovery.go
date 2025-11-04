@@ -5,8 +5,6 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -17,15 +15,15 @@ type routeDiscoveryImpl struct {
 	config           interfaces.ConfigService
 	logger           *zap.Logger
 	injector         do.Injector
-	fileSystem       middleware.FileSystemChecker
+	fileSystem       interfaces.FileSystemChecker
 	templateRegistry interfaces.TemplateRegistry
 }
 
 // NewRouteDiscovery creates a new route discovery implementation for DI
-func NewRouteDiscovery(i do.Injector) (router.RouteDiscovery, error) {
+func NewRouteDiscovery(i do.Injector) (interfaces.RouteDiscovery, error) {
 	config := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
-	fileSystem := do.MustInvoke[middleware.FileSystemChecker](i)
+	fileSystem := do.MustInvoke[interfaces.FileSystemChecker](i)
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 	return &routeDiscoveryImpl{
 		config:           config,
@@ -197,10 +195,10 @@ func (rd *routeDiscoveryImpl) calculateRoutePrecedence(routePattern string) int 
 }
 
 // DiscoverLayouts implements router.RouteDiscovery
-func (rd *routeDiscoveryImpl) DiscoverLayouts(scanPath string) ([]router.LayoutTemplate, error) {
+func (rd *routeDiscoveryImpl) DiscoverLayouts(scanPath string) ([]interfaces.LayoutTemplate, error) {
 	rd.logger.Debug("Discovering layouts", zap.String("scan_path", scanPath))
 
-	var layouts []router.LayoutTemplate
+	var layouts []interfaces.LayoutTemplate
 
 	err := rd.fileSystem.WalkDirectory(scanPath, func(path string, isDir bool, err error) error {
 		if err != nil {
@@ -244,10 +242,10 @@ func (rd *routeDiscoveryImpl) DiscoverLayouts(scanPath string) ([]router.LayoutT
 }
 
 // DiscoverErrorTemplates implements router.RouteDiscovery
-func (rd *routeDiscoveryImpl) DiscoverErrorTemplates(scanPath string) ([]router.ErrorTemplate, error) {
+func (rd *routeDiscoveryImpl) DiscoverErrorTemplates(scanPath string) ([]interfaces.ErrorTemplate, error) {
 	rd.logger.Debug("Discovering error templates", zap.String("scan_path", scanPath))
 
-	var errorTemplates []router.ErrorTemplate
+	var errorTemplates []interfaces.ErrorTemplate
 
 	err := rd.fileSystem.WalkDirectory(scanPath, func(path string, isDir bool, err error) error {
 		if err != nil {
@@ -301,10 +299,10 @@ func (rd *routeDiscoveryImpl) isErrorTemplate(path string) bool {
 }
 
 // createLayoutFromTemplate creates a layout template from a template file
-func (rd *routeDiscoveryImpl) createLayoutFromTemplate(templatePath, scanPath string) (router.LayoutTemplate, error) {
+func (rd *routeDiscoveryImpl) createLayoutFromTemplate(templatePath, scanPath string) (interfaces.LayoutTemplate, error) {
 	relativePath, err := filepath.Rel(scanPath, templatePath)
 	if err != nil {
-		return router.LayoutTemplate{}, shared.NewRouteError("Failed to get relative path for layout template").
+		return interfaces.LayoutTemplate{}, shared.NewRouteError("Failed to get relative path for layout template").
 			WithCause(err).
 			WithContext("template_path", templatePath).
 			WithContext("scan_path", scanPath).
@@ -314,7 +312,7 @@ func (rd *routeDiscoveryImpl) createLayoutFromTemplate(templatePath, scanPath st
 	// Calculate layout level based on directory depth
 	layoutLevel := strings.Count(relativePath, string(filepath.Separator))
 
-	layout := router.LayoutTemplate{
+	layout := interfaces.LayoutTemplate{
 		FilePath:      templatePath,
 		DirectoryPath: filepath.Dir(templatePath),
 		LayoutLevel:   layoutLevel,
@@ -324,10 +322,10 @@ func (rd *routeDiscoveryImpl) createLayoutFromTemplate(templatePath, scanPath st
 }
 
 // createErrorTemplateFromTemplate creates an error template from a template file
-func (rd *routeDiscoveryImpl) createErrorTemplateFromTemplate(templatePath, scanPath string) (router.ErrorTemplate, error) {
+func (rd *routeDiscoveryImpl) createErrorTemplateFromTemplate(templatePath, scanPath string) (interfaces.ErrorTemplate, error) {
 	relativePath, err := filepath.Rel(scanPath, templatePath)
 	if err != nil {
-		return router.ErrorTemplate{}, shared.NewRouteError("Failed to get relative path for error template").
+		return interfaces.ErrorTemplate{}, shared.NewRouteError("Failed to get relative path for error template").
 			WithCause(err).
 			WithContext("template_path", templatePath).
 			WithContext("scan_path", scanPath).
@@ -337,7 +335,7 @@ func (rd *routeDiscoveryImpl) createErrorTemplateFromTemplate(templatePath, scan
 	// Extract error type from path (e.g., 404, 500, etc.)
 	errorType := rd.extractErrorType(relativePath)
 
-	errorTemplate := router.ErrorTemplate{
+	errorTemplate := interfaces.ErrorTemplate{
 		FilePath:        templatePath,
 		DirectoryPath:   filepath.Dir(templatePath),
 		ErrorTypes:      []string{errorType},

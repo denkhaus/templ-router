@@ -1,6 +1,21 @@
 package interfaces
 
-import "time"
+import (
+	"context"
+	"net/http"
+	"time"
+
+	"github.com/a-h/templ"
+	"github.com/go-chi/chi/v5"
+	"github.com/samber/do/v2"
+	"go.uber.org/zap"
+)
+
+type ConfigLoader interface {
+	LoadRouteConfig(templateFile string) (*ConfigFile, error)
+	LoadConfig(templatePath string) (*ConfigFile, error)
+	LoadAuthSettings(templatePath string) (*AuthSettings, error)
+}
 
 // CENTRAL TYPE DEFINITIONS - Consolidation of all duplicate structs
 // This file eliminates the massive struct redundancy identified in code quality analysis
@@ -23,7 +38,7 @@ type Route struct {
 
 	// Security
 	AuthSettings *AuthSettings `json:"auth_settings,omitempty"`
-	
+
 	// Data Service Integration
 	RequiresDataService  bool   `json:"requires_data_service,omitempty"`
 	DataServiceInterface string `json:"data_service_interface,omitempty"`
@@ -38,16 +53,56 @@ type LayoutTemplate struct {
 	ComponentName string `json:"component_name,omitempty"`
 	Content       string `json:"content,omitempty"`
 	LayoutLevel   int    `json:"layout_level,omitempty"`
+	// DirectoryPath is the directory containing this layout
+	DirectoryPath string
 }
+
+// LayoutTemplate represents a layout.templ file that defines base UI structure
+// type LayoutTemplateOld struct {
+// 	// FilePath is the full path to the layout.templ file
+// 	FilePath string
+
+// 	// ChildPages is a list of page.templ files that use this layout
+// 	ChildPages []string
+
+// 	// ParentLayout is the path to parent layout if this doesn't override completely
+// 	ParentLayout string
+
+// 	// LayoutLevel is the level in the layout hierarchy (0 = app root, higher = deeper)
+// 	LayoutLevel int
+// }
 
 // ErrorTemplate represents an error template
 // CONSOLIDATES: Multiple error template definitions
 type ErrorTemplate struct {
+	// FilePath is the full path to the error.templ file
 	FilePath      string `json:"file_path"`
 	ComponentName string `json:"component_name,omitempty"`
 	Content       string `json:"content,omitempty"`
 	ErrorCode     int    `json:"error_code,omitempty"`
+	// ErrorTypes is a list of error types handled by this template
+	ErrorTypes []string
+	// DirectoryPath is the directory containing this error template
+	DirectoryPath string
+	// PrecedenceLevel is the level of precedence (closer templates override further ones)
+	PrecedenceLevel int
+	// ErrorMessages contains mapping of error codes to specific messages
+	ErrorMessages map[int]string
 }
+
+// ErrorTemplate represents an error.templ file for error page presentation
+// type ErrorTemplateOld struct {
+// 	FilePath string
+
+// 	// DirectoryPath is the directory containing this error template
+// 	DirectoryPath string
+
+// 	// ErrorTypes is a list of error types handled by this template
+// 	ErrorTypes []string
+
+// 	// ParentErrorTemplate is the path to parent error template if this doesn't override completely
+// 	ParentErrorTemplate string
+// }
 
 // AuthSettings contains authentication configuration
 // CONSOLIDATES: interfaces/services.go:81, router/auth_types.go:66, router/middleware/auth_middleware.go:27
@@ -159,4 +214,136 @@ type InternationalizationIdentifier struct {
 
 	// Locales contains translations for different locales
 	Locales map[string]string
+}
+
+// RouterCore defines the contract for the clean router core
+// type RouterCore interface {
+// 	Initialize() error
+// 	RegisterRoutes(chiRouter *chi.Mux) error
+// 	GetRoutes() []Route
+// 	GetLayoutTemplates() []LayoutTemplate
+// 	GetErrorTemplates() []ErrorTemplate
+// 	GetMiddlewareSetup() interface{}
+// 	GetHandlerBuilder() interface{}
+// 	GetRouteRegistrar() interface{}
+// }
+
+type RouteDiscovery interface {
+	DiscoverRoutes(scanPath string) ([]Route, error)
+	DiscoverLayouts(scanPath string) ([]LayoutTemplate, error)
+	DiscoverErrorTemplates(scanPath string) ([]ErrorTemplate, error)
+}
+
+// RouteRegistrar defines the contract for route registration
+type RouteRegistrar interface {
+	RegisterRoutes(routes []Route) error
+	RegisterStaticRoutes()
+	Register404Handler()
+	RegisterMethodNotAllowedHandler()
+}
+
+// AuthService handles authentication and authorization
+type AuthService interface {
+	Authenticate(req *http.Request, requirements *AuthSettings) (*AuthResult, error)
+	HasRequiredPermissions(req *http.Request, settings *AuthSettings) bool
+}
+
+// I18nService handles internationalization
+// I18nService handles internationalization
+type I18nService interface {
+	ExtractLocale(req *http.Request) string
+	CreateContext(ctx context.Context, templatePath string) context.Context
+	GetSupportedLocales() []string
+	LoadAllTranslations(templatePaths []string) error
+}
+
+// TemplateService handles template rendering
+type TemplateService interface {
+	RenderComponent(route Route, routerCtx RouterContext, ctx context.Context) (templ.Component, error)
+	RenderLayoutComponent(layoutPath string, content templ.Component, ctx context.Context) (templ.Component, error)
+}
+
+// LayoutService handles layout resolution and wrapping
+type LayoutService interface {
+	FindLayoutForTemplate(templatePath string) *LayoutTemplate
+	WrapInLayout(component templ.Component, layout *LayoutTemplate, ctx context.Context) templ.Component
+}
+
+// ErrorService handles error template resolution
+type ErrorService interface {
+	FindErrorTemplateForPath(path string) *ErrorTemplate
+	CreateErrorComponent(message, path string) templ.Component
+}
+
+// AuthMiddlewareInterface handles authentication middleware
+type AuthMiddlewareInterface interface {
+	Handle(next http.Handler, requirements *AuthSettings) http.Handler
+}
+
+// I18nMiddlewareInterface handles internationalization middleware
+type I18nMiddlewareInterface interface {
+	Handle(next http.Handler, templatePath string) http.Handler
+}
+
+// TemplateMiddlewareInterface handles template rendering middleware
+type TemplateMiddlewareInterface interface {
+	Handle(route Route, params map[string]string) http.Handler
+}
+
+// RouterMiddlewareInterface handles router-level middleware configuration
+type RouterMiddlewareInterface interface {
+	Configure(chiRouter *chi.Mux) error
+}
+
+// FileSystemChecker provides filesystem operations for library-agnostic file access
+type FileSystemChecker interface {
+	FileExists(path string) bool
+	IsDirectory(path string) bool
+	WalkDirectory(root string, walkFn func(path string, isDir bool, err error) error) error
+}
+
+// MiddlewareSetup defines the contract for middleware configuration
+type MiddlewareSetup interface {
+	GetAuthService() AuthService
+	GetI18nService() I18nService
+	GetTemplateService() TemplateService
+	GetLayoutService() LayoutService
+	GetErrorService() ErrorService
+	GetAuthMiddleware() AuthMiddlewareInterface
+	GetI18nMiddleware() I18nMiddlewareInterface
+	GetTemplateMiddleware() TemplateMiddlewareInterface
+	GetRouterMiddleware() RouterMiddlewareInterface
+	ConfigureMiddlewareChain(route Route, authSettings interface{}) []interface{}
+	ValidateMiddlewareSetup() error
+}
+
+// HandlerBuilder defines the contract for handler building
+type HandlerBuilder interface {
+	BuildHandler(route Route) http.Handler
+	BuildStaticHandler(path string) http.Handler
+	BuildErrorHandler(statusCode int, message string) http.HandlerFunc
+}
+type RouterCore interface {
+	Initialize() error
+	RegisterRoutes(chiRouter *chi.Mux) error
+	GetRoutes() []Route
+	GetLayoutTemplates() []LayoutTemplate
+	GetErrorTemplates() []ErrorTemplate
+	GetMiddlewareSetup() MiddlewareSetup
+	GetHandlerBuilder() HandlerBuilder
+	GetRouteRegistrar() RouteRegistrar
+}
+
+// ApplicationOption defines an option for configuring application services
+type ApplicationOption func(c Container)
+
+// Container defines the interface for DI container operations
+type Container interface {
+	GetInjector() do.Injector
+	GetRouter() RouterCore
+	GetRouterBootstrap() interface{}
+	GetLogger() *zap.Logger
+	GetConfigService() ConfigService
+	RegisterApplicationServices(options ...ApplicationOption)
+	Shutdown() error
 }

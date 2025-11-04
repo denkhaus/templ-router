@@ -32,7 +32,7 @@ type ParameterExtractor interface {
 // Route and LayoutTemplate are now imported from interfaces package
 
 // NewTemplateMiddleware creates a new template middleware for DI
-func NewTemplateMiddleware(i do.Injector) (TemplateMiddlewareInterface, error) {
+func NewTemplateMiddleware(i do.Injector) (interfaces.TemplateMiddlewareInterface, error) {
 	templateService := do.MustInvoke[interfaces.TemplateService](i)
 	layoutService := do.MustInvoke[interfaces.LayoutService](i)
 	errorService := do.MustInvoke[interfaces.ErrorService](i)

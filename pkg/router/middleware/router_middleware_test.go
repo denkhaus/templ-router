@@ -21,9 +21,11 @@ type mockRouterConfigService struct {
 	enableMethodNotAllowed bool
 }
 
-func (m *mockRouterConfigService) GetRouterEnableTrailingSlash() bool     { return m.enableTrailingSlash }
-func (m *mockRouterConfigService) GetRouterEnableSlashRedirect() bool     { return m.enableSlashRedirect }
-func (m *mockRouterConfigService) GetRouterEnableMethodNotAllowed() bool  { return m.enableMethodNotAllowed }
+func (m *mockRouterConfigService) GetRouterEnableTrailingSlash() bool { return m.enableTrailingSlash }
+func (m *mockRouterConfigService) GetRouterEnableSlashRedirect() bool { return m.enableSlashRedirect }
+func (m *mockRouterConfigService) GetRouterEnableMethodNotAllowed() bool {
+	return m.enableMethodNotAllowed
+}
 
 // Implement all required ConfigService methods (minimal implementation for tests)
 func (m *mockRouterConfigService) GetLayoutRootDirectory() string            { return "app" }
@@ -145,7 +147,7 @@ func TestRouterMiddleware_ConfigureRouterMiddleware_TrailingSlashEnabled(t *test
 	router := chi.NewRouter()
 
 	// Configure router middleware BEFORE adding routes
-	err = middleware.ConfigureRouterMiddleware(router)
+	err = middleware.Configure(router)
 	require.NoError(t, err)
 
 	// Add a test route AFTER middleware configuration
@@ -195,7 +197,7 @@ func TestRouterMiddleware_ConfigureRouterMiddleware_SlashRedirectEnabled(t *test
 	router := chi.NewRouter()
 
 	// Configure router middleware BEFORE adding routes
-	err = middleware.ConfigureRouterMiddleware(router)
+	err = middleware.Configure(router)
 	require.NoError(t, err)
 
 	// Add a test route AFTER middleware configuration
@@ -203,7 +205,6 @@ func TestRouterMiddleware_ConfigureRouterMiddleware_SlashRedirectEnabled(t *test
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("test response"))
 	})
-
 
 	// Test double slash cleanup with a path that has double slashes
 	// Add a route that can be cleaned
@@ -249,7 +250,7 @@ func TestRouterMiddleware_ConfigureRouterMiddleware_BothDisabled(t *testing.T) {
 	router := chi.NewRouter()
 
 	// Configure router middleware BEFORE adding routes
-	err = middleware.ConfigureRouterMiddleware(router)
+	err = middleware.Configure(router)
 	require.NoError(t, err)
 
 	// Add a test route AFTER middleware configuration
@@ -257,7 +258,6 @@ func TestRouterMiddleware_ConfigureRouterMiddleware_BothDisabled(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("test response"))
 	})
-
 
 	// Test that no redirection happens
 	req := httptest.NewRequest("GET", "/test/", nil)
@@ -295,7 +295,7 @@ func TestRouterMiddleware_ConfigureRouterMiddleware_BothEnabled(t *testing.T) {
 	router := chi.NewRouter()
 
 	// Configure router middleware BEFORE adding routes
-	err = middleware.ConfigureRouterMiddleware(router)
+	err = middleware.Configure(router)
 	require.NoError(t, err)
 
 	// Add a test route AFTER middleware configuration
@@ -303,7 +303,6 @@ func TestRouterMiddleware_ConfigureRouterMiddleware_BothEnabled(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("test response"))
 	})
-
 
 	// Test that both middleware work together
 	req := httptest.NewRequest("GET", "/test//", nil) // Double slash + trailing slash

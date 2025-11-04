@@ -6,7 +6,6 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -56,54 +55,56 @@ func (m *mockRouteDiscoveryConfigService) GetDefaultLocale() string {
 }
 
 // Additional methods to satisfy interfaces.ConfigService
-func (m *mockRouteDiscoveryConfigService) AreSecurityHeadersEnabled() bool { return false }
-func (m *mockRouteDiscoveryConfigService) GetServerHost() string { return "localhost" }
-func (m *mockRouteDiscoveryConfigService) GetServerPort() int { return 8080 }
-func (m *mockRouteDiscoveryConfigService) GetServerBaseURL() string { return "http://localhost:8080" }
-func (m *mockRouteDiscoveryConfigService) GetDatabaseHost() string { return "localhost" }
-func (m *mockRouteDiscoveryConfigService) GetDatabasePort() int { return 5432 }
-func (m *mockRouteDiscoveryConfigService) GetDatabaseUser() string { return "user" }
-func (m *mockRouteDiscoveryConfigService) GetDatabasePassword() string { return "pass" }
-func (m *mockRouteDiscoveryConfigService) GetDatabaseName() string { return "db" }
-func (m *mockRouteDiscoveryConfigService) GetDatabaseSSLMode() string { return "disable" }
+func (m *mockRouteDiscoveryConfigService) AreSecurityHeadersEnabled() bool   { return false }
+func (m *mockRouteDiscoveryConfigService) GetServerHost() string             { return "localhost" }
+func (m *mockRouteDiscoveryConfigService) GetServerPort() int                { return 8080 }
+func (m *mockRouteDiscoveryConfigService) GetServerBaseURL() string          { return "http://localhost:8080" }
+func (m *mockRouteDiscoveryConfigService) GetDatabaseHost() string           { return "localhost" }
+func (m *mockRouteDiscoveryConfigService) GetDatabasePort() int              { return 5432 }
+func (m *mockRouteDiscoveryConfigService) GetDatabaseUser() string           { return "user" }
+func (m *mockRouteDiscoveryConfigService) GetDatabasePassword() string       { return "pass" }
+func (m *mockRouteDiscoveryConfigService) GetDatabaseName() string           { return "db" }
+func (m *mockRouteDiscoveryConfigService) GetDatabaseSSLMode() string        { return "disable" }
 func (m *mockRouteDiscoveryConfigService) IsEmailVerificationRequired() bool { return false }
-func (m *mockRouteDiscoveryConfigService) GetVerificationTokenExpiry() time.Duration { return 24 * time.Hour }
-func (m *mockRouteDiscoveryConfigService) GetSessionCookieName() string { return "session" }
-func (m *mockRouteDiscoveryConfigService) GetSessionExpiry() time.Duration { return 24 * time.Hour }
-func (m *mockRouteDiscoveryConfigService) IsSessionSecure() bool { return false }
-func (m *mockRouteDiscoveryConfigService) IsSessionHTTPOnly() bool { return true }
-func (m *mockRouteDiscoveryConfigService) GetSessionSameSite() string { return "lax" }
-func (m *mockRouteDiscoveryConfigService) GetMinPasswordLength() int { return 8 }
-func (m *mockRouteDiscoveryConfigService) IsStrongPasswordRequired() bool { return false }
-func (m *mockRouteDiscoveryConfigService) ShouldCreateDefaultAdmin() bool { return false }
-func (m *mockRouteDiscoveryConfigService) GetDefaultAdminEmail() string { return "admin@example.com" }
-func (m *mockRouteDiscoveryConfigService) GetDefaultAdminPassword() string { return "password" }
+func (m *mockRouteDiscoveryConfigService) GetVerificationTokenExpiry() time.Duration {
+	return 24 * time.Hour
+}
+func (m *mockRouteDiscoveryConfigService) GetSessionCookieName() string     { return "session" }
+func (m *mockRouteDiscoveryConfigService) GetSessionExpiry() time.Duration  { return 24 * time.Hour }
+func (m *mockRouteDiscoveryConfigService) IsSessionSecure() bool            { return false }
+func (m *mockRouteDiscoveryConfigService) IsSessionHTTPOnly() bool          { return true }
+func (m *mockRouteDiscoveryConfigService) GetSessionSameSite() string       { return "lax" }
+func (m *mockRouteDiscoveryConfigService) GetMinPasswordLength() int        { return 8 }
+func (m *mockRouteDiscoveryConfigService) IsStrongPasswordRequired() bool   { return false }
+func (m *mockRouteDiscoveryConfigService) ShouldCreateDefaultAdmin() bool   { return false }
+func (m *mockRouteDiscoveryConfigService) GetDefaultAdminEmail() string     { return "admin@example.com" }
+func (m *mockRouteDiscoveryConfigService) GetDefaultAdminPassword() string  { return "password" }
 func (m *mockRouteDiscoveryConfigService) GetDefaultAdminFirstName() string { return "Admin" }
-func (m *mockRouteDiscoveryConfigService) GetDefaultAdminLastName() string { return "User" }
-func (m *mockRouteDiscoveryConfigService) GetSMTPHost() string { return "" }
-func (m *mockRouteDiscoveryConfigService) GetSMTPPort() int { return 587 }
-func (m *mockRouteDiscoveryConfigService) GetSMTPUsername() string { return "" }
-func (m *mockRouteDiscoveryConfigService) GetSMTPPassword() string { return "" }
-func (m *mockRouteDiscoveryConfigService) IsSMTPTLSEnabled() bool { return true }
-func (m *mockRouteDiscoveryConfigService) GetFromEmail() string { return "noreply@example.com" }
-func (m *mockRouteDiscoveryConfigService) GetFromName() string { return "App" }
-func (m *mockRouteDiscoveryConfigService) GetReplyToEmail() string { return "" }
-func (m *mockRouteDiscoveryConfigService) IsEmailDummyModeEnabled() bool { return true }
-func (m *mockRouteDiscoveryConfigService) GetCSRFSecret() string { return "secret" }
-func (m *mockRouteDiscoveryConfigService) IsCSRFSecure() bool { return false }
-func (m *mockRouteDiscoveryConfigService) IsCSRFHTTPOnly() bool { return true }
-func (m *mockRouteDiscoveryConfigService) GetCSRFSameSite() string { return "strict" }
-func (m *mockRouteDiscoveryConfigService) IsRateLimitEnabled() bool { return false }
-func (m *mockRouteDiscoveryConfigService) GetRateLimitRequests() int { return 100 }
-func (m *mockRouteDiscoveryConfigService) IsHSTSEnabled() bool { return false }
-func (m *mockRouteDiscoveryConfigService) GetHSTSMaxAge() int { return 31536000 }
-func (m *mockRouteDiscoveryConfigService) GetLogLevel() string { return "info" }
-func (m *mockRouteDiscoveryConfigService) GetLogFormat() string { return "json" }
-func (m *mockRouteDiscoveryConfigService) GetLogOutput() string { return "stdout" }
-func (m *mockRouteDiscoveryConfigService) IsFileLoggingEnabled() bool { return false }
-func (m *mockRouteDiscoveryConfigService) GetLogFilePath() string { return "" }
-func (m *mockRouteDiscoveryConfigService) IsProductionMode() bool { return false }
-func (m *mockRouteDiscoveryConfigService) IsDevelopmentMode() bool { return true }
+func (m *mockRouteDiscoveryConfigService) GetDefaultAdminLastName() string  { return "User" }
+func (m *mockRouteDiscoveryConfigService) GetSMTPHost() string              { return "" }
+func (m *mockRouteDiscoveryConfigService) GetSMTPPort() int                 { return 587 }
+func (m *mockRouteDiscoveryConfigService) GetSMTPUsername() string          { return "" }
+func (m *mockRouteDiscoveryConfigService) GetSMTPPassword() string          { return "" }
+func (m *mockRouteDiscoveryConfigService) IsSMTPTLSEnabled() bool           { return true }
+func (m *mockRouteDiscoveryConfigService) GetFromEmail() string             { return "noreply@example.com" }
+func (m *mockRouteDiscoveryConfigService) GetFromName() string              { return "App" }
+func (m *mockRouteDiscoveryConfigService) GetReplyToEmail() string          { return "" }
+func (m *mockRouteDiscoveryConfigService) IsEmailDummyModeEnabled() bool    { return true }
+func (m *mockRouteDiscoveryConfigService) GetCSRFSecret() string            { return "secret" }
+func (m *mockRouteDiscoveryConfigService) IsCSRFSecure() bool               { return false }
+func (m *mockRouteDiscoveryConfigService) IsCSRFHTTPOnly() bool             { return true }
+func (m *mockRouteDiscoveryConfigService) GetCSRFSameSite() string          { return "strict" }
+func (m *mockRouteDiscoveryConfigService) IsRateLimitEnabled() bool         { return false }
+func (m *mockRouteDiscoveryConfigService) GetRateLimitRequests() int        { return 100 }
+func (m *mockRouteDiscoveryConfigService) IsHSTSEnabled() bool              { return false }
+func (m *mockRouteDiscoveryConfigService) GetHSTSMaxAge() int               { return 31536000 }
+func (m *mockRouteDiscoveryConfigService) GetLogLevel() string              { return "info" }
+func (m *mockRouteDiscoveryConfigService) GetLogFormat() string             { return "json" }
+func (m *mockRouteDiscoveryConfigService) GetLogOutput() string             { return "stdout" }
+func (m *mockRouteDiscoveryConfigService) IsFileLoggingEnabled() bool       { return false }
+func (m *mockRouteDiscoveryConfigService) GetLogFilePath() string           { return "" }
+func (m *mockRouteDiscoveryConfigService) IsProductionMode() bool           { return false }
+func (m *mockRouteDiscoveryConfigService) IsDevelopmentMode() bool          { return true }
 
 type mockFileSystemChecker struct{}
 
@@ -126,8 +127,8 @@ type mockTemplateRegistry struct {
 func (m *mockTemplateRegistry) GetRouteToTemplateMapping() map[string]string {
 	if m.routeMapping == nil {
 		return map[string]string{
-			"/":                    "template1",
-			"/{locale}":           "template2", 
+			"/":                   "template1",
+			"/{locale}":           "template2",
 			"/{locale}/dashboard": "template3",
 			"/{locale}/user/{id}": "template4",
 			"/login":              "template5",
@@ -166,24 +167,24 @@ func (m *mockTemplateRegistry) GetDataServiceInfo(key string) (interfaces.DataSe
 
 func createTestContainer() do.Injector {
 	injector := do.New()
-	
+
 	// Register mocks with proper interface types
 	do.ProvideValue[interfaces.ConfigService](injector, &mockRouteDiscoveryConfigService{})
 	do.ProvideValue[*zap.Logger](injector, zap.NewNop())
-	do.ProvideValue[middleware.FileSystemChecker](injector, &mockFileSystemChecker{})
+	do.ProvideValue[interfaces.FileSystemChecker](injector, &mockFileSystemChecker{})
 	do.ProvideValue[interfaces.TemplateRegistry](injector, &mockTemplateRegistry{})
-	
+
 	return injector
 }
 
 func TestNewRouteDiscovery(t *testing.T) {
 	injector := createTestContainer()
-	
+
 	discovery, err := NewRouteDiscovery(injector)
 	if err != nil {
 		t.Fatalf("NewRouteDiscovery() returned error: %v", err)
 	}
-	
+
 	if discovery == nil {
 		t.Fatal("NewRouteDiscovery() returned nil")
 	}
@@ -195,18 +196,18 @@ func TestDiscoverRoutes(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create route discovery: %v", err)
 	}
-	
+
 	// Test with demo directory that actually contains .templ files
 	routes, err := discovery.DiscoverRoutes("../../demo/app")
 	if err != nil {
 		t.Fatalf("DiscoverRoutes() returned error: %v", err)
 	}
-	
+
 	// The demo directory should have some routes
 	if len(routes) == 0 {
 		t.Skip("No routes found in demo directory - this is expected if demo templates don't exist")
 	}
-	
+
 	// Log found routes for debugging
 	t.Logf("Found %d routes:", len(routes))
 	for _, route := range routes {
@@ -220,15 +221,15 @@ func TestGenerateTemplateFilePathFromPattern(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create route discovery: %v", err)
 	}
-	
+
 	// Access the private method through the implementation
 	impl := discovery.(*routeDiscoveryImpl)
-	
+
 	tests := []struct {
-		name           string
-		routePattern   string
-		expectedPath   string
-		description    string
+		name         string
+		routePattern string
+		expectedPath string
+		description  string
 	}{
 		{
 			name:         "Root route",
@@ -273,7 +274,7 @@ func TestGenerateTemplateFilePathFromPattern(t *testing.T) {
 			description:  "German locale should be converted to locale_",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := impl.generateTemplateFilePathFromPattern(tt.routePattern)
@@ -291,9 +292,9 @@ func TestI18nPlaceholderFix(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to create route discovery: %v", err)
 	}
-	
+
 	impl := discovery.(*routeDiscoveryImpl)
-	
+
 	// Test the specific fix for i18n placeholder resolution
 	testCases := []struct {
 		input    string
@@ -307,7 +308,7 @@ func TestI18nPlaceholderFix(t *testing.T) {
 		},
 		{
 			input:    "/{locale}/dashboard",
-			expected: "app/locale_/dashboard/page.templ", 
+			expected: "app/locale_/dashboard/page.templ",
 			desc:     "Nested locale routes should work",
 		},
 		{
@@ -316,7 +317,7 @@ func TestI18nPlaceholderFix(t *testing.T) {
 			desc:     "Multiple dynamic parameters should work",
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
 			result := impl.generateTemplateFilePathFromPattern(tc.input)
@@ -327,22 +328,31 @@ func TestI18nPlaceholderFix(t *testing.T) {
 		})
 	}
 }
+
 // Additional missing methods for ConfigService
-func (m *mockRouteDiscoveryConfigService) GetServerReadTimeout() time.Duration { return 30 * time.Second }
-func (m *mockRouteDiscoveryConfigService) GetServerWriteTimeout() time.Duration { return 30 * time.Second }
-func (m *mockRouteDiscoveryConfigService) GetServerIdleTimeout() time.Duration { return 2 * time.Minute }
-func (m *mockRouteDiscoveryConfigService) GetServerShutdownTimeout() time.Duration { return 30 * time.Second }
-func (m *mockRouteDiscoveryConfigService) GetFallbackLocale() string { return "en" }
+func (m *mockRouteDiscoveryConfigService) GetServerReadTimeout() time.Duration {
+	return 30 * time.Second
+}
+func (m *mockRouteDiscoveryConfigService) GetServerWriteTimeout() time.Duration {
+	return 30 * time.Second
+}
+func (m *mockRouteDiscoveryConfigService) GetServerIdleTimeout() time.Duration {
+	return 2 * time.Minute
+}
+func (m *mockRouteDiscoveryConfigService) GetServerShutdownTimeout() time.Duration {
+	return 30 * time.Second
+}
+func (m *mockRouteDiscoveryConfigService) GetFallbackLocale() string        { return "en" }
 func (m *mockRouteDiscoveryConfigService) GetLayoutAssetsDirectory() string { return "assets" }
 func (m *mockRouteDiscoveryConfigService) GetLayoutAssetsRouteName() string { return "/assets/" }
-func (m *mockRouteDiscoveryConfigService) GetMetadataExtension() string { return ".yaml" }
+func (m *mockRouteDiscoveryConfigService) GetMetadataExtension() string     { return ".yaml" }
 func (m *mockRouteDiscoveryConfigService) IsLayoutInheritanceEnabled() bool { return true }
-func (m *mockRouteDiscoveryConfigService) GetTemplateOutputDir() string { return "generated" }
-func (m *mockRouteDiscoveryConfigService) GetTemplatePackageName() string { return "templates" }
-func (m *mockRouteDiscoveryConfigService) IsSessionHttpOnly() bool { return true }
-func (m *mockRouteDiscoveryConfigService) IsCSRFHttpOnly() bool { return true }
-func (m *mockRouteDiscoveryConfigService) IsDevelopment() bool { return true }
-func (m *mockRouteDiscoveryConfigService) IsProduction() bool { return false }
+func (m *mockRouteDiscoveryConfigService) GetTemplateOutputDir() string     { return "generated" }
+func (m *mockRouteDiscoveryConfigService) GetTemplatePackageName() string   { return "templates" }
+func (m *mockRouteDiscoveryConfigService) IsSessionHttpOnly() bool          { return true }
+func (m *mockRouteDiscoveryConfigService) IsCSRFHttpOnly() bool             { return true }
+func (m *mockRouteDiscoveryConfigService) IsDevelopment() bool              { return true }
+func (m *mockRouteDiscoveryConfigService) IsProduction() bool               { return false }
 
 // Auth redirect routes (only for success cases)
 func (m *mockRouteDiscoveryConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
@@ -353,6 +363,6 @@ func (m *mockRouteDiscoveryConfigService) GetSignOutSuccessRoute() string { retu
 func (m *mockRouteDiscoveryConfigService) GetSignInRoute() string { return "/login" }
 
 // Router configuration methods
-func (m *mockRouteDiscoveryConfigService) GetRouterEnableTrailingSlash() bool     { return true }
-func (m *mockRouteDiscoveryConfigService) GetRouterEnableSlashRedirect() bool     { return true }
-func (m *mockRouteDiscoveryConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+func (m *mockRouteDiscoveryConfigService) GetRouterEnableTrailingSlash() bool    { return true }
+func (m *mockRouteDiscoveryConfigService) GetRouterEnableSlashRedirect() bool    { return true }
+func (m *mockRouteDiscoveryConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
