@@ -18,6 +18,7 @@ type templateMiddleware struct {
 	layoutService      interfaces.LayoutService
 	errorService       interfaces.ErrorService
 	parameterExtractor ParameterExtractor
+	templateRegistry   interfaces.TemplateRegistry
 	logger             *zap.Logger
 }
 
@@ -36,6 +37,7 @@ func NewTemplateMiddleware(i do.Injector) (TemplateMiddlewareInterface, error) {
 	layoutService := do.MustInvoke[interfaces.LayoutService](i)
 	errorService := do.MustInvoke[interfaces.ErrorService](i)
 	parameterExtractor := do.MustInvoke[ParameterExtractor](i)
+	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &templateMiddleware{
@@ -43,6 +45,7 @@ func NewTemplateMiddleware(i do.Injector) (TemplateMiddlewareInterface, error) {
 		layoutService:      layoutService,
 		errorService:       errorService,
 		parameterExtractor: parameterExtractor,
+		templateRegistry:   templateRegistry,
 		logger:             logger,
 	}, nil
 }
@@ -51,6 +54,13 @@ func NewTemplateMiddleware(i do.Injector) (TemplateMiddlewareInterface, error) {
 func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
+
+		// Store request path in context for i18n.GetCurrentRoute() access
+		ctx = context.WithValue(ctx, shared.RequestPathKey, r.URL.Path)
+
+		// Store route mapping in context for i18n.GetCurrentRouteWithoutLocale() to determine localized routes
+		routeMapping := tm.templateRegistry.GetRouteToTemplateMapping()
+		ctx = context.WithValue(ctx, shared.RouteMappingKey, routeMapping)
 
 		// Create RouterContext with unified access to all request data
 		routerCtx := NewRouterContext(ctx, r)

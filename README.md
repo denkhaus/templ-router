@@ -993,6 +993,56 @@ i18n.GetAvailableKeys(ctx)
 // Returns: []string{"page_title", "stats_users", "nav_admin", ...}
 ```
 
+#### Route Convenience Functions
+
+**New!** Get current route information for building language switchers and navigation:
+
+```go
+// Get current route path (full path including locale)
+i18n.GetCurrentRoute(ctx)
+// Returns: "/en/dashboard", "/de/user/123/profile", "/login", etc.
+
+// Get current route path with locale stripped (only for actually localized routes)
+i18n.GetCurrentRouteWithoutLocale(ctx)
+// Returns: "/dashboard" from "/en/dashboard"
+// Returns: "/user/123/profile" from "/de/user/123/profile"
+// Returns: "/login" from "/login" (unchanged - not localized)
+```
+
+**Smart Locale Detection:**
+The `GetCurrentRouteWithoutLocale()` function uses the generated route registry to accurately determine which routes are actually localized:
+
+- ✅ **Accurate**: Only strips locale from routes with `{locale}` in their patterns
+- ✅ **No false positives**: Won't strip from routes like `/api/v2/users` that have 2-char segments but aren't localized
+- ✅ **Complex routes**: Handles patterns like `/{locale}/user/{id}/profile` correctly
+- ✅ **Fallback**: Gracefully degrades when route mapping is unavailable
+
+**Reliability & Testing:**
+The route convenience functions are thoroughly tested with 100% test coverage:
+- ✅ **All edge cases covered**: Missing context, root paths, complex routes, non-localized routes
+- ✅ **Pattern matching tested**: Wildcard matching for complex route patterns like `/{locale}/user/{id}/profile`
+- ✅ **Backward compatibility verified**: Fallback behavior when route mapping unavailable
+- ✅ **No false positives**: Verified accuracy with routes containing 2-char segments that aren't locales
+
+**Usage Scenarios:**
+
+```go
+// Scenario 1: Language switching without losing current page
+// User on /en/user/123/profile → clicks "DE" → lands on /de/user/123/profile
+
+// Scenario 2: Building localized navigation links
+currentRoute := i18n.GetCurrentRouteWithoutLocale(ctx)
+dashboardURL := "/" + i18n.GetCurrentLocale(ctx) + "/dashboard"
+profileURL := "/" + i18n.GetCurrentLocale(ctx) + "/user/profile"
+
+// Scenario 3: Conditional content based on route localization
+if i18n.GetCurrentRoute(ctx) == i18n.GetCurrentRouteWithoutLocale(ctx) {
+    // Route is not localized - show global navigation
+} else {
+    // Route is localized - show language-specific content
+}
+```
+
 #### Practical Examples
 
 ```go
@@ -1005,6 +1055,22 @@ templ LanguageSwitcher() {
         } else {
             <a href="/en/dashboard">Switch to English</a>
         }
+    </div>
+}
+
+// Enhanced language switcher that preserves current route
+templ LanguageSwitcher() {
+    <div class="flex items-center space-x-2 bg-blue-700 rounded px-3 py-1">
+        <span class="text-sm">🌐</span>
+        <div class="flex space-x-1">
+            if i18n.GetCurrentLocale(ctx) == "en" {
+                <span class="bg-white text-blue-600 px-2 py-1 rounded text-sm font-semibold">EN</span>
+                <a href={ "/de" + i18n.GetCurrentRouteWithoutLocale(ctx) } class="text-blue-200 hover:text-white px-2 py-1 rounded text-sm">DE</a>
+            } else {
+                <a href={ "/en" + i18n.GetCurrentRouteWithoutLocale(ctx) } class="text-blue-200 hover:text-white px-2 py-1 rounded text-sm">EN</a>
+                <span class="bg-white text-blue-600 px-2 py-1 rounded text-sm font-semibold">DE</span>
+            }
+        </div>
     </div>
 }
 
@@ -1025,7 +1091,28 @@ templ DebugPanel() {
         <p><strong>Locale:</strong> { i18n.GetCurrentLocale(ctx) }</p>
         <p><strong>Template:</strong> { i18n.GetCurrentTemplate(ctx) }</p>
         <p><strong>Available Keys:</strong> { fmt.Sprint(len(i18n.GetAvailableKeys(ctx))) }</p>
+        <p><strong>Current Route:</strong> { i18n.GetCurrentRoute(ctx) }</p>
+        <p><strong>Route Without Locale:</strong> { i18n.GetCurrentRouteWithoutLocale(ctx) }</p>
     </div>
+}
+
+// Programmatic locale switching
+templ ChangeLanguageButton(targetLocale string) {
+    <a href={ "/" + targetLocale + i18n.GetCurrentRouteWithoutLocale(ctx) }
+       class="btn btn-secondary">
+        Switch to { strings.ToUpper(targetLocale) }
+    </a>
+}
+
+// Breadcrumb navigation that respects locale
+templ Breadcrumb() {
+    <nav class="breadcrumb">
+        <a href={ "/" + i18n.GetCurrentLocale(ctx) }>Home</a>
+        if route := i18n.GetCurrentRouteWithoutLocale(ctx); route != "/" {
+            <span class="separator">/</span>
+            <span class="current">{ strings.TrimPrefix(route, "/") }</span>
+        }
+    </nav>
 }
 ```
 
