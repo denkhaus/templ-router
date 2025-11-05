@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/a-h/templ"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -273,6 +274,28 @@ type LayoutService interface {
 type ErrorService interface {
 	FindErrorTemplateForPath(path string) *ErrorTemplate
 	CreateErrorComponent(message, path string) templ.Component
+}
+
+// ComponentMetadataService handles component metadata loading and caching
+type ComponentMetadataService interface {
+	// LoadComponentMetadata loads metadata for a specific component by name
+	// componentName is the name without extension (e.g., "footer", "navbar")
+	LoadComponentMetadata(componentName string) (*shared.ConfigFile, error)
+
+	// GetCachedMetadata returns cached metadata if available
+	GetCachedMetadata(componentName string) (*shared.ConfigFile, bool)
+
+	// LoadComponentTranslations loads i18n translations for a specific component and locale
+	LoadComponentTranslations(componentName, locale string) (map[string]string, error)
+
+	// GetCachedTranslations returns cached translations if available
+	GetCachedTranslations(componentName, locale string) (map[string]string, bool)
+
+	// DetectComponentsFromTemplate parses a template to find component usage
+	DetectComponentsFromTemplate(templateContent string) ([]string, error)
+
+	// LoadMultipleComponentMetadata loads metadata for multiple components efficiently
+	LoadMultipleComponentMetadata(componentNames []string) (map[string]*shared.ConfigFile, error)
 }
 
 // AuthMiddlewareInterface handles authentication middleware

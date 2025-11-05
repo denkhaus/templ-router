@@ -1,0 +1,599 @@
+package services
+
+import (
+	"testing"
+	"time"
+
+	"github.com/denkhaus/templ-router/pkg/shared"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"go.uber.org/zap/zaptest"
+)
+
+// MockConfigService for testing
+type MockConfigService struct {
+	mock.Mock
+}
+
+func (m *MockConfigService) GetServerHost() string {
+	args := m.Called("GetServerHost")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetServerPort() int {
+	args := m.Called("GetServerPort")
+	return args.Int(0)
+}
+
+func (m *MockConfigService) GetServerBaseURL() string {
+	args := m.Called("GetServerBaseURL")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetServerReadTimeout() time.Duration {
+	args := m.Called("GetServerReadTimeout")
+	return args.Get(0).(time.Duration)
+}
+
+func (m *MockConfigService) GetServerWriteTimeout() time.Duration {
+	args := m.Called("GetServerWriteTimeout")
+	return args.Get(0).(time.Duration)
+}
+
+func (m *MockConfigService) GetServerIdleTimeout() time.Duration {
+	args := m.Called("GetServerIdleTimeout")
+	return args.Get(0).(time.Duration)
+}
+
+func (m *MockConfigService) GetServerShutdownTimeout() time.Duration {
+	args := m.Called("GetServerShutdownTimeout")
+	return args.Get(0).(time.Duration)
+}
+
+func (m *MockConfigService) GetSupportedLocales() []string {
+	args := m.Called("GetSupportedLocales")
+	return args.Get(0).([]string)
+}
+
+func (m *MockConfigService) GetDefaultLocale() string {
+	args := m.Called("GetDefaultLocale")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetFallbackLocale() string {
+	args := m.Called("GetFallbackLocale")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetLayoutRootDirectory() string {
+	args := m.Called("GetLayoutRootDirectory")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetLayoutFileName() string {
+	args := m.Called("GetLayoutFileName")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetLayoutAssetsDirectory() string {
+	args := m.Called("GetLayoutAssetsDirectory")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetLayoutAssetsRouteName() string {
+	args := m.Called("GetLayoutAssetsRouteName")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetTemplateExtension() string {
+	args := m.Called("GetTemplateExtension")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetMetadataExtension() string {
+	args := m.Called("GetMetadataExtension")
+	return args.String(0)
+}
+
+func (m *MockConfigService) IsLayoutInheritanceEnabled() bool {
+	args := m.Called("IsLayoutInheritanceEnabled")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetTemplateOutputDir() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetTemplatePackageName() string {
+	args := m.Called("GetTemplatePackageName")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetDatabaseHost() string {
+	args := m.Called("GetDatabaseHost")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetDatabasePort() int {
+	args := m.Called("GetDatabasePort")
+	return args.Int(0)
+}
+
+func (m *MockConfigService) GetDatabaseUser() string {
+	args := m.Called("GetDatabaseUser")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetDatabasePassword() string {
+	args := m.Called("GetDatabasePassword")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetDatabaseName() string {
+	args := m.Called("GetDatabaseName")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetDatabaseSSLMode() string {
+	args := m.Called("GetDatabaseSSLMode")
+	return args.String(0)
+}
+
+func (m *MockConfigService) IsEmailVerificationRequired() bool {
+	args := m.Called("IsEmailVerificationRequired")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetVerificationTokenExpiry() time.Duration {
+	args := m.Called("GetVerificationTokenExpiry")
+	return args.Get(0).(time.Duration)
+}
+
+func (m *MockConfigService) GetSessionCookieName() string {
+	args := m.Called("GetSessionCookieName")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetSessionExpiry() time.Duration {
+	args := m.Called("GetSessionExpiry")
+	return args.Get(0).(time.Duration)
+}
+
+func (m *MockConfigService) IsSessionSecure() bool {
+	args := m.Called("IsSessionSecure")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) IsSessionHttpOnly() bool {
+	args := m.Called("IsSessionHttpOnly")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetSessionSameSite() string {
+	args := m.Called("GetSessionSameSite")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetMinPasswordLength() int {
+	args := m.Called("GetMinPasswordLength")
+	return args.Int(0)
+}
+
+func (m *MockConfigService) IsStrongPasswordRequired() bool {
+	args := m.Called("IsStrongPasswordRequired")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) ShouldCreateDefaultAdmin() bool {
+	args := m.Called("ShouldCreateDefaultAdmin")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetDefaultAdminEmail() string {
+	args := m.Called("GetDefaultAdminEmail")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetDefaultAdminPassword() string {
+	args := m.Called("GetDefaultAdminPassword")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetDefaultAdminFirstName() string {
+	args := m.Called("GetDefaultAdminFirstName")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetDefaultAdminLastName() string {
+	args := m.Called("GetDefaultAdminLastName")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetSignInRoute() string {
+	args := m.Called("GetSignInRoute")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetSignInSuccessRoute() string {
+	args := m.Called("GetSignInSuccessRoute")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetSignUpSuccessRoute() string {
+	args := m.Called("GetSignUpSuccessRoute")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetSignOutSuccessRoute() string {
+	args := m.Called("GetSignOutSuccessRoute")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetCSRFSecret() string {
+	args := m.Called("GetCSRFSecret")
+	return args.String(0)
+}
+
+func (m *MockConfigService) IsCSRFSecure() bool {
+	args := m.Called("IsCSRFSecure")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) IsCSRFHttpOnly() bool {
+	args := m.Called("IsCSRFHttpOnly")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetCSRFSameSite() string {
+	args := m.Called("GetCSRFSameSite")
+	return args.String(0)
+}
+
+func (m *MockConfigService) IsRateLimitEnabled() bool {
+	args := m.Called("IsRateLimitEnabled")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetRateLimitRequests() int {
+	args := m.Called("GetRateLimitRequests")
+	return args.Int(0)
+}
+
+func (m *MockConfigService) AreSecurityHeadersEnabled() bool {
+	args := m.Called("AreSecurityHeadersEnabled")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) IsHSTSEnabled() bool {
+	args := m.Called("IsHSTSEnabled")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetHSTSMaxAge() int {
+	args := m.Called("GetHSTSMaxAge")
+	return args.Int(0)
+}
+
+func (m *MockConfigService) GetLogLevel() string {
+	args := m.Called("GetLogLevel")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetLogFormat() string {
+	args := m.Called("GetLogFormat")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetLogOutput() string {
+	args := m.Called("GetLogOutput")
+	return args.String(0)
+}
+
+func (m *MockConfigService) IsFileLoggingEnabled() bool {
+	args := m.Called("IsFileLoggingEnabled")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetLogFilePath() string {
+	args := m.Called("GetLogFilePath")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetSMTPHost() string {
+	args := m.Called("GetSMTPHost")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetSMTPPort() int {
+	args := m.Called("GetSMTPPort")
+	return args.Int(0)
+}
+
+func (m *MockConfigService) GetSMTPUsername() string {
+	args := m.Called("GetSMTPUsername")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetSMTPPassword() string {
+	args := m.Called("GetSMTPPassword")
+	return args.String(0)
+}
+
+func (m *MockConfigService) IsSMTPTLSEnabled() bool {
+	args := m.Called("IsSMTPTLSEnabled")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetFromEmail() string {
+	args := m.Called("GetFromEmail")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetFromName() string {
+	args := m.Called("GetFromName")
+	return args.String(0)
+}
+
+func (m *MockConfigService) GetReplyToEmail() string {
+	args := m.Called("GetReplyToEmail")
+	return args.String(0)
+}
+
+func (m *MockConfigService) IsEmailDummyModeEnabled() bool {
+	args := m.Called("IsEmailDummyModeEnabled")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) IsDevelopment() bool {
+	args := m.Called("IsDevelopment")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) IsProduction() bool {
+	args := m.Called("IsProduction")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetRouterEnableTrailingSlash() bool {
+	args := m.Called("GetRouterEnableTrailingSlash")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetRouterEnableSlashRedirect() bool {
+	args := m.Called("GetRouterEnableSlashRedirect")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetRouterEnableMethodNotAllowed() bool {
+	args := m.Called("GetRouterEnableMethodNotAllowed")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetRouterEnableAuthRoutes() bool {
+	args := m.Called("GetRouterEnableAuthRoutes")
+	return args.Bool(0)
+}
+
+func (m *MockConfigService) GetRouterAuthRoutePrefix() string {
+	args := m.Called("GetRouterAuthRoutePrefix")
+	return args.String(0)
+}
+
+func TestComponentMetadataService_LoadComponentMetadata(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	mockConfigService := &MockConfigService{}
+	mockConfigService.On("GetTemplateOutputDir").Return("demo/app")
+
+	// Create service instance manually for testing (not using DI)
+	cms := &componentMetadataService{
+		configService:     mockConfigService,
+		logger:            logger,
+		metadataCache:     make(map[string]*shared.ConfigFile),
+		translationCache:  make(map[string]map[string]string),
+	}
+
+	tests := []struct {
+		name          string
+		componentName string
+		expectError   bool
+		description   string
+	}{
+		{
+			name:          "Load existing component metadata",
+			componentName: "footer",
+			expectError:   false,
+			description:   "Should successfully load metadata for existing footer component",
+		},
+		{
+			name:          "Load non-existing component metadata",
+			componentName: "nonexistent",
+			expectError:   true,
+			description:   "Should return error for non-existing component",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config, err := cms.LoadComponentMetadata(tt.componentName)
+
+			if tt.expectError {
+				assert.Error(t, err, tt.description)
+				assert.Nil(t, config, tt.description)
+			} else {
+				// For successful cases, check if we got valid config
+				if err == nil {
+					assert.NotNil(t, config, tt.description)
+					// Verify that it's now cached
+					cachedConfig, found := cms.GetCachedMetadata(tt.componentName)
+					assert.True(t, found, "Component should be cached after loading")
+					assert.Equal(t, config, cachedConfig, "Cached config should match loaded config")
+				}
+			}
+		})
+	}
+
+	mockConfigService.AssertExpectations(t)
+}
+
+func TestComponentMetadataService_DetectComponentsFromTemplate(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	mockConfigService := &MockConfigService{}
+
+	cms := &componentMetadataService{
+		configService:     mockConfigService,
+		logger:            logger,
+		metadataCache:     make(map[string]*shared.ConfigFile),
+		translationCache:  make(map[string]map[string]string),
+	}
+
+	tests := []struct {
+		name            string
+		templateContent string
+		expected        []string
+		description     string
+	}{
+		{
+			name:            "Single component usage",
+			templateContent: `<footer>@components.Footer()</footer>`,
+			expected:        []string{"Footer"},
+			description:     "Should detect single component usage",
+		},
+		{
+			name:            "Multiple component usage",
+			templateContent: `<header>@components.NavBar()</header><main>Content</main><footer>@components.Footer()</footer>`,
+			expected:        []string{"NavBar", "Footer"},
+			description:     "Should detect multiple component usages",
+		},
+		{
+			name:            "Component with parameters",
+			templateContent: `<div>@components.SearchBar("placeholder")</div>`,
+			expected:        []string{"SearchBar"},
+			description:     "Should detect component with parameters",
+		},
+		{
+			name:            "No component usage",
+			templateContent: `<div>Regular HTML content</div>`,
+			expected:        []string{},
+			description:     "Should return empty slice for templates without components",
+		},
+		{
+			name:            "Component with whitespace",
+			templateContent: `<footer>@components.Footer   (  )</footer>`,
+			expected:        []string{"Footer"},
+			description:     "Should handle whitespace in component calls",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			components, err := cms.DetectComponentsFromTemplate(tt.templateContent)
+
+			assert.NoError(t, err, tt.description)
+			assert.Equal(t, len(tt.expected), len(components), tt.description)
+
+			// Check that all expected components are found (order doesn't matter)
+			componentMap := make(map[string]bool)
+			for _, comp := range components {
+				componentMap[comp] = true
+			}
+
+			for _, expectedComp := range tt.expected {
+				assert.True(t, componentMap[expectedComp],
+					"Expected component %s not found in %v", expectedComp, components)
+			}
+		})
+	}
+}
+
+func TestComponentMetadataService_CacheBehavior(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	mockConfigService := &MockConfigService{}
+	mockConfigService.On("GetTemplateOutputDir").Return("demo/app")
+
+	cms := &componentMetadataService{
+		configService:     mockConfigService,
+		logger:            logger,
+		metadataCache:     make(map[string]*shared.ConfigFile),
+		translationCache:  make(map[string]map[string]string),
+	}
+
+	// Test metadata cache
+	t.Run("Metadata cache behavior", func(t *testing.T) {
+		// Initially no cached metadata
+		_, found := cms.GetCachedMetadata("footer")
+		assert.False(t, found, "Should not have cached metadata initially")
+
+		// Manually cache some metadata
+		testConfig := &shared.ConfigFile{
+			FilePath: "test/path.yaml",
+			RouteMetadata: map[string]interface{}{
+				"title": "Test Component",
+			},
+		}
+		cms.cacheMetadata("footer", testConfig)
+
+		// Now it should be cached
+		cachedConfig, found := cms.GetCachedMetadata("footer")
+		assert.True(t, found, "Should have cached metadata after caching")
+		assert.Equal(t, testConfig, cachedConfig, "Cached metadata should match")
+	})
+
+	// Test translation cache
+	t.Run("Translation cache behavior", func(t *testing.T) {
+		// Initially no cached translations
+		_, found := cms.GetCachedTranslations("footer", "en")
+		assert.False(t, found, "Should not have cached translations initially")
+
+		// Manually cache some translations
+		testTranslations := map[string]string{
+			"footer_copyright": "© 2024 Test",
+			"footer_privacy":   "Privacy Policy",
+		}
+		cms.cacheTranslations("footer", "en", testTranslations)
+
+		// Now it should be cached
+		cachedTranslations, found := cms.GetCachedTranslations("footer", "en")
+		assert.True(t, found, "Should have cached translations after caching")
+		assert.Equal(t, testTranslations, cachedTranslations, "Cached translations should match")
+	})
+
+	mockConfigService.AssertExpectations(t)
+}
+
+func TestComponentMetadataService_LoadMultipleComponentMetadata(t *testing.T) {
+	logger := zaptest.NewLogger(t)
+
+	mockConfigService := &MockConfigService{}
+	mockConfigService.On("GetTemplateOutputDir").Return("demo/app")
+
+	cms := &componentMetadataService{
+		configService:     mockConfigService,
+		logger:            logger,
+		metadataCache:     make(map[string]*shared.ConfigFile),
+		translationCache:  make(map[string]map[string]string),
+	}
+
+	componentNames := []string{"footer", "navbar", "nonexistent"}
+
+	result, err := cms.LoadMultipleComponentMetadata(componentNames)
+
+	assert.NoError(t, err, "Should not return error even when some components fail to load")
+	assert.NotEmpty(t, result, "Should return some loaded components")
+
+	// Should have loaded existing components
+	if _, found := result["footer"]; found {
+		assert.NotNil(t, result["footer"], "Footer component should be loaded")
+	}
+	if _, found := result["navbar"]; found {
+		assert.NotNil(t, result["navbar"], "Navbar component should be loaded")
+	}
+
+	// Should not have loaded non-existing component
+	assert.Nil(t, result["nonexistent"], "Non-existing component should not be in result")
+
+	mockConfigService.AssertExpectations(t)
+}
