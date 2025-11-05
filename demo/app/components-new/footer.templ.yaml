@@ -1,0 +1,48 @@
+# Component Metadata Example: Footer Component
+# This demonstrates self-contained component configuration with i18n and metadata
+
+i18n:
+  en:
+    footer_copyright: "© 2024 Templ Router Demo. All rights reserved."
+    footer_privacy: "Privacy Policy"
+    footer_terms: "Terms of Service"
+    footer_contact: "Contact Us"
+    footer_social: "Follow Us"
+    footer_github: "GitHub"
+    footer_twitter: "Twitter"
+  de:
+    footer_copyright: "© 2024 Templ Router Demo. Alle Rechte vorbehalten."
+    footer_privacy: "Datenschutz"
+    footer_terms: "Nutzungsbedingungen"
+    footer_contact: "Kontakt"
+    footer_social: "Folgen Sie uns"
+    footer_github: "GitHub"
+    footer_twitter: "Twitter"
+
+metadata:
+  company_name: "Templ Router Demo"
+  company_email: "info@templ-router-demo.com"
+  company_website: "https://templ-router-demo.com"
+  company_address: "123 Demo Street, Demo City, 12345"
+  company_phone: "+1 (555) 123-4567"
+  version: "1.0.0"
+
+  # Social media links
+  social_links:
+    github: "https://github.com/denkhaus/templ-router"
+    twitter: "https://twitter.com/templrouter"
+    linkedin: "https://linkedin.com/company/templ-router"
+
+  # Legal information
+  legal:
+    privacy_policy_url: "/privacy"
+    terms_url: "/terms"
+    imprint_url: "/imprint"
+
+  # Component-specific settings (properly nested under metadata)
+  component_display_version: true
+  component_show_social_links: true
+  component_show_copyright_only: false
+
+auth:
+  type: "Public"

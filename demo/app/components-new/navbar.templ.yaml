@@ -1,0 +1,33 @@
+i18n:
+  en:
+    site_title: "Templ Router Demo"
+    nav_home: "Home"
+    nav_dashboard: "Dashboard"
+    nav_admin: "Admin"
+    nav_logout: "Logout"
+    nav_login: "Login"
+    nav_signup: "Sign Up"
+  de:
+    site_title: "Templ Router Demo"
+    nav_home: "Startseite"
+    nav_dashboard: "Dashboard"
+    nav_admin: "Admin"
+    nav_logout: "Abmelden"
+    nav_login: "Anmelden"
+    nav_signup: "Registrieren"
+
+metadata:
+  nav_branding:
+    logo_text: "TR Demo"
+    tagline: "File-based routing with templ"
+  nav_links:
+    - text: "Documentation"
+      url: "https://github.com/denkhaus/templ-router"
+    - text: "Examples"
+      url: "/examples"
+  social_links:
+    github: "https://github.com/denkhaus/templ-router"
+    twitter: "https://twitter.com/templrouter"
+
+auth:
+  type: "Public"
