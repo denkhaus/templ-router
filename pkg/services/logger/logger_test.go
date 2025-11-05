@@ -36,6 +36,8 @@ func (m *mockLoggerConfigService) IsProduction() bool                     { retu
 func (m *mockLoggerConfigService) GetRouterEnableTrailingSlash() bool     { return true }
 func (m *mockLoggerConfigService) GetRouterEnableSlashRedirect() bool     { return true }
 func (m *mockLoggerConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+func (m *mockLoggerConfigService) GetRouterEnableAuthRoutes() bool        { return true }
+func (m *mockLoggerConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }
 
 // Implement remaining interface methods with defaults
 func (m *mockLoggerConfigService) GetServerHost() string                     { return "localhost" }

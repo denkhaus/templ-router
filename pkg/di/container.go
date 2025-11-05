@@ -1,6 +1,8 @@
 package di
 
 import (
+	"context"
+
 	"github.com/denkhaus/templ-router/pkg/config"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router"
@@ -42,7 +44,7 @@ func (c *Container) RegisterApplicationServices(options ...ApplicationOption) {
 }
 
 // RegisterRouterServices registers all router services (without template dependencies)
-func (c *Container) RegisterRouterServices(configPraefix string) {
+func (c *Container) RegisterRouterServices(ctx context.Context, configPraefix string) do.Injector {
 	// Register logger
 	do.Provide(c.injector, logger.NewService)
 
@@ -71,8 +73,6 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 	// Data Service Resolution
 	do.Provide(c.injector, services.NewDataServiceResolver)
 
-	// Template Data Service for data-driven templates
-
 	// UNIFIED VALIDATION ARCHITECTURE - Orchestrated Validation Logic
 	do.Provide(c.injector, services.NewValidationOrchestrator)
 
@@ -93,10 +93,12 @@ func (c *Container) RegisterRouterServices(configPraefix string) {
 	do.Provide(c.injector, services.NewConfigLoader)
 
 	// Register clean router (refactored with separation of concerns)
-	do.Provide(c.injector, router.NewCleanRouterCore)
+	do.Provide(c.injector, router.NewRouterCore)
 
 	// Register router bootstrap for streamlined setup
 	do.Provide(c.injector, router.NewRouterBootstrap)
+
+	return c.injector
 
 }
 

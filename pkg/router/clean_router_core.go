@@ -11,17 +11,16 @@ import (
 	"go.uber.org/zap"
 )
 
-// cleanRouterCore implements clean architecture principles with proper separation of concerns (private implementation)
-type cleanRouterCore struct {
+// routerCore implements clean architecture principles with proper separation of concerns (private implementation)
+type routerCore struct {
 	// Core configuration
 	scanPath      string
 	config        interfaces.ConfigService
 	assetsService interfaces.AssetsService
 	authHandlers  interfaces.AuthHandlers
 	logger        *zap.Logger
-	injector      do.Injector // Store injector for proper DI
+	injector      do.Injector
 
-	// Separated components (Separation of Concerns)
 	routeRegistrar  interfaces.RouteRegistrar
 	handlerBuilder  interfaces.HandlerBuilder
 	middlewareSetup interfaces.MiddlewareSetup
@@ -39,8 +38,8 @@ type cleanRouterCore struct {
 	errorTemplates  []interfaces.ErrorTemplate
 }
 
-// NewCleanRouterCore creates a new clean router with separated concerns for DI
-func NewCleanRouterCore(i do.Injector) (interfaces.RouterCore, error) {
+// NewRouterCore creates a new clean router with separated concerns for DI
+func NewRouterCore(i do.Injector) (interfaces.RouterCore, error) {
 	// Inject core dependencies
 	config := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
@@ -66,7 +65,7 @@ func NewCleanRouterCore(i do.Injector) (interfaces.RouterCore, error) {
 		return nil, fmt.Errorf("middleware setup validation failed: %w", err)
 	}
 
-	return &cleanRouterCore{
+	return &routerCore{
 		scanPath:        config.GetLayoutRootDirectory(),
 		config:          config,
 		authHandlers:    authHandlers,
@@ -82,7 +81,7 @@ func NewCleanRouterCore(i do.Injector) (interfaces.RouterCore, error) {
 }
 
 // Initialize discovers and processes all routes, layouts, and error templates
-func (crc *cleanRouterCore) Initialize() error {
+func (crc *routerCore) Initialize() error {
 	crc.logger.Info("Initializing clean router core", zap.String("scan_path", crc.scanPath))
 
 	// Discover routes
@@ -121,7 +120,7 @@ func (crc *cleanRouterCore) Initialize() error {
 }
 
 // RegisterRoutes registers all discovered routes with a Chi router
-func (crc *cleanRouterCore) RegisterRoutes(chiRouter *chi.Mux) error {
+func (crc *routerCore) RegisterRoutes(chiRouter *chi.Mux) error {
 	crc.logger.Info("Registering routes with Chi router")
 
 	// Note: Router middleware should be configured BEFORE calling RegisterRoutes
@@ -177,7 +176,7 @@ func (crc *cleanRouterCore) RegisterRoutes(chiRouter *chi.Mux) error {
 }
 
 // convertToInterfaceRoutes converts router.Route to interfaces.Route
-func (crc *cleanRouterCore) convertToInterfaceRoutes(routes []interfaces.Route) []interfaces.Route {
+func (crc *routerCore) convertToInterfaceRoutes(routes []interfaces.Route) []interfaces.Route {
 	interfaceRoutes := make([]interfaces.Route, len(routes))
 
 	for i, route := range routes {
@@ -194,37 +193,37 @@ func (crc *cleanRouterCore) convertToInterfaceRoutes(routes []interfaces.Route) 
 }
 
 // GetRoutes returns all discovered routes
-func (crc *cleanRouterCore) GetRoutes() []interfaces.Route {
+func (crc *routerCore) GetRoutes() []interfaces.Route {
 	return crc.routes
 }
 
 // GetLayoutTemplates returns all discovered layout templates
-func (crc *cleanRouterCore) GetLayoutTemplates() []interfaces.LayoutTemplate {
+func (crc *routerCore) GetLayoutTemplates() []interfaces.LayoutTemplate {
 	return crc.layoutTemplates
 }
 
 // GetErrorTemplates returns all discovered error templates
-func (crc *cleanRouterCore) GetErrorTemplates() []interfaces.ErrorTemplate {
+func (crc *routerCore) GetErrorTemplates() []interfaces.ErrorTemplate {
 	return crc.errorTemplates
 }
 
 // GetMiddlewareSetup returns the middleware setup for external access
-func (crc *cleanRouterCore) GetMiddlewareSetup() interfaces.MiddlewareSetup {
+func (crc *routerCore) GetMiddlewareSetup() interfaces.MiddlewareSetup {
 	return crc.middlewareSetup
 }
 
 // GetHandlerBuilder returns the handler builder for external access
-func (crc *cleanRouterCore) GetHandlerBuilder() interfaces.HandlerBuilder {
+func (crc *routerCore) GetHandlerBuilder() interfaces.HandlerBuilder {
 	return crc.handlerBuilder
 }
 
 // GetRouteRegistrar returns the route registrar for external access
-func (crc *cleanRouterCore) GetRouteRegistrar() interfaces.RouteRegistrar {
+func (crc *routerCore) GetRouteRegistrar() interfaces.RouteRegistrar {
 	return crc.routeRegistrar
 }
 
 // loadTranslationsForDiscoveredRoutes loads translations for all discovered routes
-func (crc *cleanRouterCore) loadTranslationsForDiscoveredRoutes() error {
+func (crc *routerCore) loadTranslationsForDiscoveredRoutes() error {
 	crc.logger.Info("Loading translations for discovered routes", zap.Int("route_count", len(crc.routes)))
 
 	// Extract template paths from discovered routes

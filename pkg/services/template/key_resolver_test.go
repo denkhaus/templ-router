@@ -291,3 +291,5 @@ func (m *mockTemplateConfigService) GetSignInRoute() string { return "/login" }
 func (m *mockTemplateConfigService) GetRouterEnableTrailingSlash() bool     { return true }
 func (m *mockTemplateConfigService) GetRouterEnableSlashRedirect() bool     { return true }
 func (m *mockTemplateConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+func (m *mockTemplateConfigService) GetRouterEnableAuthRoutes() bool        { return true }
+func (m *mockTemplateConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }

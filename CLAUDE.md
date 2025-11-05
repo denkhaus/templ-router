@@ -230,6 +230,27 @@ TR_ROUTER_ENABLE_SLASH_REDIRECT=true       # Clean double slashes
 TR_ROUTER_ENABLE_METHOD_NOT_ALLOWED=true   # 405 handler
 ```
 
+### Middleware Configuration
+All middleware is controlled via environment variables:
+```bash
+# Router middleware (URL normalization)
+TR_ROUTER_ENABLE_TRAILING_SLASH=true
+TR_ROUTER_ENABLE_SLASH_REDIRECT=true
+
+# Authentication middleware
+TR_AUTH_ENABLE_MIDDLEWARE=true             # Enable/disable auth middleware
+
+# Internationalization middleware
+TR_I18N_ENABLE_MIDDLEWARE=true              # Enable/disable i18n middleware
+
+# Template middleware
+TR_TEMPLATE_ENABLE_MIDDLEWARE=true          # Enable/disable template middleware
+
+# Authentication routes
+TR_ROUTER_ENABLE_AUTH_ROUTES=true           # Enable/disable authentication routes
+TR_ROUTER_AUTH_ROUTE_PREFIX=/api            # Authentication route prefix
+```
+
 ## Data Service Pattern
 
 ### Interface Definition

@@ -12,6 +12,7 @@ import (
 	"github.com/denkhaus/templ-router/demo/pkg/dataservices"
 	"github.com/denkhaus/templ-router/demo/pkg/services"
 	"github.com/denkhaus/templ-router/pkg/di"
+	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -45,8 +46,7 @@ func startupStreamlined(ctx context.Context) error {
 	defer container.Shutdown()
 
 	// 2. Register router services with configuration prefix
-	container.RegisterRouterServices("TR")
-	injector := container.GetInjector()
+	injector := container.RegisterRouterServices(ctx, "TR")
 
 	// 3. Create application services
 	templateRegistry, err := templates.NewRegistry(injector)
@@ -77,15 +77,8 @@ func startupStreamlined(ctx context.Context) error {
 		di.WithAssetsService(assetsService),
 		di.WithUserStore(userStore),
 
-		// NEW: Router configuration options - no more dirty middleware setup!
-		di.WithRouterMiddleware(true),   // Enable router middleware
-		di.WithAuthMiddleware(true),     // Enable auth middleware
-		di.WithI18nMiddleware(true),     // Enable i18n middleware
-		di.WithTemplateMiddleware(true), // Enable template middleware
-
-		// NEW: Health check and API configuration
+		// NEW: Health check configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
 		di.WithHealthCheck(true, "/api/health"),
-		di.WithAPIRoutes(true, "/api"),
 
 		// NEW: Custom routes - add them directly without manual mux manipulation!
 		di.WithCustomRoute("GET", "/api/status", func(w http.ResponseWriter, r *http.Request) {
@@ -93,7 +86,7 @@ func startupStreamlined(ctx context.Context) error {
 			w.Write([]byte(`{"status": "operational", "version": "2.0"}`))
 		}),
 
-		// NEW: Custom middleware - add them to the chain automatically!
+		// NEW: Custom middleware - added to the chain in definition order!
 		di.WithCustomMiddleware("request-id", func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("X-Request-ID", "custom-request-id")
@@ -101,8 +94,24 @@ func startupStreamlined(ctx context.Context) error {
 			})
 		}),
 
-		// NEW: Middleware ordering - router handles the order automatically!
-		di.WithMiddlewareOrder("router", "auth", "i18n", "template", "custom"),
+		// NEW: More custom middleware - will execute AFTER request-id middleware
+		di.WithCustomMiddleware("timing", func(next http.Handler) http.Handler {
+			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("X-Timing-Middleware", "executed")
+				next.ServeHTTP(w, r)
+			})
+		}),
+
+		// NEW: Custom Session Store - demonstrates pluggable session management
+	// By default, templ-router uses in-memory session store
+	// Here we create our own simple in-memory session store to show the principle
+	// In production, you might use Redis, database, or other custom implementations
+	// Create a factory function that provides our custom session store
+		di.WithSessionStoreFactory(func(i do.Injector) (interfaces.SessionStore, error) {
+			logger := do.MustInvoke[*zap.Logger](i)
+			configService := do.MustInvoke[interfaces.ConfigService](i)
+			return services.NewCustomSessionStore(configService, logger)
+		}),
 	)
 
 	// 5. Register DataServices as named dependencies (unchanged)

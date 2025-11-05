@@ -47,6 +47,8 @@ func (m *MockConfigService) IsProduction() bool               { return false }
 func (m *MockConfigService) GetRouterEnableTrailingSlash() bool        { return true }
 func (m *MockConfigService) GetRouterEnableSlashRedirect() bool        { return true }
 func (m *MockConfigService) GetRouterEnableMethodNotAllowed() bool     { return true }
+func (m *MockConfigService) GetRouterEnableAuthRoutes() bool           { return true }
+func (m *MockConfigService) GetRouterAuthRoutePrefix() string          { return "/api" }
 func (m *MockConfigService) GetServerReadTimeout() time.Duration       { return 30 * time.Second }
 func (m *MockConfigService) GetServerWriteTimeout() time.Duration      { return 30 * time.Second }
 func (m *MockConfigService) GetServerIdleTimeout() time.Duration       { return 60 * time.Second }

@@ -96,6 +96,8 @@ func (m *mockRouterConfigService) IsProduction() bool             { return false
 func (m *mockRouterConfigService) GetRouterEnableTrailingSlash() bool    { return true }
 func (m *mockRouterConfigService) GetRouterEnableSlashRedirect() bool    { return true }
 func (m *mockRouterConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
+func (m *mockRouterConfigService) GetRouterEnableAuthRoutes() bool       { return true }
+func (m *mockRouterConfigService) GetRouterAuthRoutePrefix() string      { return "/api" }
 
 type mockRouterAssetsService struct{}
 
@@ -468,7 +470,7 @@ func createRouterTestContainer() do.Injector {
 func TestNewCleanRouterCore(t *testing.T) {
 	injector := createRouterTestContainer()
 
-	router, err := NewCleanRouterCore(injector)
+	router, err := NewRouterCore(injector)
 	if err != nil {
 		t.Fatalf("NewCleanRouterCore() returned error: %v", err)
 	}
@@ -480,7 +482,7 @@ func TestNewCleanRouterCore(t *testing.T) {
 
 func TestCleanRouterCoreInitialize(t *testing.T) {
 	injector := createRouterTestContainer()
-	router, err := NewCleanRouterCore(injector)
+	router, err := NewRouterCore(injector)
 	if err != nil {
 		t.Fatalf("Failed to create router: %v", err)
 	}
@@ -511,7 +513,7 @@ func TestCleanRouterCoreInitialize(t *testing.T) {
 
 func TestCleanRouterCoreRegisterRoutes(t *testing.T) {
 	injector := createRouterTestContainer()
-	router, err := NewCleanRouterCore(injector)
+	router, err := NewRouterCore(injector)
 	if err != nil {
 		t.Fatalf("Failed to create router: %v", err)
 	}
@@ -540,7 +542,7 @@ func TestCleanRouterCoreRegisterRoutes(t *testing.T) {
 
 func TestCleanRouterCoreGetters(t *testing.T) {
 	injector := createRouterTestContainer()
-	router, err := NewCleanRouterCore(injector)
+	router, err := NewRouterCore(injector)
 	if err != nil {
 		t.Fatalf("Failed to create router: %v", err)
 	}
@@ -584,7 +586,7 @@ func TestCleanRouterCoreGetters(t *testing.T) {
 
 func TestConvertToInterfaceRoutes(t *testing.T) {
 	injector := createRouterTestContainer()
-	router, err := NewCleanRouterCore(injector)
+	router, err := NewRouterCore(injector)
 	if err != nil {
 		t.Fatalf("Failed to create router: %v", err)
 	}
@@ -596,7 +598,7 @@ func TestConvertToInterfaceRoutes(t *testing.T) {
 	}
 
 	// Access the private method through type assertion
-	crc := router.(*cleanRouterCore)
+	crc := router.(*routerCore)
 	interfaceRoutes := crc.convertToInterfaceRoutes(testRoutes)
 
 	if len(interfaceRoutes) != len(testRoutes) {

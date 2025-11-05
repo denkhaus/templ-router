@@ -300,3 +300,13 @@ func (cs *configService) GetRouterEnableSlashRedirect() bool {
 func (cs *configService) GetRouterEnableMethodNotAllowed() bool {
 	return cs.config.Router.EnableMethodNotAllowed
 }
+
+// GetRouterEnableAuthRoutes returns whether authentication routes are enabled
+func (cs *configService) GetRouterEnableAuthRoutes() bool {
+	return cs.config.Router.EnableAuthRoutes
+}
+
+// GetRouterAuthRoutePrefix returns the authentication route prefix
+func (cs *configService) GetRouterAuthRoutePrefix() string {
+	return cs.config.Router.AuthRoutePrefix
+}

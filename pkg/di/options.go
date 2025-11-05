@@ -38,40 +38,41 @@ func WithAuthHandlers(authHandlers interfaces.AuthHandlers) ApplicationOption {
 	}
 }
 
-// WithRouterMiddleware enables or disables router-level middleware
-func WithRouterMiddleware(enabled bool) ApplicationOption {
+// WithSessionStore sets a custom session store implementation
+func WithSessionStore(sessionStore interfaces.SessionStore) ApplicationOption {
 	return func(c *Container) {
-		// This will be used during router configuration
-		do.OverrideValue(c.injector, enabled)
+		do.OverrideValue(c.injector, sessionStore)
 	}
 }
 
-// WithAuthMiddleware enables or disables authentication middleware
-func WithAuthMiddleware(enabled bool) ApplicationOption {
+// WithSessionStoreFactory sets a custom session store implementation using a factory function
+func WithSessionStoreFactory(factory func(do.Injector) (interfaces.SessionStore, error)) ApplicationOption {
 	return func(c *Container) {
-		do.OverrideValue(c.injector, enabled)
+		do.Override(c.injector, factory)
 	}
 }
 
-// WithI18nMiddleware enables or disables internationalization middleware
-func WithI18nMiddleware(enabled bool) ApplicationOption {
-	return func(c *Container) {
-		do.OverrideValue(c.injector, enabled)
-	}
-}
-
-// WithTemplateMiddleware enables or disables template middleware
-func WithTemplateMiddleware(enabled bool) ApplicationOption {
-	return func(c *Container) {
-		do.OverrideValue(c.injector, enabled)
-	}
-}
-
-// WithCustomMiddleware adds custom middleware to the chain
+// WithCustomMiddleware adds custom middleware to the chain in definition order
 func WithCustomMiddleware(middlewareName string, middlewareFunc func(http.Handler) http.Handler) ApplicationOption {
 	return func(c *Container) {
-		// Register named custom middleware
-		do.ProvideNamedValue(c.injector, "CustomMiddleware_"+middlewareName, middlewareFunc)
+		// Get existing middleware definitions or create new slice
+		var middlewareDefs []interfaces.CustomMiddlewareDefinition
+		if existing, err := do.Invoke[[]interfaces.CustomMiddlewareDefinition](c.injector); err == nil {
+			middlewareDefs = existing
+		}
+
+		// Calculate next order (append to end)
+		nextOrder := len(middlewareDefs)
+
+		// Add new middleware with definition order
+		middlewareDefs = append(middlewareDefs, interfaces.CustomMiddlewareDefinition{
+			Name:  middlewareName,
+			Func:  middlewareFunc,
+			Order: nextOrder,
+		})
+
+		// Override the middleware definitions slice
+		do.OverrideValue(c.injector, middlewareDefs)
 	}
 }
 
@@ -90,20 +91,6 @@ func WithHealthCheck(enabled bool, path ...string) ApplicationOption {
 	}
 }
 
-// WithAPIRoutes configures API routes
-func WithAPIRoutes(enabled bool, prefix ...string) ApplicationOption {
-	return func(c *Container) {
-		config := map[string]interface{}{
-			"enabled": enabled,
-		}
-		if len(prefix) > 0 {
-			config["prefix"] = prefix[0]
-		} else {
-			config["prefix"] = "/api"
-		}
-		do.OverrideValue(c.injector, config)
-	}
-}
 
 // WithCustomRoute adds a custom route to the router
 func WithCustomRoute(method, path string, handler http.HandlerFunc) ApplicationOption {
@@ -117,19 +104,13 @@ func WithCustomRoute(method, path string, handler http.HandlerFunc) ApplicationO
 	}
 }
 
-// WithMiddlewareOrder sets the order of middleware execution
-func WithMiddlewareOrder(middlewareOrder ...string) ApplicationOption {
-	return func(c *Container) {
-		do.OverrideValue(c.injector, middlewareOrder)
-	}
-}
 
 // WithErrorHandling configures custom error handlers
 func WithErrorHandling(notFoundHandler http.Handler, methodNotAllowedHandler http.Handler) ApplicationOption {
 	return func(c *Container) {
 		errorHandlers := map[string]interface{}{
-			"not_found":           notFoundHandler,
-			"method_not_allowed":  methodNotAllowedHandler,
+			"not_found":          notFoundHandler,
+			"method_not_allowed": methodNotAllowedHandler,
 		}
 		do.OverrideValue(c.injector, errorHandlers)
 	}

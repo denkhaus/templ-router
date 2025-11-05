@@ -366,3 +366,5 @@ func (m *mockRouteDiscoveryConfigService) GetSignInRoute() string { return "/log
 func (m *mockRouteDiscoveryConfigService) GetRouterEnableTrailingSlash() bool    { return true }
 func (m *mockRouteDiscoveryConfigService) GetRouterEnableSlashRedirect() bool    { return true }
 func (m *mockRouteDiscoveryConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
+func (m *mockRouteDiscoveryConfigService) GetRouterEnableAuthRoutes() bool       { return true }
+func (m *mockRouteDiscoveryConfigService) GetRouterAuthRoutePrefix() string     { return "/api" }

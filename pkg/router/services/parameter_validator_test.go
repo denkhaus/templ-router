@@ -18,6 +18,8 @@ type mockConfigService struct{}
 func (m *mockConfigService) GetRouterEnableTrailingSlash() bool     { return true }
 func (m *mockConfigService) GetRouterEnableSlashRedirect() bool     { return true }
 func (m *mockConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
+func (m *mockConfigService) GetRouterEnableAuthRoutes() bool        { return true }
+func (m *mockConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }
 
 // Implement all required ConfigService methods
 func (m *mockConfigService) GetLayoutRootDirectory() string            { return "app" }

@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
@@ -25,12 +26,8 @@ type RouterBuilder struct {
 
 // RouterOptions holds configuration for router behavior
 type RouterOptions struct {
-	// Middleware configuration
-	enableRouterMiddleware   bool
-	enableAuthMiddleware     bool
-	enableI18nMiddleware     bool
-	enableTemplateMiddleware bool
-	customMiddleware         []func(http.Handler) http.Handler
+	// Middleware configuration (all middleware enabled/disabled via env vars)
+	// Custom middleware is loaded from DI container in definition order
 
 	// Service overrides
 	authHandlersOverride     interfaces.AuthHandlers
@@ -38,11 +35,9 @@ type RouterOptions struct {
 	templateRegistryOverride interfaces.TemplateRegistry
 	assetsServiceOverride    interfaces.AssetsService
 
-	// Routing configuration
+	// Routing configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
 	enableHealthCheck bool
 	healthCheckPath   string
-	enableAPIRoutes   bool
-	apiRoutePrefix    string
 
 	// Error handling
 	errorHandler            func(http.ResponseWriter, *http.Request, error)
@@ -81,60 +76,16 @@ func NewRouterBuilder(container interfaces.Container) (*RouterBuilder, error) {
 		logger:     logger,
 		routerCore: routerCore,
 		options: &RouterOptions{
-			enableRouterMiddleware:   true,
-			enableAuthMiddleware:     true,
-			enableI18nMiddleware:     true,
-			enableTemplateMiddleware: true,
-			enableHealthCheck:        true,
-			healthCheckPath:          "/api/health",
-			enableAPIRoutes:          true,
-			apiRoutePrefix:           "/api",
+			enableHealthCheck: true,
+			healthCheckPath:   "/api/health",
 		},
 		middlewareList: make([]middlewareConfig, 0),
 		customRoutes:   make([]customRoute, 0),
 	}, nil
 }
 
-// WithRouterMiddleware enables or disables router-level middleware
-func (rb *RouterBuilder) WithRouterMiddleware(enabled bool) *RouterBuilder {
-	rb.options.enableRouterMiddleware = enabled
-	return rb
-}
 
-// WithAuthMiddleware enables or disables authentication middleware
-func (rb *RouterBuilder) WithAuthMiddleware(enabled bool) *RouterBuilder {
-	rb.options.enableAuthMiddleware = enabled
-	return rb
-}
 
-// WithI18nMiddleware enables or disables internationalization middleware
-func (rb *RouterBuilder) WithI18nMiddleware(enabled bool) *RouterBuilder {
-	rb.options.enableI18nMiddleware = enabled
-	return rb
-}
-
-// WithTemplateMiddleware enables or disables template middleware
-func (rb *RouterBuilder) WithTemplateMiddleware(enabled bool) *RouterBuilder {
-	rb.options.enableTemplateMiddleware = enabled
-	return rb
-}
-
-// WithCustomMiddleware adds custom middleware to the chain
-func (rb *RouterBuilder) WithCustomMiddleware(middleware func(http.Handler) http.Handler, order ...int) *RouterBuilder {
-	middlewareOrder := 1000 // Default order for custom middleware
-	if len(order) > 0 {
-		middlewareOrder = order[0]
-	}
-
-	rb.options.customMiddleware = append(rb.options.customMiddleware, middleware)
-	rb.middlewareList = append(rb.middlewareList, middlewareConfig{
-		name:       "custom",
-		middleware: middleware,
-		order:      middlewareOrder,
-		priority:   len(rb.middlewareList),
-	})
-	return rb
-}
 
 // WithAuthHandlers overrides the default auth handlers
 func (rb *RouterBuilder) WithAuthHandlers(authHandlers interfaces.AuthHandlers) *RouterBuilder {
@@ -169,14 +120,6 @@ func (rb *RouterBuilder) WithHealthCheck(enabled bool, path ...string) *RouterBu
 	return rb
 }
 
-// WithAPIRoutes configures API routes
-func (rb *RouterBuilder) WithAPIRoutes(enabled bool, prefix ...string) *RouterBuilder {
-	rb.options.enableAPIRoutes = enabled
-	if len(prefix) > 0 {
-		rb.options.apiRoutePrefix = prefix[0]
-	}
-	return rb
-}
 
 // WithCustomRoute adds a custom route to the router
 func (rb *RouterBuilder) WithCustomRoute(method, path string, handler http.HandlerFunc) *RouterBuilder {
@@ -241,11 +184,16 @@ func (rb *RouterBuilder) Build() (*chi.Mux, error) {
 		return nil, fmt.Errorf("failed to register routes: %w", err)
 	}
 
-	// Register auth routes if enabled
-	if rb.options.enableAPIRoutes {
+	// Register auth routes if enabled via environment variable
+	if rb.config.GetRouterEnableAuthRoutes() {
 		if err := rb.registerAuthRoutes(mux); err != nil {
 			return nil, fmt.Errorf("failed to register auth routes: %w", err)
 		}
+	}
+
+	// Apply custom middleware from DI container in definition order
+	if err := rb.applyCustomMiddleware(mux); err != nil {
+		return nil, fmt.Errorf("failed to apply custom middleware: %w", err)
 	}
 
 	// Configure error handlers
@@ -280,10 +228,11 @@ func (rb *RouterBuilder) configureMiddleware(mux *chi.Mux) error {
 		setup   func() error
 		order   int
 	}{
-		{"router", rb.options.enableRouterMiddleware, rb.setupRouterMiddleware, 100},
-		{"auth", rb.options.enableAuthMiddleware, rb.setupAuthMiddleware, 200},
-		{"i18n", rb.options.enableI18nMiddleware, rb.setupI18nMiddleware, 300},
-		{"template", rb.options.enableTemplateMiddleware, rb.setupTemplateMiddleware, 400},
+		// All middleware always enabled, controlled by environment variables
+		{"router", true, rb.setupRouterMiddleware, 100},
+		{"auth", true, rb.setupAuthMiddleware, 200},
+		{"i18n", true, rb.setupI18nMiddleware, 300},
+		{"template", true, rb.setupTemplateMiddleware, 400},
 	}
 
 	// Sort and apply middleware by order
@@ -293,12 +242,6 @@ func (rb *RouterBuilder) configureMiddleware(mux *chi.Mux) error {
 				return fmt.Errorf("failed to setup %s middleware: %w", config.name, err)
 			}
 		}
-	}
-
-	// Apply custom middleware
-	for _, custom := range rb.options.customMiddleware {
-		mux.Use(custom)
-		rb.logger.Info("Applied custom middleware")
 	}
 
 	return nil
@@ -388,6 +331,37 @@ func (rb *RouterBuilder) registerAuthRoutes(mux *chi.Mux) error {
 			zap.String("method", method),
 			zap.String("path", path))
 	})
+	return nil
+}
+
+// applyCustomMiddleware loads and applies custom middleware from DI container in definition order
+func (rb *RouterBuilder) applyCustomMiddleware(mux *chi.Mux) error {
+	// Try to load custom middleware definitions from DI container
+	middlewareDefs, err := do.Invoke[[]interfaces.CustomMiddlewareDefinition](rb.injector)
+	if err != nil {
+		// No custom middleware found, which is fine
+		rb.logger.Info("No custom middleware found in DI container")
+		return nil
+	}
+
+	if len(middlewareDefs) == 0 {
+		rb.logger.Info("No custom middleware to apply")
+		return nil
+	}
+
+	// Sort middleware by definition order to ensure correct execution sequence
+	sort.Slice(middlewareDefs, func(i, j int) bool {
+		return middlewareDefs[i].Order < middlewareDefs[j].Order
+	})
+
+	// Apply middleware in definition order
+	for _, middlewareDef := range middlewareDefs {
+		mux.Use(middlewareDef.Func)
+		rb.logger.Info("Applied custom middleware",
+			zap.String("name", middlewareDef.Name),
+			zap.Int("order", middlewareDef.Order))
+	}
+
 	return nil
 }
 

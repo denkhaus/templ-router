@@ -57,13 +57,17 @@ type RouterConfig struct {
 	// Enable automatic trailing slash redirection
 	// When true, /path/ redirects to /path and vice versa
 	EnableTrailingSlash bool `envconfig:"ENABLE_TRAILING_SLASH" default:"true"`
-	
+
 	// Enable automatic slash redirection
 	// When true, /path// redirects to /path/
 	EnableSlashRedirect bool `envconfig:"ENABLE_SLASH_REDIRECT" default:"true"`
-	
+
 	// Enable method not allowed handler
 	EnableMethodNotAllowed bool `envconfig:"ENABLE_METHOD_NOT_ALLOWED" default:"true"`
+
+	// Authentication routes configuration
+	EnableAuthRoutes bool   `envconfig:"ENABLE_AUTH_ROUTES" default:"true"`
+	AuthRoutePrefix  string `envconfig:"AUTH_ROUTE_PREFIX" default:"/api"`
 }
 
 type ConfigConfig struct {

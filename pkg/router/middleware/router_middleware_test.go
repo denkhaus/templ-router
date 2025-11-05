@@ -26,6 +26,8 @@ func (m *mockRouterConfigService) GetRouterEnableSlashRedirect() bool { return m
 func (m *mockRouterConfigService) GetRouterEnableMethodNotAllowed() bool {
 	return m.enableMethodNotAllowed
 }
+func (m *mockRouterConfigService) GetRouterEnableAuthRoutes() bool        { return true }
+func (m *mockRouterConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }
 
 // Implement all required ConfigService methods (minimal implementation for tests)
 func (m *mockRouterConfigService) GetLayoutRootDirectory() string            { return "app" }

@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"net/http"
+	"sort"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
@@ -23,18 +24,12 @@ type RouterBootstrap struct {
 
 // BootstrapConfig holds configuration for router bootstrap
 type BootstrapConfig struct {
-	// Middleware configuration
-	enableRouterMiddleware    bool
-	enableAuthMiddleware      bool
-	enableI18nMiddleware      bool
-	enableTemplateMiddleware  bool
-	middlewareOrder          []string
+	// Middleware configuration (all middleware enabled/disabled via env vars)
+	middlewareOrder []string
 
-	// Route configuration
+	// Route configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
 	enableHealthCheck   bool
 	healthCheckPath     string
-	enableAPIRoutes     bool
-	apiRoutePrefix      string
 	customRoutes        []map[string]interface{}
 
 	// Error handling
@@ -49,15 +44,9 @@ func NewRouterBootstrap(injector do.Injector) (*RouterBootstrap, error) {
 
 	// Load configuration from DI container or use defaults
 	bootstrapConfig := &BootstrapConfig{
-		enableRouterMiddleware:   true, // Default to enabled
-		enableAuthMiddleware:     true,
-		enableI18nMiddleware:     true,
-		enableTemplateMiddleware: true,
-		enableHealthCheck:        true,
-		healthCheckPath:          "/api/health",
-		enableAPIRoutes:          true,
-		apiRoutePrefix:           "/api",
-		middlewareOrder:          []string{"router", "auth", "i18n", "template"},
+		enableHealthCheck: true,
+		healthCheckPath:   "/api/health",
+		middlewareOrder:   []string{"router", "auth", "i18n", "template"},
 	}
 
 	// Try to load overridden configuration from DI container
@@ -96,6 +85,11 @@ func (rb *RouterBootstrap) Bootstrap() (*chi.Mux, error) {
 		return nil, fmt.Errorf("failed to configure middleware: %w", err)
 	}
 
+	// Apply custom middleware from DI container in definition order (BEFORE routes)
+	if err := rb.applyCustomMiddleware(mux); err != nil {
+		return nil, fmt.Errorf("failed to apply custom middleware: %w", err)
+	}
+
 	// Register custom routes first (highest priority)
 	if err := rb.registerCustomRoutes(mux); err != nil {
 		return nil, fmt.Errorf("failed to register custom routes: %w", err)
@@ -111,8 +105,8 @@ func (rb *RouterBootstrap) Bootstrap() (*chi.Mux, error) {
 		return nil, fmt.Errorf("failed to register routes: %w", err)
 	}
 
-	// Register auth routes if enabled
-	if rb.options.enableAPIRoutes {
+	// Register auth routes if enabled via environment variable
+	if rb.config.GetRouterEnableAuthRoutes() {
 		if err := rb.registerAuthRoutes(mux); err != nil {
 			return nil, fmt.Errorf("failed to register auth routes: %w", err)
 		}
@@ -126,22 +120,18 @@ func (rb *RouterBootstrap) Bootstrap() (*chi.Mux, error) {
 
 // configureMiddleware configures all middleware in the correct order
 func (rb *RouterBootstrap) configureMiddleware(mux *chi.Mux) error {
-	// Always configure router middleware first if enabled
-	if rb.options.enableRouterMiddleware {
-		if err := rb.setupRouterMiddleware(mux); err != nil {
-			return fmt.Errorf("failed to setup router middleware: %w", err)
-		}
+	// Always configure router middleware (controlled by env vars: TR_ROUTER_ENABLE_*)
+	if err := rb.setupRouterMiddleware(mux); err != nil {
+		return fmt.Errorf("failed to setup router middleware: %w", err)
 	}
 
-	// Configure auth middleware if enabled
-	if rb.options.enableAuthMiddleware {
-		if err := rb.setupAuthMiddleware(mux); err != nil {
-			return fmt.Errorf("failed to setup auth middleware: %w", err)
-		}
+	// Always configure auth middleware (controlled by env vars: TR_AUTH_ENABLE_*)
+	if err := rb.setupAuthMiddleware(mux); err != nil {
+		return fmt.Errorf("failed to setup auth middleware: %w", err)
 	}
 
-	// Configure other middleware as needed
-	// Note: i18n and template middleware are handled internally by the router
+	// Note: i18n and template middleware are handled internally by the router core
+	// based on environment variables: TR_I18N_ENABLE_*, TR_TEMPLATE_ENABLE_*
 
 	return nil
 }
@@ -152,13 +142,11 @@ func (rb *RouterBootstrap) setupRouterMiddleware(mux *chi.Mux) error {
 	middlewareSetup := rb.routerCore.GetMiddlewareSetup()
 
 	// Use type assertion to access the concrete implementation
-	if setup, ok := middlewareSetup.(interface{ GetRouterMiddleware() interface{} }); ok {
+	if setup, ok := middlewareSetup.(interface{ GetRouterMiddleware() interfaces.RouterMiddlewareInterface }); ok {
 		routerMiddleware := setup.GetRouterMiddleware()
 
-		// Try to configure the router middleware
-		if configurator, ok := routerMiddleware.(interface{ Configure(*chi.Mux) error }); ok {
-			return configurator.Configure(mux)
-		}
+		// Configure the router middleware
+		return routerMiddleware.Configure(mux)
 	}
 
 	// Fallback: apply basic router middleware directly
@@ -255,6 +243,37 @@ func (rb *RouterBootstrap) registerAuthRoutes(mux *chi.Mux) error {
 			zap.String("method", method),
 			zap.String("path", path))
 	})
+	return nil
+}
+
+// applyCustomMiddleware loads and applies custom middleware from DI container in definition order
+func (rb *RouterBootstrap) applyCustomMiddleware(mux *chi.Mux) error {
+	// Try to load custom middleware definitions from DI container
+	middlewareDefs, err := do.Invoke[[]interfaces.CustomMiddlewareDefinition](rb.injector)
+	if err != nil {
+		// No custom middleware found, which is fine
+		rb.logger.Info("No custom middleware found in DI container")
+		return nil
+	}
+
+	if len(middlewareDefs) == 0 {
+		rb.logger.Info("No custom middleware to apply")
+		return nil
+	}
+
+	// Sort middleware by definition order to ensure correct execution sequence
+	sort.Slice(middlewareDefs, func(i, j int) bool {
+		return middlewareDefs[i].Order < middlewareDefs[j].Order
+	})
+
+	// Apply middleware in definition order
+	for _, middlewareDef := range middlewareDefs {
+		mux.Use(middlewareDef.Func)
+		rb.logger.Info("Applied custom middleware",
+			zap.String("name", middlewareDef.Name),
+			zap.Int("order", middlewareDef.Order))
+	}
+
 	return nil
 }
 

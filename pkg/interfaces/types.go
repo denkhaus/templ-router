@@ -317,6 +317,13 @@ type MiddlewareSetup interface {
 	ValidateMiddlewareSetup() error
 }
 
+// CustomMiddlewareDefinition holds a custom middleware with its definition order
+type CustomMiddlewareDefinition struct {
+	Name   string
+	Func   func(http.Handler) http.Handler
+	Order  int // Definition order
+}
+
 // HandlerBuilder defines the contract for handler building
 type HandlerBuilder interface {
 	BuildHandler(route Route) http.Handler

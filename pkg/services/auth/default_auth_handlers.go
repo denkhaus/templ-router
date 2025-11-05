@@ -34,11 +34,12 @@ func NewAuthHandlers(i do.Injector) (interfaces.AuthHandlers, error) {
 	}, nil
 }
 
-// RegisterRoutes registers authentication API routes only
+// RegisterRoutes registers authentication routes only
 func (h *authHandlersImpl) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {
-	registerFunc("POST", "/api/auth/signin", h.HandleSignIn)
-	registerFunc("POST", "/api/auth/signup", h.HandleSignUp)
-	registerFunc("POST", "/api/auth/signout", h.HandleSignOut)
+	authPrefix := h.configService.GetRouterAuthRoutePrefix()
+	registerFunc("POST", authPrefix+"/auth/signin", h.HandleSignIn)
+	registerFunc("POST", authPrefix+"/auth/signup", h.HandleSignUp)
+	registerFunc("POST", authPrefix+"/auth/signout", h.HandleSignOut)
 }
 
 // HandleLogin handles user login API endpoint

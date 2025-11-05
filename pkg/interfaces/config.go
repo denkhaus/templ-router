@@ -100,4 +100,6 @@ type ConfigService interface {
 	GetRouterEnableTrailingSlash() bool
 	GetRouterEnableSlashRedirect() bool
 	GetRouterEnableMethodNotAllowed() bool
+	GetRouterEnableAuthRoutes() bool
+	GetRouterAuthRoutePrefix() string
 }
