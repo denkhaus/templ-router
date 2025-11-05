@@ -42,6 +42,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
   - Internationalization translations
   - Template metadata
   - Dynamic parameter validation
+- **Component Metadata**: Self-contained component configurations:
+  - Components can have their own `.templ.yaml` files (e.g., `footer.templ.yaml`)
+  - Component metadata overrides page metadata when accessed via `/components/*` routes
+  - Support for component-specific i18n, auth settings, and metadata
+  - Enables truly reusable components with built-in internationalization
 - **Layout Inheritance**: Automatic template composition
 - **Error Templates**: Fallback mechanisms with precedence resolution
 
@@ -280,6 +285,83 @@ func (s *service) GetData(routerCtx interfaces.RouterContext) (*Data, error) {
 ```go
 do.ProvideNamed(injector, "UserDataService", dataservices.NewUserDataService)
 ```
+
+## Component Metadata Pattern
+
+### Component YAML Structure
+Components can have their own metadata files for self-contained configuration:
+
+```yaml
+# app/components/footer.templ.yaml
+i18n:
+  en:
+    footer_copyright: "© 2024 My Company. All rights reserved."
+    footer_privacy: "Privacy Policy"
+    footer_contact: "Contact Us"
+  de:
+    footer_copyright: "© 2024 Meine Firma. Alle Rechte vorbehalten."
+    footer_privacy: "Datenschutz"
+    footer_contact: "Kontakt"
+
+metadata:
+  company_name: "My Company"
+  company_email: "info@company.com"
+  company_address: "123 Main Street, City"
+  version: "1.0.0"
+
+auth:
+  type: "Public"
+```
+
+### Component Template Usage
+Components can access their own metadata using the same functions as pages:
+
+```go
+// app/components/footer.templ
+package components
+
+import (
+    "github.com/denkhaus/templ-router/pkg/router/i18n"
+    "github.com/denkhaus/templ-router/pkg/router/metadata"
+)
+
+templ Footer() {
+    companyEmail := metadata.M(ctx, "company_email")
+    companyName := metadata.M(ctx, "company_name")
+
+    <footer class="bg-gray-800 text-white p-4 mt-8">
+        <div class="container mx-auto text-center">
+            <p>{ i18n.T(ctx, "footer_copyright") }</p>
+            <div class="flex justify-center space-x-4 mt-2 text-sm">
+                <a href="/privacy" class="hover:underline">{ i18n.T(ctx, "footer_privacy") }</a>
+                <a href={ "mailto:" + companyEmail } class="hover:underline">{ i18n.T(ctx, "footer_contact") }</a>
+            </div>
+            <div class="mt-2 text-xs text-gray-400">
+                { companyName } - v{ metadata.M(ctx, "version") }
+            </div>
+        </div>
+    </footer>
+}
+```
+
+### Metadata Precedence Chain
+The system follows a clear precedence order for metadata resolution:
+
+1. **Component metadata** (highest priority) - when accessing `/components/footer`
+2. **Page metadata** (middle priority) - when component is nested in a page
+3. **Layout metadata** (lowest priority) - fallback for inherited settings
+
+### Component Routes
+Components are automatically accessible via their own routes:
+
+- `/components/footer` - Renders the Footer component with its metadata
+- `/components/navbar` - Renders the Navbar component with its metadata
+- `/components/language-switcher` - Renders the LanguageSwitcher component
+
+This enables:
+- **HTMX partials** - Load components without layout for AJAX requests
+- **Reusable components** - Self-contained metadata and i18n
+- **API endpoints** - Direct component access for dynamic loading
 
 ## Internationalization System
 

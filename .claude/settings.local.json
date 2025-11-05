@@ -3,7 +3,11 @@
     "allow": [
       "Bash(knot project create:*)",
       "Bash(knot task create:*)",
-      "Bash(knot task update-state:*)"
+      "Bash(knot task update-state:*)",
+      "Bash(knot project select:*)",
+      "Bash(knot dependency add:*)",
+      "Bash(knot actionable)",
+      "Bash(knot task update-description:*)"
     ],
     "deny": [],
     "ask": []

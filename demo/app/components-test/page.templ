@@ -1,0 +1,14 @@
+package app
+
+import "github.com/denkhaus/templ-router/demo/app/components"
+
+templ Page() {
+	<div class="min-h-screen flex flex-col">
+		<main class="flex-1 container mx-auto p-6">
+			<h1 class="text-2xl font-bold text-center mb-8">Component Metadata Test Page</h1>
+			<p class="text-center">This page shows only the Footer component to test if metadata loads properly.</p>
+			<p class="text-center">One Footer from the surrounding Layout and one Footer defined directly in the page.</p>
+		</main>
+		@components.Footer()
+	</div>
+}

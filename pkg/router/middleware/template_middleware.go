@@ -7,6 +7,7 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -67,6 +68,11 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 
 		// Load template config and add to context for router.M() access
 		ctx = tm.addTemplateConfigToContext(ctx, route.TemplateFile)
+
+		// Load component metadata if this is a component route and merge with page metadata
+		if tm.isComponentRoute(route.Path) {
+			ctx = tm.addComponentMetadataToContext(ctx, route.TemplateFile)
+		}
 
 		tm.logger.Debug("Rendering template",
 			zap.String("template", route.TemplateFile),
@@ -171,6 +177,238 @@ func (tm *templateMiddleware) buildYamlPath(templateFile string) string {
 
 	// Fallback: add .yaml to whatever we have
 	return templateFile + ".yaml"
+}
+
+// loadComponentMetadata loads component YAML metadata for a given template file
+// Returns the loaded config or nil if no metadata file exists
+func (tm *templateMiddleware) loadComponentMetadata(templateFile string) *shared.ConfigFile {
+	// Build component-specific YAML metadata path
+	yamlPath := tm.buildComponentYamlPath(templateFile)
+
+	tm.logger.Debug("Loading component metadata",
+		zap.String("template_file", templateFile),
+		zap.String("component_yaml_path", yamlPath))
+
+	// Load component config
+	configFileFound, config, err := shared.ParseYAMLMetadata(yamlPath)
+	if err != nil {
+		if configFileFound {
+			tm.logger.Debug("Failed to load component metadata",
+				zap.String("yaml_path", yamlPath),
+				zap.Error(err))
+		} else {
+			tm.logger.Debug("No component metadata file found",
+				zap.String("yaml_path", yamlPath))
+		}
+		return nil // No metadata available
+	}
+
+	tm.logger.Debug("Successfully loaded component metadata",
+		zap.String("yaml_path", yamlPath),
+		zap.Any("metadata", config.RouteMetadata))
+
+	return config
+}
+
+// buildComponentYamlPath builds the correct YAML metadata path for component templates
+// Components have different path structure than pages
+// e.g., "app/components/footer/page.templ" -> "app/components/footer.templ.yaml"
+func (tm *templateMiddleware) buildComponentYamlPath(templateFile string) string {
+	// Check if this is a component template path (contains /components/ and ends with /page.templ)
+	if strings.Contains(templateFile, "/components/") && strings.HasSuffix(templateFile, "/page.templ") {
+		// Convert component path: app/components/footer/page.templ -> app/components/footer.templ
+		componentPath := strings.TrimSuffix(templateFile, "/page.templ")
+		return componentPath + ".templ.yaml"
+	}
+
+	// Fallback to standard YAML path generation
+	return tm.buildYamlPath(templateFile)
+}
+
+// mergeComponentMetadata merges component metadata with existing page context
+// Component metadata takes precedence over page metadata
+func (tm *templateMiddleware) mergeComponentMetadata(ctx context.Context, componentConfig *shared.ConfigFile) context.Context {
+	// Get existing config from context
+	existingConfig := ctx.Value(shared.TemplateConfigKey)
+	if existingConfig == nil {
+		// No existing config, use component config directly
+		ctx = context.WithValue(ctx, shared.TemplateConfigKey, componentConfig)
+		return tm.addComponentI18nToContext(ctx, componentConfig)
+	}
+
+	// Get page/template config
+	pageConfig, ok := existingConfig.(*shared.ConfigFile)
+	if !ok {
+		// Invalid config type, use component config
+		ctx = context.WithValue(ctx, shared.TemplateConfigKey, componentConfig)
+		return tm.addComponentI18nToContext(ctx, componentConfig)
+	}
+
+	// Merge configs: component takes precedence over page
+	merged := tm.mergeConfigs(pageConfig, componentConfig)
+
+	tm.logger.Info("Merged component metadata with page metadata (component takes precedence)",
+		zap.Any("page_metadata", pageConfig.RouteMetadata),
+		zap.Any("component_metadata", componentConfig.RouteMetadata),
+		zap.Any("merged_metadata", merged.RouteMetadata))
+
+	ctx = context.WithValue(ctx, shared.TemplateConfigKey, merged)
+	return tm.addComponentI18nToContext(ctx, componentConfig)
+}
+
+// addComponentI18nToContext adds component i18n data to the I18n context
+func (tm *templateMiddleware) addComponentI18nToContext(ctx context.Context, componentConfig *shared.ConfigFile) context.Context {
+	if componentConfig.MultiLocaleI18n == nil {
+		tm.logger.Debug("No component i18n data to add to context")
+		return ctx
+	}
+
+	// Get current locale from context
+	locale, _ := ctx.Value(shared.LocaleKey).(string)
+	if locale == "" {
+		locale = "en" // Default fallback
+	}
+
+	// Check if component has translations for current locale
+	componentTranslations, hasLocale := componentConfig.MultiLocaleI18n[locale]
+	if !hasLocale {
+		tm.logger.Debug("No component translations found for locale",
+			zap.String("locale", locale),
+			zap.Strings("available_locales", tm.getAvailableLocales(componentConfig.MultiLocaleI18n)))
+		return ctx
+	}
+
+	// Get existing i18n data from context
+	i18nData, ok := ctx.Value(shared.I18nDataKey).(*i18n.I18nData)
+	if !ok {
+		tm.logger.Debug("No existing i18n data found in context")
+		return ctx
+	}
+
+	// Add component translations to existing i18n data
+	tm.logger.Info("Adding component i18n translations to context",
+		zap.String("locale", locale),
+		zap.Int("translation_count", len(componentTranslations)))
+
+	// Create a copy of the translations map to avoid race conditions
+	newTranslations := make(map[string]string)
+	for key, value := range i18nData.Translations {
+		newTranslations[key] = value
+	}
+
+	// Component translations take precedence over existing translations
+	for key, value := range componentTranslations {
+		newTranslations[key] = value
+	}
+
+	// Update i18n data with merged translations
+	updatedI18nData := &i18n.I18nData{
+		Locale:           i18nData.Locale,
+		Translations:     newTranslations,
+		CurrentTemplate:  i18nData.CurrentTemplate,
+		Logger:           i18nData.Logger,
+	}
+
+	return context.WithValue(ctx, shared.I18nDataKey, updatedI18nData)
+}
+
+// getAvailableLocales returns a slice of available locale strings
+func (tm *templateMiddleware) getAvailableLocales(i18nData map[string]map[string]string) []string {
+	locales := make([]string, 0, len(i18nData))
+	for locale := range i18nData {
+		locales = append(locales, locale)
+	}
+	return locales
+}
+
+// mergeConfigs creates a merged config where higherPriorityConfig overrides baseConfig
+func (tm *templateMiddleware) mergeConfigs(baseConfig, higherPriorityConfig *shared.ConfigFile) *shared.ConfigFile {
+	// Start with base config as base
+	merged := &shared.ConfigFile{
+		RouteMetadata:   baseConfig.RouteMetadata,
+		MultiLocaleI18n: make(map[string]map[string]string),
+		AuthSettings:    baseConfig.AuthSettings,
+		FilePath:        baseConfig.FilePath,
+		TemplateFilePath: baseConfig.TemplateFilePath,
+		I18nMappings:    make(map[string]string),
+		ErrorSettings:   baseConfig.ErrorSettings,
+		DynamicSettings: baseConfig.DynamicSettings,
+	}
+
+	// Copy base i18n data first
+	if baseConfig.MultiLocaleI18n != nil {
+		for locale, translations := range baseConfig.MultiLocaleI18n {
+			merged.MultiLocaleI18n[locale] = make(map[string]string)
+			for key, value := range translations {
+				merged.MultiLocaleI18n[locale][key] = value
+			}
+		}
+	}
+
+	// Copy base i18n mappings
+	if baseConfig.I18nMappings != nil {
+		for key, value := range baseConfig.I18nMappings {
+			merged.I18nMappings[key] = value
+		}
+	}
+
+	// Override with higher priority metadata
+	if higherPriorityConfig.RouteMetadata != nil {
+		merged.RouteMetadata = higherPriorityConfig.RouteMetadata
+	}
+
+	// Override with higher priority i18n data
+	if higherPriorityConfig.MultiLocaleI18n != nil {
+		for locale, translations := range higherPriorityConfig.MultiLocaleI18n {
+			if merged.MultiLocaleI18n[locale] == nil {
+				merged.MultiLocaleI18n[locale] = make(map[string]string)
+			}
+			for key, value := range translations {
+				merged.MultiLocaleI18n[locale][key] = value
+			}
+		}
+	}
+
+	// Override with higher priority i18n mappings
+	if higherPriorityConfig.I18nMappings != nil {
+		for key, value := range higherPriorityConfig.I18nMappings {
+			merged.I18nMappings[key] = value
+		}
+	}
+
+	// Use higher priority settings if available
+	if higherPriorityConfig.AuthSettings != nil {
+		merged.AuthSettings = higherPriorityConfig.AuthSettings
+	}
+	if higherPriorityConfig.ErrorSettings != nil {
+		merged.ErrorSettings = higherPriorityConfig.ErrorSettings
+	}
+	if higherPriorityConfig.DynamicSettings != nil {
+		merged.DynamicSettings = higherPriorityConfig.DynamicSettings
+	}
+
+	return merged
+}
+
+// isComponentRoute checks if the given route path represents a component route
+// Component routes follow the pattern: /components/{component-name}
+func (tm *templateMiddleware) isComponentRoute(routePath string) bool {
+	return strings.HasPrefix(routePath, "/components/") && routePath != "/components/"
+}
+
+// addComponentMetadataToContext loads component metadata and merges it with existing context
+func (tm *templateMiddleware) addComponentMetadataToContext(ctx context.Context, templateFile string) context.Context {
+	// Load component metadata
+	componentConfig := tm.loadComponentMetadata(templateFile)
+	if componentConfig == nil {
+		// No component metadata available, return unchanged context
+		tm.logger.Debug("No component metadata found, using page context only",
+			zap.String("template_file", templateFile))
+		return ctx
+	}
+
+	// Merge component metadata with existing page context
+	return tm.mergeComponentMetadata(ctx, componentConfig)
 }
 
 // REMOVED: extractParametersFromURL - replaced with pluggable ParameterExtractor interface

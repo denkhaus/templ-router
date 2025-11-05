@@ -55,6 +55,13 @@ func (p Build) RegistryGenerate() error {
 	return sh.RunV("sh", "-c", "cd demo && go mod tidy")
 }
 
+func (p Build) Generate() error {
+	fmt.Println("Generating registry and templates...")
+	mg.SerialDeps(p.TemplGenerate, p.RegistryGenerate)
+
+	return nil
+}
+
 func (Build) RegistryWatch() error {
 	fmt.Println("Watching template registry...")
 
