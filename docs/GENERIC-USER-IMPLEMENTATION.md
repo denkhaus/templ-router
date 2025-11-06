@@ -1,10 +1,10 @@
 # Generic User Implementation Guide
 
-Der Templ-Router unterstützt jetzt generische User-Implementationen, sodass Sie Ihre eigene User-Struktur verwenden können.
+Templ Router now supports generic user implementations, allowing you to use your own user structure.
 
 ## UserEntity Interface
 
-Jede User-Implementation muss das `UserEntity` Interface implementieren:
+Every user implementation must implement the `UserEntity` interface:
 
 ```go
 type UserEntity interface {
@@ -14,16 +14,16 @@ type UserEntity interface {
 }
 ```
 
-## Beispiel: Eigene User-Implementation
+## Example: Custom User Implementation
 
-### 1. Definieren Sie Ihre User-Struktur
+### 1. Define Your User Structure
 
 ```go
 package myapp
 
 import "github.com/denkhaus/templ-router/pkg/interfaces"
 
-// MyCustomUser - Ihre eigene User-Implementation
+// MyCustomUser - Your custom user implementation
 type MyCustomUser struct {
     UserID      string   `json:"user_id"`
     Username    string   `json:"username"`
@@ -33,7 +33,7 @@ type MyCustomUser struct {
     IsActive    bool     `json:"is_active"`
 }
 
-// Implementierung des UserEntity Interface
+// UserEntity interface implementation
 func (u *MyCustomUser) GetID() string {
     return u.UserID
 }
@@ -47,22 +47,22 @@ func (u *MyCustomUser) GetRoles() []string {
 }
 ```
 
-### 2. Implementieren Sie den UserStore
+### 2. Implement the UserStore
 
 ```go
-// MyUserStore implementiert UserStore für MyCustomUser
+// MyUserStore implements UserStore for MyCustomUser
 type MyUserStore struct {
-    // Ihre Datenbank-Verbindung, etc.
+    // Your database connection, etc.
     db Database
 }
 
 func (s *MyUserStore) GetUserByID(userID string) (*MyCustomUser, error) {
-    // Ihre Implementation
+    // Your implementation
     user, err := s.db.FindUserByID(userID)
     if err != nil {
         return nil, err
     }
-    
+
     return &MyCustomUser{
         UserID:      user.ID,
         Username:    user.Name,
@@ -74,27 +74,27 @@ func (s *MyUserStore) GetUserByID(userID string) (*MyCustomUser, error) {
 }
 
 func (s *MyUserStore) GetUserByEmail(email string) (*MyCustomUser, error) {
-    // Ihre Implementation
+    // Your implementation
     // ...
 }
 
 func (s *MyUserStore) ValidateCredentials(email, password string) (*MyCustomUser, error) {
-    // Ihre Implementation
+    // Your implementation
     // ...
 }
 
 func (s *MyUserStore) CreateUser(username, email, password string) (*MyCustomUser, error) {
-    // Ihre Implementation
+    // Your implementation
     // ...
 }
 
 func (s *MyUserStore) UserExists(username, email string) (bool, error) {
-    // Ihre Implementation
+    // Your implementation
     // ...
 }
 ```
 
-### 3. Verwenden Sie Ihre Implementation
+### 3. Use Your Implementation
 
 ```go
 package main
@@ -105,37 +105,37 @@ import (
 )
 
 func main() {
-    // Erstellen Sie Ihre User-Store Implementation
+    // Create your user store implementation
     userStore := &myapp.MyUserStore{
         db: myapp.NewDatabase(),
     }
-    
-    // Verwenden Sie den generischen AuthService
+
+    // Use the generic AuthService
     var authService interfaces.AuthService[*myapp.MyCustomUser]
-    
-    // Konfigurieren Sie Ihren Router mit der benutzerdefinierten User-Implementation
+
+    // Configure your router with the custom user implementation
     // ...
 }
 ```
 
-## Vorteile der generischen Implementation
+## Benefits of Generic Implementation
 
-1. **Flexibilität**: Verwenden Sie Ihre eigene User-Struktur mit beliebigen Feldern
-2. **Type Safety**: Go's Typsystem stellt sicher, dass alles korrekt typisiert ist
-3. **Keine Konvertierungen**: Arbeiten Sie direkt mit Ihren User-Objekten
-4. **Erweiterbarkeit**: Fügen Sie beliebige Felder und Methoden zu Ihrer User-Struktur hinzu
+1. **Flexibility**: Use your own user structure with any fields you need
+2. **Type Safety**: Go's type system ensures everything is properly typed
+3. **No Conversions**: Work directly with your user objects
+4. **Extensibility**: Add any fields and methods to your user structure
 
-## Migration von der Standard-User-Implementation
+## Migration from Default User Implementation
 
-Wenn Sie bereits die Standard-`User` Struktur verwenden, müssen Sie nichts ändern. Die Standard-Implementation implementiert bereits das `UserEntity` Interface und funktioniert weiterhin:
+If you're already using the default `User` structure, you don't need to change anything. The default implementation already implements the `UserEntity` interface and continues to work:
 
 ```go
-// Standard-Implementation funktioniert weiterhin
+// Default implementation continues to work
 var userStore interfaces.UserStore[*interfaces.User]
 var authService interfaces.AuthService[*interfaces.User]
 ```
 
-## Beispiel: Enterprise User mit zusätzlichen Feldern
+## Example: Enterprise User with Additional Fields
 
 ```go
 type EnterpriseUser struct {
@@ -154,10 +154,10 @@ func (u *EnterpriseUser) GetID() string    { return u.ID }
 func (u *EnterpriseUser) GetEmail() string { return u.Email }
 func (u *EnterpriseUser) GetRoles() []string { return u.Roles }
 
-// Zusätzliche Methoden für Enterprise-Features
+// Additional methods for enterprise features
 func (u *EnterpriseUser) GetEmployeeID() string { return u.EmployeeID }
 func (u *EnterpriseUser) GetCostCenter() string { return u.CostCenter }
 func (u *EnterpriseUser) IsManager() bool { return contains(u.Roles, "manager") }
 ```
 
-Diese generische Lösung macht den Templ-Router viel flexibler und ermöglicht es Entwicklern, ihre eigenen User-Modelle zu verwenden, ohne auf die Funktionalität des Routers verzichten zu müssen.
+This generic solution makes Templ Router much more flexible and enables developers to use their own user models without sacrificing router functionality.
