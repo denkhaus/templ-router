@@ -3,8 +3,6 @@ package middleware
 import (
 	"context"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/a-h/templ"
@@ -17,15 +15,15 @@ import (
 
 // templateMiddleware handles template rendering concerns (private implementation)
 type templateMiddleware struct {
-	templateService           interfaces.TemplateService
-	layoutService             interfaces.LayoutService
-	errorService              interfaces.ErrorService
-	parameterExtractor        ParameterExtractor
-	templateRegistry          interfaces.TemplateRegistry
-	componentMetadataService  interfaces.ComponentMetadataService
-	i18nService               interfaces.I18nService
-	configService             interfaces.ConfigService
-	logger                    *zap.Logger
+	templateService          interfaces.TemplateService
+	layoutService            interfaces.LayoutService
+	errorService             interfaces.ErrorService
+	parameterExtractor       ParameterExtractor
+	templateRegistry         interfaces.TemplateRegistry
+	componentMetadataService interfaces.ComponentMetadataService
+	i18nService              interfaces.I18nService
+	configService            interfaces.ConfigService
+	logger                   *zap.Logger
 }
 
 // ParameterExtractor interface for extracting parameters from URLs (library-agnostic)
@@ -50,15 +48,15 @@ func NewTemplateMiddleware(i do.Injector) (interfaces.TemplateMiddlewareInterfac
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &templateMiddleware{
-		templateService:           templateService,
-		layoutService:             layoutService,
-		errorService:              errorService,
-		parameterExtractor:        parameterExtractor,
-		templateRegistry:          templateRegistry,
-		componentMetadataService:  componentMetadataService,
-		i18nService:               i18nService,
-		configService:             configService,
-		logger:                    logger,
+		templateService:          templateService,
+		layoutService:            layoutService,
+		errorService:             errorService,
+		parameterExtractor:       parameterExtractor,
+		templateRegistry:         templateRegistry,
+		componentMetadataService: componentMetadataService,
+		i18nService:              i18nService,
+		configService:            configService,
+		logger:                   logger,
 	}, nil
 }
 
@@ -308,10 +306,10 @@ func (tm *templateMiddleware) addComponentI18nToContext(ctx context.Context, com
 
 	// Update i18n data with merged translations
 	updatedI18nData := &i18n.I18nData{
-		Locale:           i18nData.Locale,
-		Translations:     newTranslations,
-		CurrentTemplate:  i18nData.CurrentTemplate,
-		Logger:           i18nData.Logger,
+		Locale:          i18nData.Locale,
+		Translations:    newTranslations,
+		CurrentTemplate: i18nData.CurrentTemplate,
+		Logger:          i18nData.Logger,
 	}
 
 	return context.WithValue(ctx, shared.I18nDataKey, updatedI18nData)
@@ -330,14 +328,14 @@ func (tm *templateMiddleware) getAvailableLocales(i18nData map[string]map[string
 func (tm *templateMiddleware) mergeConfigs(baseConfig, higherPriorityConfig *shared.ConfigFile) *shared.ConfigFile {
 	// Start with base config as base
 	merged := &shared.ConfigFile{
-		RouteMetadata:   baseConfig.RouteMetadata,
-		MultiLocaleI18n: make(map[string]map[string]string),
-		AuthSettings:    baseConfig.AuthSettings,
-		FilePath:        baseConfig.FilePath,
+		RouteMetadata:    baseConfig.RouteMetadata,
+		MultiLocaleI18n:  make(map[string]map[string]string),
+		AuthSettings:     baseConfig.AuthSettings,
+		FilePath:         baseConfig.FilePath,
 		TemplateFilePath: baseConfig.TemplateFilePath,
-		I18nMappings:    make(map[string]string),
-		ErrorSettings:   baseConfig.ErrorSettings,
-		DynamicSettings: baseConfig.DynamicSettings,
+		I18nMappings:     make(map[string]string),
+		ErrorSettings:    baseConfig.ErrorSettings,
+		DynamicSettings:  baseConfig.DynamicSettings,
 	}
 
 	// Copy base i18n data first
@@ -414,84 +412,10 @@ func (tm *templateMiddleware) isComponentRoute(routePath string) bool {
 	return false
 }
 
-
 // addEmbeddedComponentsMetadataToContext loads metadata for all registered components
-func (tm *templateMiddleware) addEmbeddedComponentsMetadataToContext(ctx context.Context, templateFile string) context.Context {
-	// Get all component names from registry
-	componentNames := tm.getAllComponentNames()
-	if len(componentNames) == 0 {
-		tm.logger.Debug("No components found in registry",
-			zap.String("template_file", templateFile))
-		return ctx
-	}
-
-	tm.logger.Debug("Found embedded components in template",
-		zap.String("template_file", templateFile),
-		zap.Strings("components", componentNames))
-
-	// Load metadata for each discovered component
-	for _, componentName := range componentNames {
-		ctx = tm.loadSingleComponentMetadata(ctx, componentName)
-	}
-
-	return ctx
-}
-
-// readTemplateFile reads the content of a template file
-func (tm *templateMiddleware) readTemplateFile(templateFile string) (string, error) {
-	// TemplateFile should already be the full path from route discovery
-	// If it's a relative path, make it absolute using the layout root
-	if !filepath.IsAbs(templateFile) {
-		layoutRoot := tm.configService.GetLayoutRootDirectory()
-		templateFile = filepath.Join(layoutRoot, templateFile)
-	}
-
-	content, err := os.ReadFile(templateFile)
-	if err != nil {
-		return "", err
-	}
-
-	return string(content), nil
-}
 
 // getAllComponentNames returns all component names from the registry
 // This replaces the complex template content parsing with simple registry lookup
-func (tm *templateMiddleware) getAllComponentNames() []string {
-	componentTemplates := tm.templateRegistry.FindComponentTemplates()
-
-	components := make([]string, 0, len(componentTemplates))
-	for componentName := range componentTemplates {
-		components = append(components, componentName)
-	}
-
-	tm.logger.Debug("Found component names from registry",
-		zap.Strings("components", components))
-
-	return components
-}
-
-// loadSingleComponentMetadata loads metadata for a single component
-func (tm *templateMiddleware) loadSingleComponentMetadata(ctx context.Context, componentName string) context.Context {
-	// Load component metadata using the service
-	componentConfig, err := tm.componentMetadataService.LoadComponentMetadata(componentName)
-	if err != nil {
-		// No component metadata available, return unchanged context
-		tm.logger.Debug("No component metadata found for embedded component",
-			zap.String("component", componentName),
-			zap.Error(err))
-		return ctx
-	}
-
-	tm.logger.Debug("Successfully loaded embedded component metadata",
-		zap.String("component", componentName))
-
-	// Load component translations into i18n context
-	ctx = tm.loadComponentTranslations(ctx, componentName)
-
-	// Merge component metadata with existing page context
-	return tm.mergeComponentMetadata(ctx, componentConfig)
-}
-
 
 // shouldSkipLayout determines if layout wrapping should be skipped for partial rendering
 func (tm *templateMiddleware) shouldSkipLayout(route interfaces.Route, r *http.Request) bool {
@@ -517,24 +441,6 @@ func (tm *templateMiddleware) isHTMXRequest(r *http.Request) bool {
 	// HTMX sends this header for AJAX requests
 	return r.Header.Get("HX-Request") != ""
 }
-
-// isPageTemplate checks if a template file is a page template
-// Page templates are typically named page.templ
-func (tm *templateMiddleware) isPageTemplate(templateFile string) bool {
-	filename := filepath.Base(templateFile)
-	filename = strings.TrimSuffix(filename, ".templ")
-
-	// Check if this is a page template
-	isPage := filename == "page"
-
-	tm.logger.Debug("Template type check",
-		zap.String("template_file", templateFile),
-		zap.String("filename", filename),
-		zap.Bool("is_page", isPage))
-
-	return isPage
-}
-
 
 // addComponentMetadataForComponentRoute loads component metadata for component routes
 func (tm *templateMiddleware) addComponentMetadataForComponentRoute(ctx context.Context, templateFile string) context.Context {
@@ -572,45 +478,6 @@ func (tm *templateMiddleware) addComponentMetadataForComponentRoute(ctx context.
 	tm.logger.Debug("No metadata found in registry for template file",
 		zap.String("template_file", templateFile))
 	return ctx
-}
-
-// templateContainsComponents checks if a template file contains embedded components
-// Uses route mapping to check if any component routes exist in the system
-func (tm *templateMiddleware) templateContainsComponents(templateFile string) bool {
-	// Get the route mapping to check for component routes
-	routeMapping := tm.templateRegistry.GetRouteToTemplateMapping()
-
-	// If there are any routes that look like component routes,
-	// then the system has component templates that could be embedded
-	for route := range routeMapping {
-		// Check if this route is for a component (using existing logic)
-		if tm.isComponentRoute(route) {
-			tm.logger.Debug("Found component route in system",
-				zap.String("template_file", templateFile),
-				zap.String("component_route", route))
-			return true
-		}
-	}
-
-	// No component routes found
-	tm.logger.Debug("No component routes found in system",
-		zap.String("template_file", templateFile))
-	return false
-}
-
-
-// extractTemplatePathFromKey extracts template path from template registry key
-// Helper method to avoid duplication
-func (tm *templateMiddleware) extractTemplatePathFromKey(templateKey string) string {
-	// First try to split by # to separate the path from the template name
-	parts := strings.Split(templateKey, "#")
-	if len(parts) >= 2 && parts[0] != "" {
-		return parts[0]
-	}
-
-	// For hash keys, this would need reverse lookup, but for now return empty
-	// The component detection can work with just the presence of non-standard templates
-	return ""
 }
 
 // loadComponentTranslations loads component translations into the i18n context
