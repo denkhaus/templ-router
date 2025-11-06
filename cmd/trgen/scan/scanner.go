@@ -267,12 +267,26 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		// Determine template type based on naming conventions
 		templateType := determineTemplateType(templatePath)
 
-		// For component routes, derive component name from route pattern
+		// Derive component name based on template type and route pattern
 		var componentName string
-		if templateType == "component" && strings.HasPrefix(routePattern, "/components/") {
-			// Extract component name from route pattern: "/components/footer" -> "footer"
-			componentName = strings.TrimPrefix(routePattern, "/components/")
-			componentName = strings.ToLower(strings.ReplaceAll(componentName, "-", "_"))
+		switch templateType {
+		case "layout":
+			componentName = "layout"
+		case "page":
+			componentName = "page"
+		case "error":
+			componentName = "error"
+		case "component":
+			// Extract component name from route pattern generically
+			// "/components/footer" -> "footer"
+			// "/ui/navbar" -> "navbar"
+			// "/custom/partials/header" -> "header"
+			// Remove leading "/" and split by "/"
+			routeParts := strings.Split(strings.TrimPrefix(routePattern, "/"), "/")
+			if len(routeParts) > 0 {
+				// Use the last segment as component name
+				componentName = strings.ToLower(strings.ReplaceAll(routeParts[len(routeParts)-1], "-", "_"))
+			}
 		}
 
 		// Analyze YAML file for metadata
