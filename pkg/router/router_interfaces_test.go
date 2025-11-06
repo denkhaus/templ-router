@@ -73,7 +73,7 @@ func (t *testRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfac
 
 type testConfigLoader struct {
 	config       *shared.ConfigFile
-	authSettings *interfaces.AuthSettings
+	authSettings *shared.AuthConfig
 }
 
 func (t *testConfigLoader) LoadRouteConfig(templateFile string) (*shared.ConfigFile, error) {
@@ -84,7 +84,7 @@ func (t *testConfigLoader) LoadConfig(templatePath string) (*shared.ConfigFile, 
 	return t.config, nil
 }
 
-func (t *testConfigLoader) LoadAuthSettings(templatePath string) (*interfaces.AuthSettings, error) {
+func (t *testConfigLoader) LoadAuthSettings(templatePath string) (*shared.AuthConfig, error) {
 	return t.authSettings, nil
 }
 
@@ -211,13 +211,23 @@ func TestConfigLoader_InterfaceCompliance(t *testing.T) {
 	loader := &testConfigLoader{
 		config: &shared.ConfigFile{
 			FilePath: "/app/test.yaml",
-			I18nMappings: map[string]string{
-				"en": "English",
-				"de": "German",
+			I18n: &shared.I18nConfig{
+				Translations: map[string]*shared.LocaleTranslations{
+					"en": {
+						Translations: map[string]interface{}{
+							"hello": "Hello",
+						},
+					},
+					"de": {
+						Translations: map[string]interface{}{
+							"hello": "Hallo",
+						},
+					},
+				},
 			},
 		},
-		authSettings: &interfaces.AuthSettings{
-			Type:        interfaces.AuthTypeUser,
+		authSettings: &shared.AuthConfig{
+			Type:        interfaces.AuthTypeUser.String(),
 			RedirectURL: "/login",
 			Roles:       []string{"user"},
 		},
@@ -252,7 +262,7 @@ func TestConfigLoader_InterfaceCompliance(t *testing.T) {
 	if authSettings == nil {
 		t.Error("LoadAuthSettings() returned nil auth settings")
 	}
-	if authSettings.Type != interfaces.AuthTypeUser {
+	if authSettings.Type != interfaces.AuthTypeUser.String() {
 		t.Errorf("Expected auth type User, got %v", authSettings.Type)
 	}
 	if authSettings.RedirectURL != "/login" {

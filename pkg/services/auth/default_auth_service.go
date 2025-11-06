@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -30,7 +31,7 @@ func NewDefaultAuthService(i do.Injector) (interfaces.AuthService, error) {
 }
 
 // Authenticate implements the AuthService interface
-func (s *DefaultAuthService) Authenticate(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
+func (s *DefaultAuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
 	// Check authentication type
 	switch requirements.Type {
 	case "Public":
@@ -50,7 +51,7 @@ func (s *DefaultAuthService) Authenticate(req *http.Request, requirements *inter
 }
 
 // authenticateUser handles user authentication via session
-func (s *DefaultAuthService) authenticateUser(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
+func (s *DefaultAuthService) authenticateUser(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
 	// Get session from request
 	session, err := s.sessionStore.GetSession(req)
 	if err != nil || !session.Valid {
@@ -87,7 +88,7 @@ func (s *DefaultAuthService) authenticateUser(req *http.Request, requirements *i
 }
 
 // HasRequiredPermissions checks if the user has the required permissions
-func (s *DefaultAuthService) HasRequiredPermissions(req *http.Request, settings *interfaces.AuthSettings) bool {
+func (s *DefaultAuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
 	result, err := s.Authenticate(req, settings)
 	if err != nil || !result.IsAuthenticated {
 		return false

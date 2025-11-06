@@ -5,6 +5,7 @@ import (
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -64,15 +65,15 @@ func (hb *handlerBuilder) BuildHandler(route interfaces.Route) http.Handler {
 
 	// Build handler using the pipeline
 	pipelineConfig := pipeline.PipelineConfig{
-		Route:        route,
-		AuthSettings: authSettings,
-		Params:       params,
+		Route:      route,
+		AuthConfig: authSettings,
+		Params:     params,
 	}
 
 	// Add config file if available
 	if config != nil {
-		pipelineConfig.ConfigFile = &pipeline.ConfigFile{
-			AuthSettings: authSettings,
+		pipelineConfig.ConfigFile = &shared.ConfigFile{
+			Auth: authSettings,
 		}
 	}
 

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -20,16 +21,10 @@ type HandlerPipeline struct {
 
 // PipelineConfig contains configuration for building a handler pipeline
 type PipelineConfig struct {
-	Route        interfaces.Route
-	AuthSettings *interfaces.AuthSettings
-	ConfigFile   *ConfigFile
-	Params       map[string]string
-}
-
-// ConfigFile represents template configuration (simplified)
-type ConfigFile struct {
-	AuthSettings *interfaces.AuthSettings
-	// Add other config fields as needed
+	Route      interfaces.Route
+	AuthConfig *shared.AuthConfig
+	ConfigFile *shared.ConfigFile
+	Params     map[string]string
 }
 
 func NewHandlerPipeline(i do.Injector) (*HandlerPipeline, error) {
@@ -46,7 +41,6 @@ func NewHandlerPipeline(i do.Injector) (*HandlerPipeline, error) {
 		templateRegistry:   templateRegistry,
 		logger:             logger,
 	}, nil
-
 }
 
 // BuildHandler creates a complete HTTP handler using the middleware pipeline
@@ -79,27 +73,27 @@ func (hp *HandlerPipeline) BuildHandler(config PipelineConfig) http.Handler {
 }
 
 // resolveAuthSettings determines the final auth settings for a route
-func (hp *HandlerPipeline) resolveAuthSettings(config PipelineConfig) *interfaces.AuthSettings {
+func (hp *HandlerPipeline) resolveAuthSettings(config PipelineConfig) *shared.AuthConfig {
 	// Template-level auth settings take precedence
-	if config.ConfigFile != nil && config.ConfigFile.AuthSettings != nil {
+	if config.ConfigFile != nil && config.ConfigFile.Auth != nil {
 		hp.logger.Debug("Using template-level auth settings",
 			zap.String("route", config.Route.Path),
-			zap.String("auth_type", config.ConfigFile.AuthSettings.Type))
-		return config.ConfigFile.AuthSettings
+			zap.String("auth_type", config.ConfigFile.Auth.Type))
+		return config.ConfigFile.Auth
 	}
 
 	// Route-level auth settings
-	if config.AuthSettings != nil {
+	if config.AuthConfig != nil {
 		hp.logger.Debug("Using route-level auth settings",
 			zap.String("route", config.Route.Path),
-			zap.String("auth_type", config.AuthSettings.Type))
-		return config.AuthSettings
+			zap.String("auth_type", config.AuthConfig.Type))
+		return config.AuthConfig
 	}
 
 	// Default to public
 	hp.logger.Debug("Using default public auth settings",
 		zap.String("route", config.Route.Path))
-	return &interfaces.AuthSettings{Type: "Public"}
+	return &shared.AuthConfig{Type: "Public"}
 }
 
 // BuildHandlerFunc creates an http.HandlerFunc using the pipeline

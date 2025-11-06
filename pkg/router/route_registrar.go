@@ -191,7 +191,7 @@ func (rr *routeRegistrar) registerLocaleSpecificRoutes(route interfaces.Route) e
 			Handler:              route.Handler,
 			Precedence:           route.Precedence,
 			Locale:               locale,
-			AuthSettings:         route.AuthSettings,
+			AuthConfig:          route.AuthConfig,
 			RequiresDataService:  route.RequiresDataService,
 			DataServiceInterface: route.DataServiceInterface,
 			DataParameterType:    route.DataParameterType,

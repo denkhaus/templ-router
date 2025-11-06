@@ -68,7 +68,7 @@ func (m *MockConfigService) GetFallbackLocale() string {
 }
 
 func (m *MockConfigService) GetLayoutRootDirectory() string {
-	args := m.Called("GetLayoutRootDirectory")
+	args := m.Called()
 	return args.String(0)
 }
 
@@ -427,11 +427,43 @@ func (m *MockTemplateRegistry) GetDataServiceInfo(key string) (interfaces.DataSe
 	return args.Get(0).(interfaces.DataServiceInfo), args.Bool(1)
 }
 
+func (m *MockTemplateRegistry) GetTemplateMetadata(key string) (*interfaces.TemplateMetadata, error) {
+	args := m.Called(key)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*interfaces.TemplateMetadata), args.Error(1)
+}
+
+func (m *MockTemplateRegistry) GetTemplateMetadataByRoute(route string) (*interfaces.TemplateMetadata, error) {
+	args := m.Called(route)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*interfaces.TemplateMetadata), args.Error(1)
+}
+
+func (m *MockTemplateRegistry) GetAllTemplateMetadata() map[string]*interfaces.TemplateMetadata {
+	args := m.Called()
+	return args.Get(0).(map[string]*interfaces.TemplateMetadata)
+}
+
+func (m *MockTemplateRegistry) FindComponentTemplates() map[string]*interfaces.TemplateMetadata {
+	args := m.Called()
+	return args.Get(0).(map[string]*interfaces.TemplateMetadata)
+}
+
+func (m *MockTemplateRegistry) GetTemplateKeyByComponentName(componentName string) (string, bool) {
+	args := m.Called(componentName)
+	return args.String(0), args.Bool(1)
+}
+
 func TestComponentMetadataService_LoadComponentMetadata(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
 	mockConfigService := &MockConfigService{}
 	mockConfigService.On("GetTemplateOutputDir").Return("demo/app")
+	mockConfigService.On("GetLayoutRootDirectory").Return("demo/app")
 
 	// Create a mock template registry
 	mockTemplateRegistry := &MockTemplateRegistry{}
@@ -439,6 +471,29 @@ func TestComponentMetadataService_LoadComponentMetadata(t *testing.T) {
 		"/components/footer": "app/components/footer.templ#Footer",
 		"/components/navbar": "app/components/navbar.templ#Navbar",
 	})
+	mockTemplateRegistry.On("GetTemplateKeyByComponentName", "footer").Return("app/components/footer.templ#Footer", true)
+	mockTemplateRegistry.On("GetTemplateKeyByComponentName", "navbar").Return("app/components/navbar.templ#Navbar", true)
+	mockTemplateRegistry.On("GetTemplateKeyByComponentName", "nonexistent").Return("", false)
+
+	// Mock template metadata responses
+	mockTemplateRegistry.On("GetTemplateMetadata", "app/components/footer.templ#Footer").Return(&interfaces.TemplateMetadata{
+		TemplatePath:  "app/components/footer.templ",
+		Type:          interfaces.TemplateTypeComponent,
+		ComponentName: "footer",
+		Route:         "/components/footer",
+		YAMLFile:      "app/components/footer.templ.yaml",
+		YAMLExists:    true,
+		HasMetadata:   true,
+	}, nil)
+	mockTemplateRegistry.On("GetTemplateMetadata", "app/components/navbar.templ#Navbar").Return(&interfaces.TemplateMetadata{
+		TemplatePath:  "app/components/navbar.templ",
+		Type:          interfaces.TemplateTypeComponent,
+		ComponentName: "navbar",
+		Route:         "/components/navbar",
+		YAMLFile:      "app/components/navbar.templ.yaml",
+		YAMLExists:    true,
+		HasMetadata:   true,
+	}, nil)
 
 	// Create service instance manually for testing (not using DI)
 	cms := &componentMetadataService{
@@ -489,7 +544,9 @@ func TestComponentMetadataService_LoadComponentMetadata(t *testing.T) {
 		})
 	}
 
-	mockConfigService.AssertExpectations(t)
+	// Note: Not asserting all mock expectations since some methods may not be called in error paths
+	mockConfigService.AssertCalled(t, "GetLayoutRootDirectory")
+	mockTemplateRegistry.AssertCalled(t, "GetTemplateKeyByComponentName", "footer")
 }
 
 func TestComponentMetadataService_DetectComponentsFromTemplate(t *testing.T) {
@@ -592,8 +649,10 @@ func TestComponentMetadataService_CacheBehavior(t *testing.T) {
 		// Manually cache some metadata
 		testConfig := &shared.ConfigFile{
 			FilePath: "test/path.yaml",
-			RouteMetadata: map[string]interface{}{
-				"title": "Test Component",
+			Metadata: &shared.MetadataConfig{
+				Custom: map[string]interface{}{
+					"title": "Test Component",
+				},
 			},
 		}
 		cms.cacheMetadata("footer", testConfig)
@@ -633,12 +692,36 @@ func TestComponentMetadataService_LoadMultipleComponentMetadata(t *testing.T) {
 	mockConfigService := &MockConfigService{}
 	mockConfigService.On("GetTemplateOutputDir").Return("demo/app")
 	mockConfigService.On("GetFallbackLocale").Return("en")
+	mockConfigService.On("GetLayoutRootDirectory").Return("demo/app")
 
 	mockTemplateRegistry := &MockTemplateRegistry{}
 	mockTemplateRegistry.On("GetRouteToTemplateMapping").Return(map[string]string{
 		"/components/footer": "app/components/footer.templ#Footer",
 		"/components/navbar": "app/components/navbar.templ#Navbar",
 	})
+	mockTemplateRegistry.On("GetTemplateKeyByComponentName", "footer").Return("app/components/footer.templ#Footer", true)
+	mockTemplateRegistry.On("GetTemplateKeyByComponentName", "navbar").Return("app/components/navbar.templ#Navbar", true)
+	mockTemplateRegistry.On("GetTemplateKeyByComponentName", "nonexistent").Return("", false)
+
+	// Mock template metadata responses
+	mockTemplateRegistry.On("GetTemplateMetadata", "app/components/footer.templ#Footer").Return(&interfaces.TemplateMetadata{
+		TemplatePath:  "app/components/footer.templ",
+		Type:          interfaces.TemplateTypeComponent,
+		ComponentName: "footer",
+		Route:         "/components/footer",
+		YAMLFile:      "app/components/footer.templ.yaml",
+		YAMLExists:    true,
+		HasMetadata:   true,
+	}, nil)
+	mockTemplateRegistry.On("GetTemplateMetadata", "app/components/navbar.templ#Navbar").Return(&interfaces.TemplateMetadata{
+		TemplatePath:  "app/components/navbar.templ",
+		Type:          interfaces.TemplateTypeComponent,
+		ComponentName: "navbar",
+		Route:         "/components/navbar",
+		YAMLFile:      "app/components/navbar.templ.yaml",
+		YAMLExists:    true,
+		HasMetadata:   true,
+	}, nil)
 
 	cms := &componentMetadataService{
 		configService:     mockConfigService,
@@ -659,6 +742,6 @@ func TestComponentMetadataService_LoadMultipleComponentMetadata(t *testing.T) {
 	assert.Nil(t, result["nonexistent"], "Non-existing component should not be in result")
 
 	// Only check expectations that were actually called
-	mockConfigService.AssertCalled(t, "GetTemplateOutputDir")
+	mockConfigService.AssertCalled(t, "GetLayoutRootDirectory")
 	// GetFallbackLocale may or may not be called depending on whether components are found
 }

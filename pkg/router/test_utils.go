@@ -134,7 +134,7 @@ func (m *MockRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfac
 type MockConfigLoader struct {
 	ShouldError  bool
 	Config       *shared.ConfigFile
-	AuthSettings *interfaces.AuthSettings
+	AuthConfig   *shared.AuthConfig
 }
 
 func (m *MockConfigLoader) LoadRouteConfig(templateFile string) (*shared.ConfigFile, error) {
@@ -157,14 +157,14 @@ func (m *MockConfigLoader) LoadConfig(templatePath string) (*shared.ConfigFile, 
 	return &shared.ConfigFile{FilePath: templatePath}, nil
 }
 
-func (m *MockConfigLoader) LoadAuthSettings(templatePath string) (*interfaces.AuthSettings, error) {
+func (m *MockConfigLoader) LoadAuthSettings(templatePath string) (*shared.AuthConfig, error) {
 	if m.ShouldError {
 		return nil, errors.New("mock auth settings load error")
 	}
-	if m.AuthSettings != nil {
-		return m.AuthSettings, nil
+	if m.AuthConfig != nil {
+		return m.AuthConfig, nil
 	}
-	return &interfaces.AuthSettings{Type: "Public"}, nil
+	return &shared.AuthConfig{Type: "Public"}, nil
 }
 
 type MockHandlerPipeline struct {
@@ -187,11 +187,11 @@ func (m *MockHandlerPipeline) BuildHandler(config pipeline.PipelineConfig) http.
 // Service mocks
 type MockAuthService struct{}
 
-func (m *MockAuthService) Authenticate(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
+func (m *MockAuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
 	return &interfaces.AuthResult{IsAuthenticated: true}, nil
 }
 
-func (m *MockAuthService) HasRequiredPermissions(req *http.Request, settings *interfaces.AuthSettings) bool {
+func (m *MockAuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
 	return true
 }
 
@@ -250,7 +250,7 @@ func (m *MockErrorService) CreateErrorComponent(message, path string) templ.Comp
 // Middleware mocks
 type MockAuthMiddleware struct{}
 
-func (m *MockAuthMiddleware) Handle(next http.Handler, requirements *interfaces.AuthSettings) http.Handler {
+func (m *MockAuthMiddleware) Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 	})

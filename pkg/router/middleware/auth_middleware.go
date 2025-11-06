@@ -5,6 +5,7 @@ import (
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/i18n"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -41,7 +42,7 @@ func NewAuthMiddleware(i do.Injector) (interfaces.AuthMiddlewareInterface, error
 }
 
 // Handle processes authentication for a request
-func (am *authMiddleware) Handle(next http.Handler, requirements *interfaces.AuthSettings) http.Handler {
+func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip auth for public routes
 		if requirements == nil || requirements.Type == "Public" {
@@ -77,7 +78,7 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *interfaces.Aut
 }
 
 // handleAuthFailure handles authentication failures
-func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Request, authResult *interfaces.AuthResult, requirements *interfaces.AuthSettings) {
+func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Request, authResult *interfaces.AuthResult, requirements *shared.AuthConfig) {
 	am.logger.Info("Authentication required but user not authenticated",
 		zap.String("path", r.URL.Path),
 		zap.String("auth_type", requirements.Type))
@@ -115,7 +116,7 @@ func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Reque
 }
 
 // handlePermissionFailure handles permission failures
-func (am *authMiddleware) handlePermissionFailure(w http.ResponseWriter, r *http.Request, requirements *interfaces.AuthSettings) {
+func (am *authMiddleware) handlePermissionFailure(w http.ResponseWriter, r *http.Request, requirements *shared.AuthConfig) {
 	am.logger.Warn("User lacks required permissions",
 		zap.String("path", r.URL.Path),
 		zap.String("required_auth_type", requirements.Type))

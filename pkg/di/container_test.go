@@ -200,6 +200,26 @@ func (m *mockTemplateRegistry) GetDataServiceInfo(key string) (interfaces.DataSe
 	return interfaces.DataServiceInfo{}, false
 }
 
+func (m *mockTemplateRegistry) GetTemplateMetadata(key string) (*interfaces.TemplateMetadata, error) {
+	return nil, nil
+}
+
+func (m *mockTemplateRegistry) GetTemplateMetadataByRoute(route string) (*interfaces.TemplateMetadata, error) {
+	return nil, nil
+}
+
+func (m *mockTemplateRegistry) GetAllTemplateMetadata() map[string]*interfaces.TemplateMetadata {
+	return make(map[string]*interfaces.TemplateMetadata)
+}
+
+func (m *mockTemplateRegistry) FindComponentTemplates() map[string]*interfaces.TemplateMetadata {
+	return make(map[string]*interfaces.TemplateMetadata)
+}
+
+func (m *mockTemplateRegistry) GetTemplateKeyByComponentName(componentName string) (string, bool) {
+	return "", false
+}
+
 type mockAssetsService struct{}
 
 func (m *mockAssetsService) SetupRoutes(router *chi.Mux) {}

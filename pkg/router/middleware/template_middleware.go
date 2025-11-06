@@ -84,7 +84,7 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 			templateKey = route.TemplateFile // fallback to template file
 		}
 
-	// Load metadata and i18n for ALL templates using unified approach
+		// Load metadata and i18n for ALL templates using unified approach
 		// Everything is a component - pages, layouts, and components use the same loading mechanism
 		ctx = tm.loadTemplateMetadataAndI18n(ctx, templateKey, route.Path)
 
@@ -183,7 +183,7 @@ func (tm *templateMiddleware) loadTemplateMetadataAndI18n(ctx context.Context, t
 
 	// Load hierarchical metadata and i18n: Layout -> Page -> Component
 	// Components have highest priority and override parent settings
-	mergedConfig, mergedTranslations := tm.loadHierarchicalMetadataAndI18n(ctx, templateKey, metadata)
+	mergedConfig, mergedTranslations := tm.loadHierarchicalMetadataAndI18n(ctx, metadata)
 
 	// Add merged template config to context for metadata.M() access
 	ctx = context.WithValue(ctx, shared.TemplateConfigKey, mergedConfig)
@@ -224,7 +224,7 @@ func (tm *templateMiddleware) buildCorrectYAMLPath(registryYAMLPath string) stri
 
 // loadHierarchicalMetadataAndI18n loads and merges metadata and i18n data in hierarchical order
 // Layout -> Page -> Component (higher priority overrides lower priority)
-func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Context, templateKey string, currentMetadata *interfaces.TemplateMetadata) (*shared.ConfigFile, map[string]string) {
+func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Context, currentMetadata *interfaces.TemplateMetadata) (*shared.ConfigFile, map[string]string) {
 	// Step 1: Load layout metadata (lowest priority)
 	layoutConfig := tm.loadLayoutMetadata()
 
@@ -413,32 +413,29 @@ func (tm *templateMiddleware) mergeTranslationsHierarchically(layoutConfig, curr
 
 	// Step 1: Start with layout translations (lowest priority)
 	layoutI18n := layoutConfig.GetMultiLocaleI18n()
-	if layoutI18n != nil {
-		for _, translations := range layoutI18n {
-			for key, value := range translations {
-				merged[key] = value // This will be overridden by higher priority items
-			}
+
+	for _, translations := range layoutI18n {
+		for key, value := range translations {
+			merged[key] = value // This will be overridden by higher priority items
 		}
 	}
 
 	// Step 2: Merge current template translations (overrides layout)
 	currentI18n := currentConfig.GetMultiLocaleI18n()
-	if currentI18n != nil {
-		for _, translations := range currentI18n {
-			for key, value := range translations {
-				merged[key] = value // Overrides layout
-			}
+
+	for _, translations := range currentI18n {
+		for key, value := range translations {
+			merged[key] = value // Overrides layout
 		}
 	}
 
 	// Step 3: Merge all components translations (highest priority)
 	for _, componentConfig := range componentsConfigs {
 		componentI18n := componentConfig.GetMultiLocaleI18n()
-		if componentI18n != nil {
-			for _, translations := range componentI18n {
-				for key, value := range translations {
-					merged[key] = value // Components have highest priority
-				}
+
+		for _, translations := range componentI18n {
+			for key, value := range translations {
+				merged[key] = value // Components have highest priority
 			}
 		}
 	}
@@ -566,7 +563,7 @@ func (tm *templateMiddleware) mergeTwoConfigs(base, override *shared.ConfigFile,
 				for ruleName, ruleData := range rulesData {
 					if ruleMap, ok := ruleData.(map[string]interface{}); ok {
 						rule := &shared.ValidationRule{
-							Name:    ruleName,
+							Name:     ruleName,
 							Settings: make(map[string]interface{}),
 						}
 						if ruleType, ok := ruleMap["type"].(string); ok {
@@ -756,34 +753,6 @@ func (tm *templateMiddleware) getRouteMetadata(config *shared.ConfigFile) map[st
 	return result
 }
 
-// setRouteMetadata safely sets route metadata
-func (tm *templateMiddleware) setRouteMetadata(config *shared.ConfigFile, metadata map[string]interface{}) {
-	if config == nil {
-		return
-	}
-	// This would require converting back to MetadataConfig, but for now
-	// we rely on the merge methods to handle this
-}
-
-// getI18nData safely extracts i18n data as map[string]map[string]string
-func (tm *templateMiddleware) getI18nData(config *shared.ConfigFile) map[string]map[string]string {
-	if config == nil {
-		return make(map[string]map[string]string)
-	}
-	// Use the getter method which already returns flattened data
-	return config.GetMultiLocaleI18n()
-}
-
-// setI18nData safely sets i18n data
-func (tm *templateMiddleware) setI18nData(config *shared.ConfigFile, i18nData map[string]map[string]string) {
-	if config == nil {
-		return
-	}
-	// This would require converting back to I18nConfig, but for now
-	// we rely on the merge methods to handle this
-}
-
-
 // isComponentRoute determines if a route is a component route using registry
 // This is generic - components can be in any route, not just /components/
 func (tm *templateMiddleware) isComponentRoute(routePath string) bool {
@@ -802,11 +771,6 @@ func (tm *templateMiddleware) isComponentRoute(routePath string) bool {
 
 	return false
 }
-
-// addEmbeddedComponentsMetadataToContext loads metadata for all registered components
-
-// getAllComponentNames returns all component names from the registry
-// This replaces the complex template content parsing with simple registry lookup
 
 // shouldSkipLayout determines if layout wrapping should be skipped for partial rendering
 func (tm *templateMiddleware) shouldSkipLayout(route interfaces.Route, r *http.Request) bool {
@@ -832,4 +796,3 @@ func (tm *templateMiddleware) isHTMXRequest(r *http.Request) bool {
 	// HTMX sends this header for AJAX requests
 	return r.Header.Get("HX-Request") != ""
 }
-

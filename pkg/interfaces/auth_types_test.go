@@ -2,6 +2,8 @@ package interfaces
 
 import (
 	"testing"
+
+	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
 // TestUser implements UserEntity interface for testing
@@ -26,12 +28,12 @@ func (u *TestUser) GetRoles() []string {
 func TestAuthSettings_Validation(t *testing.T) {
 	tests := []struct {
 		name     string
-		settings AuthSettings
+		settings shared.AuthConfig
 		isValid  bool
 	}{
 		{
 			name: "Valid user auth settings",
-			settings: AuthSettings{
+			settings: shared.AuthConfig{
 				Type:        "UserRequired",
 				RedirectURL: "/login",
 				Roles:       []string{"user"},
@@ -40,7 +42,7 @@ func TestAuthSettings_Validation(t *testing.T) {
 		},
 		{
 			name: "Valid admin auth settings",
-			settings: AuthSettings{
+			settings: shared.AuthConfig{
 				Type:        "AdminRequired",
 				RedirectURL: "/admin/login",
 				Roles:       []string{"admin", "super_admin"},
@@ -49,7 +51,7 @@ func TestAuthSettings_Validation(t *testing.T) {
 		},
 		{
 			name: "Public auth with no redirect",
-			settings: AuthSettings{
+			settings: shared.AuthConfig{
 				Type:        "Public",
 				RedirectURL: "",
 				Roles:       nil,
@@ -69,7 +71,7 @@ func TestAuthSettings_Validation(t *testing.T) {
 			}
 
 			if isValid != tt.isValid {
-				t.Errorf("AuthSettings validation = %v, want %v", isValid, tt.isValid)
+				t.Errorf("shared.AuthConfig validation = %v, want %v", isValid, tt.isValid)
 			}
 		})
 	}
@@ -209,14 +211,14 @@ func TestSession_InvalidSession(t *testing.T) {
 }
 
 func TestAuthSettings_RoleValidation(t *testing.T) {
-	settings := AuthSettings{
+	settings := shared.AuthConfig{
 		Type:        "AdminRequired",
 		RedirectURL: "/admin/login",
 		Roles:       []string{"admin", "super_admin"},
 	}
 
 	// Helper function to check if settings allow role
-	allowsRole := func(s AuthSettings, role string) bool {
+	allowsRole := func(s shared.AuthConfig, role string) bool {
 		for _, r := range s.Roles {
 			if r == role {
 				return true
@@ -226,12 +228,12 @@ func TestAuthSettings_RoleValidation(t *testing.T) {
 	}
 
 	if !allowsRole(settings, "admin") {
-		t.Error("AuthSettings should allow 'admin' role")
+		t.Error("shared.AuthConfig should allow 'admin' role")
 	}
 	if !allowsRole(settings, "super_admin") {
-		t.Error("AuthSettings should allow 'super_admin' role")
+		t.Error("shared.AuthConfig should allow 'super_admin' role")
 	}
 	if allowsRole(settings, "user") {
-		t.Error("AuthSettings should not allow 'user' role")
+		t.Error("shared.AuthConfig should not allow 'user' role")
 	}
 }

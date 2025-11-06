@@ -111,6 +111,7 @@ func (etr *errorTemplateResolverImpl) generateComponentName(templatePath string)
 	}
 
 	// Capitalize first letter and add "Error" suffix
+	// TODO: strings.Title is deprecated
 	componentName := strings.Title(base) + "Error"
 	return componentName
 }

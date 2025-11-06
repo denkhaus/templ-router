@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -22,7 +23,7 @@ func NewAuthService(i do.Injector) (interfaces.AuthService, error) {
 }
 
 // Authenticate implements interfaces.AuthService
-func (cas *CleanAuthService) Authenticate(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
+func (cas *CleanAuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
 	if requirements == nil || requirements.Type == "Public" {
 		return &interfaces.AuthResult{IsAuthenticated: true}, nil
 	}
@@ -67,7 +68,7 @@ func (cas *CleanAuthService) Authenticate(req *http.Request, requirements *inter
 }
 
 // HasRequiredPermissions implements interfaces.AuthService
-func (cas *CleanAuthService) HasRequiredPermissions(req *http.Request, settings *interfaces.AuthSettings) bool {
+func (cas *CleanAuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
 	if settings == nil || settings.Type == "Public" {
 		return true
 	}
@@ -86,7 +87,7 @@ func (cas *CleanAuthService) HasRequiredPermissions(req *http.Request, settings 
 }
 
 // userHasRequiredRoles checks if user has required roles
-func (cas *CleanAuthService) userHasRequiredRoles(user interfaces.UserEntity, settings *interfaces.AuthSettings) bool {
+func (cas *CleanAuthService) userHasRequiredRoles(user interfaces.UserEntity, settings *shared.AuthConfig) bool {
 	switch settings.Type {
 	case "Public":
 		return true

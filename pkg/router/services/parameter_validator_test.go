@@ -125,11 +125,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				TemplateFile: "user/profile/page.templ",
 			},
 			config: &shared.ConfigFile{
-				DynamicSettings: &interfaces.DynamicSettings{
-					Parameters: map[string]*interfaces.DynamicParameterConfig{
+				Dynamic: &shared.DynamicConfig{
+					Rules: map[string]*shared.ValidationRule{
 						"id": {
-							Validation:  "^[0-9]+$",
-							Description: "User ID",
+							Name:    "id",
+							Pattern: "^[0-9]+$",
 						},
 					},
 				},
@@ -146,11 +146,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				TemplateFile: "user/id_/profile/page.templ",
 			},
 			config: &shared.ConfigFile{
-				DynamicSettings: &interfaces.DynamicSettings{
-					Parameters: map[string]*interfaces.DynamicParameterConfig{
+				Dynamic: &shared.DynamicConfig{
+					Rules: map[string]*shared.ValidationRule{
 						"id": {
-							Validation:  "^[0-9]+$",
-							Description: "User ID",
+							Name:    "id",
+							Pattern: "^[0-9]+$",
 						},
 					},
 				},
@@ -160,11 +160,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			},
 			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
-					DynamicSettings: &interfaces.DynamicSettings{
-						Parameters: map[string]*interfaces.DynamicParameterConfig{
+					Dynamic: &shared.DynamicConfig{
+						Rules: map[string]*shared.ValidationRule{
 							"id": {
-								Validation:  "^[0-9]+$",
-								Description: "User ID",
+								Name:    "id",
+								Pattern: "^[0-9]+$",
 							},
 						},
 					},
@@ -180,11 +180,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				TemplateFile: "user/id_/profile/page.templ",
 			},
 			config: &shared.ConfigFile{
-				DynamicSettings: &interfaces.DynamicSettings{
-					Parameters: map[string]*interfaces.DynamicParameterConfig{
+				Dynamic: &shared.DynamicConfig{
+					Rules: map[string]*shared.ValidationRule{
 						"id": {
-							Validation:  "^[a-z]+$", // Different from parent
-							Description: "User ID",
+							Name:    "id",
+							Pattern: "^[a-z]+$", // Different from parent
 						},
 					},
 				},
@@ -194,11 +194,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			},
 			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
-					DynamicSettings: &interfaces.DynamicSettings{
-						Parameters: map[string]*interfaces.DynamicParameterConfig{
+					Dynamic: &shared.DynamicConfig{
+						Rules: map[string]*shared.ValidationRule{
 							"id": {
-								Validation:  "^[0-9]+$", // Different from child
-								Description: "User ID",
+								Name:    "id",
+								Pattern: "^[0-9]+$", // Different from child
 							},
 						},
 					},
@@ -215,11 +215,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				TemplateFile: "user/role_/dashboard/page.templ",
 			},
 			config: &shared.ConfigFile{
-				DynamicSettings: &interfaces.DynamicSettings{
-					Parameters: map[string]*interfaces.DynamicParameterConfig{
+				Dynamic: &shared.DynamicConfig{
+					Rules: map[string]*shared.ValidationRule{
 						"role": {
-							SupportedValues: []string{"admin", "user", "guest", "superuser"}, // Contains values not in parent
-							Description:     "User role",
+							Name:    "role",
+							Pattern: "^(admin|user|guest|superuser)$",
 						},
 					},
 				},
@@ -229,11 +229,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			},
 			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
-					DynamicSettings: &interfaces.DynamicSettings{
-						Parameters: map[string]*interfaces.DynamicParameterConfig{
+					Dynamic: &shared.DynamicConfig{
+						Rules: map[string]*shared.ValidationRule{
 							"role": {
-								SupportedValues: []string{"admin", "user", "guest"}, // Subset of child
-								Description:     "User role",
+								Name:    "role",
+								Pattern: "^(admin|user|guest)$", // Subset of child
 							},
 						},
 					},
@@ -241,7 +241,7 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			},
 			expectedErrors:       0,
 			expectedWarnings:     1,
-			expectedWarningTypes: []string{"PARAMETER_VALUES_CONFLICT"},
+			expectedWarningTypes: []string{"PARAMETER_VALIDATION_CONFLICT"},
 		},
 		{
 			name: "child adds validation (good practice)",
@@ -250,11 +250,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				TemplateFile: "user/id_/settings/page.templ",
 			},
 			config: &shared.ConfigFile{
-				DynamicSettings: &interfaces.DynamicSettings{
-					Parameters: map[string]*interfaces.DynamicParameterConfig{
+				Dynamic: &shared.DynamicConfig{
+					Rules: map[string]*shared.ValidationRule{
 						"id": {
-							Validation:  "^[0-9]+$", // Child adds validation
-							Description: "User ID",
+							Name:    "id",
+							Pattern: "^[0-9]+$", // Child adds validation
 						},
 					},
 				},
@@ -264,11 +264,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			},
 			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
-					DynamicSettings: &interfaces.DynamicSettings{
-						Parameters: map[string]*interfaces.DynamicParameterConfig{
+					Dynamic: &shared.DynamicConfig{
+						Rules: map[string]*shared.ValidationRule{
 							"id": {
+								Name: "id",
 								// No validation in parent
-								Description: "User ID",
 							},
 						},
 					},
@@ -285,8 +285,8 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				TemplateFile: "user/id_/profile/page.templ",
 			},
 			config: &shared.ConfigFile{
-				DynamicSettings: &interfaces.DynamicSettings{
-					Parameters: map[string]*interfaces.DynamicParameterConfig{
+				Dynamic: &shared.DynamicConfig{
+					Rules: map[string]*shared.ValidationRule{
 						// Missing "id" parameter config
 					},
 				},
@@ -296,11 +296,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			},
 			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
-					DynamicSettings: &interfaces.DynamicSettings{
-						Parameters: map[string]*interfaces.DynamicParameterConfig{
+					Dynamic: &shared.DynamicConfig{
+						Rules: map[string]*shared.ValidationRule{
 							"id": {
-								Validation:  "^[0-9]+$",
-								Description: "User ID",
+								Name:    "id",
+								Pattern: "^[0-9]+$",
 							},
 						},
 					},

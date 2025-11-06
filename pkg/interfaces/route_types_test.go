@@ -3,6 +3,8 @@ package interfaces
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
 func TestRoute_JSONSerialization(t *testing.T) {
@@ -14,7 +16,7 @@ func TestRoute_JSONSerialization(t *testing.T) {
 		IsDynamic:    true,
 		Precedence:   1,
 		Locale:       "en",
-		AuthSettings: &AuthSettings{
+		AuthConfig: &shared.AuthConfig{
 			Type:        "UserRequired",
 			RedirectURL: "/login",
 			Roles:       []string{"user", "admin"},
@@ -41,8 +43,8 @@ func TestRoute_JSONSerialization(t *testing.T) {
 	if unmarshaled.IsDynamic != route.IsDynamic {
 		t.Errorf("IsDynamic mismatch: got %v, want %v", unmarshaled.IsDynamic, route.IsDynamic)
 	}
-	if unmarshaled.AuthSettings.Type != route.AuthSettings.Type {
-		t.Errorf("AuthType mismatch: got %v, want %v", unmarshaled.AuthSettings.Type, route.AuthSettings.Type)
+	if unmarshaled.AuthConfig.Type != route.AuthConfig.Type {
+		t.Errorf("AuthType mismatch: got %v, want %v", unmarshaled.AuthConfig.Type, route.AuthConfig.Type)
 	}
 }
 
@@ -93,7 +95,7 @@ func TestRoute_Validation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			isValid := tt.route.Path != "" && tt.route.TemplateFile != ""
-			
+
 			if isValid != tt.valid {
 				t.Errorf("Route validation = %v, want %v", isValid, tt.valid)
 			}
@@ -216,7 +218,7 @@ func TestErrorTemplate_Validation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			isValid := tt.template.FilePath != ""
-			
+
 			if isValid != tt.valid {
 				t.Errorf("ErrorTemplate validation = %v, want %v", isValid, tt.valid)
 			}

@@ -65,6 +65,37 @@ func (m *mockOTSTemplateRegistry) GetTemplateByRoute(route string) (templ.Compon
 	return args.Get(0).(templ.Component), args.Error(1)
 }
 
+func (m *mockOTSTemplateRegistry) GetTemplateMetadata(key string) (*interfaces.TemplateMetadata, error) {
+	args := m.Called(key)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*interfaces.TemplateMetadata), args.Error(1)
+}
+
+func (m *mockOTSTemplateRegistry) GetTemplateMetadataByRoute(route string) (*interfaces.TemplateMetadata, error) {
+	args := m.Called(route)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*interfaces.TemplateMetadata), args.Error(1)
+}
+
+func (m *mockOTSTemplateRegistry) GetAllTemplateMetadata() map[string]*interfaces.TemplateMetadata {
+	args := m.Called()
+	return args.Get(0).(map[string]*interfaces.TemplateMetadata)
+}
+
+func (m *mockOTSTemplateRegistry) FindComponentTemplates() map[string]*interfaces.TemplateMetadata {
+	args := m.Called()
+	return args.Get(0).(map[string]*interfaces.TemplateMetadata)
+}
+
+func (m *mockOTSTemplateRegistry) GetTemplateKeyByComponentName(componentName string) (string, bool) {
+	args := m.Called(componentName)
+	return args.String(0), args.Bool(1)
+}
+
 type mockOTSCacheService struct {
 	mock.Mock
 }

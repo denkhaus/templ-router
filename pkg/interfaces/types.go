@@ -15,14 +15,9 @@ import (
 type ConfigLoader interface {
 	LoadRouteConfig(templateFile string) (*shared.ConfigFile, error)
 	LoadConfig(templatePath string) (*shared.ConfigFile, error)
-	LoadAuthSettings(templatePath string) (*AuthSettings, error)
+	LoadAuthSettings(templatePath string) (*shared.AuthConfig, error)
 }
 
-// CENTRAL TYPE DEFINITIONS - Consolidation of all duplicate structs
-// This file eliminates the massive struct redundancy identified in code quality analysis
-
-// Route represents a mapping between a URL path and a template file
-// CONSOLIDATES: router/models.go:3, interfaces/services.go:54, router/middleware/template_middleware.go:28
 type Route struct {
 	// Core routing information
 	Path         string `json:"path"`
@@ -38,7 +33,7 @@ type Route struct {
 	Locale string `json:"locale,omitempty"`
 
 	// Security
-	AuthSettings *AuthSettings `json:"auth_settings,omitempty"`
+	AuthConfig *shared.AuthConfig `json:"auth_settings,omitempty"`
 
 	// Data Service Integration
 	RequiresDataService  bool   `json:"requires_data_service,omitempty"`
@@ -47,7 +42,6 @@ type Route struct {
 }
 
 // LayoutTemplate represents a layout template
-// CONSOLIDATES: router/models.go:30, interfaces/services.go:65, router/middleware/template_middleware.go:35
 type LayoutTemplate struct {
 	FilePath      string `json:"file_path"`
 	YamlPath      string `json:"yaml_path,omitempty"`
@@ -58,23 +52,8 @@ type LayoutTemplate struct {
 	DirectoryPath string
 }
 
-// LayoutTemplate represents a layout.templ file that defines base UI structure
-// type LayoutTemplateOld struct {
-// 	// FilePath is the full path to the layout.templ file
-// 	FilePath string
-
-// 	// ChildPages is a list of page.templ files that use this layout
-// 	ChildPages []string
-
-// 	// ParentLayout is the path to parent layout if this doesn't override completely
-// 	ParentLayout string
-
-// 	// LayoutLevel is the level in the layout hierarchy (0 = app root, higher = deeper)
-// 	LayoutLevel int
-// }
-
 // ErrorTemplate represents an error template
-// CONSOLIDATES: Multiple error template definitions
+
 type ErrorTemplate struct {
 	// FilePath is the full path to the error.templ file
 	FilePath      string `json:"file_path"`
@@ -90,24 +69,6 @@ type ErrorTemplate struct {
 	// ErrorMessages contains mapping of error codes to specific messages
 	ErrorMessages map[int]string
 }
-
-// ErrorTemplate represents an error.templ file for error page presentation
-// type ErrorTemplateOld struct {
-// 	FilePath string
-
-// 	// DirectoryPath is the directory containing this error template
-// 	DirectoryPath string
-
-// 	// ErrorTypes is a list of error types handled by this template
-// 	ErrorTypes []string
-
-// 	// ParentErrorTemplate is the path to parent error template if this doesn't override completely
-// 	ParentErrorTemplate string
-// }
-
-// AuthSettings is an alias to the shared.AuthConfig for backward compatibility
-// This ensures we have a single AuthSettings definition in the codebase
-type AuthSettings = shared.AuthConfig
 
 // AuthType represents different authentication types
 type AuthType int
@@ -185,18 +146,6 @@ type InternationalizationIdentifier struct {
 	Locales map[string]string
 }
 
-// RouterCore defines the contract for the clean router core
-// type RouterCore interface {
-// 	Initialize() error
-// 	RegisterRoutes(chiRouter *chi.Mux) error
-// 	GetRoutes() []Route
-// 	GetLayoutTemplates() []LayoutTemplate
-// 	GetErrorTemplates() []ErrorTemplate
-// 	GetMiddlewareSetup() interface{}
-// 	GetHandlerBuilder() interface{}
-// 	GetRouteRegistrar() interface{}
-// }
-
 type RouteDiscovery interface {
 	DiscoverRoutes(scanPath string) ([]Route, error)
 	DiscoverLayouts(scanPath string) ([]LayoutTemplate, error)
@@ -213,8 +162,8 @@ type RouteRegistrar interface {
 
 // AuthService handles authentication and authorization
 type AuthService interface {
-	Authenticate(req *http.Request, requirements *AuthSettings) (*AuthResult, error)
-	HasRequiredPermissions(req *http.Request, settings *AuthSettings) bool
+	Authenticate(req *http.Request, requirements *shared.AuthConfig) (*AuthResult, error)
+	HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool
 }
 
 // I18nService handles internationalization
@@ -269,7 +218,7 @@ type ComponentMetadataService interface {
 
 // AuthMiddlewareInterface handles authentication middleware
 type AuthMiddlewareInterface interface {
-	Handle(next http.Handler, requirements *AuthSettings) http.Handler
+	Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler
 }
 
 // I18nMiddlewareInterface handles internationalization middleware

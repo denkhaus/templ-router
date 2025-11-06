@@ -81,7 +81,7 @@ func (cl *configLoaderImpl) LoadConfig(templatePath string) (*shared.ConfigFile,
 }
 
 // LoadAuthSettings implements router.ConfigLoader
-func (cl *configLoaderImpl) LoadAuthSettings(templatePath string) (*interfaces.AuthSettings, error) {
+func (cl *configLoaderImpl) LoadAuthSettings(templatePath string) (*shared.AuthConfig, error) {
 	config, err := cl.LoadConfig(templatePath)
 	if err != nil {
 		return nil, err
@@ -91,8 +91,8 @@ func (cl *configLoaderImpl) LoadAuthSettings(templatePath string) (*interfaces.A
 		return nil, nil // No auth settings is not an error
 	}
 
-	// Convert *shared.AuthConfig to *interfaces.AuthSettings (they are the same type)
-	return (*interfaces.AuthSettings)(config.Auth), nil
+	// Convert *shared.AuthConfig to *shared.AuthConfig (they are the same type)
+	return (*shared.AuthConfig)(config.Auth), nil
 }
 
 // getYAMLPath returns the YAML file path for a template

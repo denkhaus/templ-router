@@ -109,6 +109,7 @@ type mockRouterTemplateRegistry struct{}
 func (m *mockRouterTemplateRegistry) GetTemplate(key string) (templ.Component, error) {
 	return nil, nil
 }
+
 func (m *mockRouterTemplateRegistry) GetTemplateFunction(key string) (func() interface{}, bool) {
 	return nil, false
 }
@@ -120,6 +121,7 @@ func (m *mockRouterTemplateRegistry) GetRouteToTemplateMapping() map[string]stri
 		"/{locale}": "template2",
 	}
 }
+
 func (m *mockRouterTemplateRegistry) GetTemplateByRoute(route string) (templ.Component, error) {
 	return nil, nil
 }
@@ -130,6 +132,26 @@ func (m *mockRouterTemplateRegistry) RequiresDataService(key string) bool {
 
 func (m *mockRouterTemplateRegistry) GetDataServiceInfo(key string) (interfaces.DataServiceInfo, bool) {
 	return interfaces.DataServiceInfo{}, false
+}
+
+func (m *mockRouterTemplateRegistry) GetTemplateMetadata(key string) (*interfaces.TemplateMetadata, error) {
+	return nil, nil
+}
+
+func (m *mockRouterTemplateRegistry) GetTemplateMetadataByRoute(route string) (*interfaces.TemplateMetadata, error) {
+	return nil, nil
+}
+
+func (m *mockRouterTemplateRegistry) GetAllTemplateMetadata() map[string]*interfaces.TemplateMetadata {
+	return make(map[string]*interfaces.TemplateMetadata)
+}
+
+func (m *mockRouterTemplateRegistry) FindComponentTemplates() map[string]*interfaces.TemplateMetadata {
+	return make(map[string]*interfaces.TemplateMetadata)
+}
+
+func (m *mockRouterTemplateRegistry) GetTemplateKeyByComponentName(componentName string) (string, bool) {
+	return "", false
 }
 
 type mockRouteDiscovery struct{}
@@ -159,8 +181,8 @@ func (m *mockConfigLoader) LoadConfig(templatePath string) (*shared.ConfigFile, 
 	return &shared.ConfigFile{}, nil
 }
 
-func (m *mockConfigLoader) LoadAuthSettings(templatePath string) (*interfaces.AuthSettings, error) {
-	return &interfaces.AuthSettings{Type: "Public"}, nil
+func (m *mockConfigLoader) LoadAuthSettings(templatePath string) (*shared.AuthConfig, error) {
+	return &shared.AuthConfig{Type: "Public"}, nil
 }
 
 func (m *mockConfigLoader) LoadRouteConfig(templatePath string) (*shared.ConfigFile, error) {
@@ -169,14 +191,14 @@ func (m *mockConfigLoader) LoadRouteConfig(templatePath string) (*shared.ConfigF
 
 type mockAuthService struct{}
 
-func (m *mockAuthService) Authenticate(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
+func (m *mockAuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
 	return &interfaces.AuthResult{
 		IsAuthenticated: true,
 		User:            &testUser{ID: "test123", Email: "test@example.com", Roles: []string{"user"}},
 	}, nil
 }
 
-func (m *mockAuthService) HasRequiredPermissions(req *http.Request, settings *interfaces.AuthSettings) bool {
+func (m *mockAuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
 	return true
 }
 
@@ -262,6 +284,10 @@ func (m *mockI18nService) LoadAllTranslations(templatePaths []string) error {
 	return nil
 }
 
+func (m *mockI18nService) LoadComponentTranslationsIntoContext(ctx context.Context, componentName string) context.Context {
+	return ctx
+}
+
 type mockTemplateService struct{}
 
 func (m *mockTemplateService) GetTemplate(templatePath string) (templ.Component, error) {
@@ -325,7 +351,7 @@ func (m *mockErrorService) CreateErrorComponent(message, path string) templ.Comp
 // Mock Middleware Interfaces
 type mockAuthMiddleware struct{}
 
-func (m *mockAuthMiddleware) Handle(next http.Handler, requirements *interfaces.AuthSettings) http.Handler {
+func (m *mockAuthMiddleware) Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r)
 	})
@@ -337,7 +363,7 @@ func (m *mockAuthMiddleware) AuthenticateRequest(next http.Handler) http.Handler
 	})
 }
 
-func (m *mockAuthMiddleware) RequireAuth(authSettings *interfaces.AuthSettings) func(http.Handler) http.Handler {
+func (m *mockAuthMiddleware) RequireAuth(authSettings *shared.AuthConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			next.ServeHTTP(w, r)
