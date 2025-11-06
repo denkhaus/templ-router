@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -28,15 +29,15 @@ func NewParameterValidator(i do.Injector) (*ParameterValidator, error) {
 }
 
 // ValidateParameters validates all parameters for a route
-func (pv *ParameterValidator) ValidateParameters(route *interfaces.Route, config *interfaces.ConfigFile, hierarchyMap map[string][]string, configs map[string]*interfaces.ConfigFile, result *ValidationResult) {
-	if config == nil || config.DynamicSettings == nil {
+func (pv *ParameterValidator) ValidateParameters(route *interfaces.Route, config *shared.ConfigFile, hierarchyMap map[string][]string, configs map[string]*shared.ConfigFile, result *ValidationResult) {
+	if config == nil || config.Dynamic == nil {
 		return
 	}
 
 	dirParams := pv.extractDirectoryParameters(route.Path)
 
 	// Validate each configured parameter
-	for paramName, paramConfig := range config.DynamicSettings.Parameters {
+	for paramName, paramConfig := range config.Dynamic.Rules {
 		pv.ValidateSingleParameter(paramName, paramConfig, route, config, dirParams, result)
 	}
 
@@ -50,9 +51,9 @@ func (pv *ParameterValidator) ValidateParameters(route *interfaces.Route, config
 // ValidateSingleParameter validates a single parameter configuration
 func (pv *ParameterValidator) ValidateSingleParameter(
 	paramName string,
-	paramConfig *interfaces.DynamicParameterConfig,
+	paramConfig *shared.ValidationRule,
 	route *interfaces.Route,
-	config *interfaces.ConfigFile,
+	config *shared.ConfigFile,
 	dirParams []string,
 	result *ValidationResult,
 ) {
@@ -71,8 +72,8 @@ func (pv *ParameterValidator) ValidateSingleParameter(
 	}
 
 	// Validate parameter regex if provided
-	if paramConfig.Validation != "" {
-		if err := pv.validateParameterRegex(paramConfig.Validation); err != nil {
+	if paramConfig.Pattern != "" {
+		if err := pv.validateParameterRegex(paramConfig.Pattern); err != nil {
 			result.Errors = append(result.Errors, ValidationError{
 				Type:      "INVALID_PARAMETER_REGEX",
 				Message:   fmt.Sprintf("Invalid regex for parameter '%s': %v", paramName, err),
@@ -90,10 +91,10 @@ func (pv *ParameterValidator) ValidateSingleParameter(
 }
 
 // ValidateMissingParameters checks for parameters in route path that lack configuration
-func (pv *ParameterValidator) ValidateMissingParameters(route *interfaces.Route, config *interfaces.ConfigFile, dirParams []string, result *ValidationResult) {
+func (pv *ParameterValidator) ValidateMissingParameters(route *interfaces.Route, config *shared.ConfigFile, dirParams []string, result *ValidationResult) {
 	configuredParams := make(map[string]bool)
-	if config != nil && config.DynamicSettings != nil {
-		for paramName := range config.DynamicSettings.Parameters {
+	if config != nil && config.Dynamic != nil {
+		for paramName := range config.Dynamic.Rules {
 			configuredParams[paramName] = true
 		}
 	}
@@ -117,8 +118,8 @@ func (pv *ParameterValidator) ValidateMissingParameters(route *interfaces.Route,
 }
 
 // ValidateParameterInheritance checks parameter inheritance consistency
-func (pv *ParameterValidator) ValidateParameterInheritance(route *interfaces.Route, config *interfaces.ConfigFile, hierarchyMap map[string][]string, configs map[string]*interfaces.ConfigFile, result *ValidationResult) {
-	if config == nil || config.DynamicSettings == nil {
+func (pv *ParameterValidator) ValidateParameterInheritance(route *interfaces.Route, config *shared.ConfigFile, hierarchyMap map[string][]string, configs map[string]*shared.ConfigFile, result *ValidationResult) {
+	if config == nil || config.Dynamic == nil {
 		return
 	}
 
@@ -168,9 +169,9 @@ func (pv *ParameterValidator) validateParameterRegex(pattern string) error {
 }
 
 // checkParameterInheritanceConflicts checks for parameter inheritance conflicts
-func (pv *ParameterValidator) checkParameterInheritanceConflicts(route *interfaces.Route, parentPath string, config *interfaces.ConfigFile, configs map[string]*interfaces.ConfigFile, result *ValidationResult) {
+func (pv *ParameterValidator) checkParameterInheritanceConflicts(route *interfaces.Route, parentPath string, config *shared.ConfigFile, configs map[string]*shared.ConfigFile, result *ValidationResult) {
 	// Find parent route configuration
-	var parentConfig *interfaces.ConfigFile
+	var parentConfig *shared.ConfigFile
 	for templateFile, cfg := range configs {
 		// Find the route that matches the parent path
 		if pv.isConfigForRoute(templateFile, parentPath) {
@@ -179,19 +180,19 @@ func (pv *ParameterValidator) checkParameterInheritanceConflicts(route *interfac
 		}
 	}
 
-	if parentConfig == nil || parentConfig.DynamicSettings == nil || parentConfig.DynamicSettings.Parameters == nil {
+	if parentConfig == nil || parentConfig.Dynamic == nil || parentConfig.Dynamic.Rules == nil {
 		// No parent configuration or no parameters to check
 		return
 	}
 
-	if config.DynamicSettings == nil || config.DynamicSettings.Parameters == nil {
+	if config.Dynamic == nil || config.Dynamic.Rules == nil {
 		// Child has no parameters, no conflicts possible
 		return
 	}
 
 	// Check for parameter conflicts between parent and child
-	for paramName, childParamConfig := range config.DynamicSettings.Parameters {
-		if parentParamConfig, exists := parentConfig.DynamicSettings.Parameters[paramName]; exists {
+	for paramName, childParamConfig := range config.Dynamic.Rules {
+		if parentParamConfig, exists := parentConfig.Dynamic.Rules[paramName]; exists {
 			// Parameter exists in both parent and child - check for conflicts
 			pv.validateParameterCompatibility(route, parentPath, paramName, childParamConfig, parentParamConfig, result)
 		}
@@ -203,8 +204,8 @@ func (pv *ParameterValidator) checkParameterInheritanceConflicts(route *interfac
 	pv.logger.Debug("Checked parameter inheritance",
 		zap.String("route", route.Path),
 		zap.String("parent", parentPath),
-		zap.Int("parent_params", len(parentConfig.DynamicSettings.Parameters)),
-		zap.Int("child_params", len(config.DynamicSettings.Parameters)))
+		zap.Int("parent_params", len(parentConfig.Dynamic.Rules)),
+		zap.Int("child_params", len(config.Dynamic.Rules)))
 }
 
 // isConfigForRoute checks if a template file corresponds to a route path
@@ -213,7 +214,7 @@ func (pv *ParameterValidator) isConfigForRoute(templateFile, routePath string) b
 	// This is a simplified approach - in a real implementation, you might need a more sophisticated mapping
 	normalizedRoute := strings.Trim(routePath, "/")
 	normalizedTemplate := strings.ReplaceAll(templateFile, "\\", "/")
-	
+
 	// Check if the route path segments appear in the template file path
 	routeSegments := strings.Split(normalizedRoute, "/")
 	for _, segment := range routeSegments {
@@ -246,11 +247,11 @@ func (pv *ParameterValidator) validateParameterCompatibility(
 	result *ValidationResult,
 ) {
 	// Check validation regex compatibility
-	if childConfig.Validation != "" && parentConfig.Validation != "" {
-		if childConfig.Validation != parentConfig.Validation {
+	if childConfig.Pattern != "" && parentConfig.Pattern != "" {
+		if childConfig.Pattern != parentConfig.Pattern {
 			result.Warnings = append(result.Warnings, ValidationWarning{
 				Type:      "PARAMETER_VALIDATION_CONFLICT",
-				Message:   fmt.Sprintf("Parameter '%s' has different validation regex in child route ('%s') than parent route ('%s')", paramName, childConfig.Validation, parentConfig.Validation),
+				Message:   fmt.Sprintf("Parameter '%s' has different validation regex in child route ('%s') than parent route ('%s')", paramName, childConfig.Pattern, parentConfig.Pattern),
 				RoutePath: route.Path,
 				FilePath:  route.TemplateFile,
 				Suggestions: []string{
@@ -263,8 +264,22 @@ func (pv *ParameterValidator) validateParameterCompatibility(
 	}
 
 	// Check supported values compatibility
-	if len(childConfig.SupportedValues) > 0 && len(parentConfig.SupportedValues) > 0 {
-		if !pv.isSubsetOfValues(childConfig.SupportedValues, parentConfig.SupportedValues) {
+	var childSupportedValues, parentSupportedValues []interface{}
+	if childVals, ok := childConfig.Settings["supported_values"]; ok {
+		if vals, ok := childVals.([]interface{}); ok {
+			childSupportedValues = vals
+		}
+	}
+	if parentVals, ok := parentConfig.Settings["supported_values"]; ok {
+		if vals, ok := parentVals.([]interface{}); ok {
+			parentSupportedValues = vals
+		}
+	}
+
+	if len(childSupportedValues) > 0 && len(parentSupportedValues) > 0 {
+		childStrVals := pv.convertToStringSlice(childSupportedValues)
+		parentStrVals := pv.convertToStringSlice(parentSupportedValues)
+		if !pv.isSubsetOfValues(childStrVals, parentStrVals) {
 			result.Warnings = append(result.Warnings, ValidationWarning{
 				Type:      "PARAMETER_VALUES_CONFLICT",
 				Message:   fmt.Sprintf("Parameter '%s' has supported values in child route that are not supported by parent route", paramName),
@@ -280,7 +295,7 @@ func (pv *ParameterValidator) validateParameterCompatibility(
 	}
 
 	// Check if child parameter is more restrictive (which is generally good)
-	if childConfig.Validation != "" && parentConfig.Validation == "" {
+	if childConfig.Pattern != "" && parentConfig.Pattern == "" {
 		result.Warnings = append(result.Warnings, ValidationWarning{
 			Type:      "PARAMETER_INHERITANCE_INFO",
 			Message:   fmt.Sprintf("Parameter '%s' adds validation in child route that doesn't exist in parent - this is generally good practice", paramName),
@@ -297,8 +312,8 @@ func (pv *ParameterValidator) validateParameterCompatibility(
 func (pv *ParameterValidator) validateParameterInheritanceAvailability(
 	route *interfaces.Route,
 	parentPath string,
-	parentConfig *interfaces.ConfigFile,
-	childConfig *interfaces.ConfigFile,
+	parentConfig *shared.ConfigFile,
+	childConfig *shared.ConfigFile,
 	result *ValidationResult,
 ) {
 	// Extract parameters from route paths
@@ -306,10 +321,10 @@ func (pv *ParameterValidator) validateParameterInheritanceAvailability(
 
 	// Check if child route uses parameters that are defined in parent config but not in child config
 	// This covers the case where parent defines parameter configs that child routes should inherit
-	for paramName := range parentConfig.DynamicSettings.Parameters {
+	for paramName := range parentConfig.Dynamic.Rules {
 		// If parameter is used in child route path but not configured in child
 		if pv.parameterExistsInRoute(paramName, route.Path, childParams) {
-			if _, exists := childConfig.DynamicSettings.Parameters[paramName]; !exists {
+			if _, exists := childConfig.Dynamic.Rules[paramName]; !exists {
 				result.Warnings = append(result.Warnings, ValidationWarning{
 					Type:      "INHERITED_PARAMETER_MISSING_CONFIG",
 					Message:   fmt.Sprintf("Parameter '%s' is inherited from parent route '%s' but lacks configuration in child route", paramName, parentPath),
@@ -339,4 +354,17 @@ func (pv *ParameterValidator) isSubsetOfValues(childValues, parentValues []strin
 		}
 	}
 	return true
+}
+
+// convertToStringSlice converts []interface{} to []string
+func (pv *ParameterValidator) convertToStringSlice(values []interface{}) []string {
+	result := make([]string, len(values))
+	for i, v := range values {
+		if str, ok := v.(string); ok {
+			result[i] = str
+		} else {
+			result[i] = fmt.Sprintf("%v", v)
+		}
+	}
+	return result
 }

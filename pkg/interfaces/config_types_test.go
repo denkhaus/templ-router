@@ -3,23 +3,29 @@ package interfaces
 import (
 	"encoding/json"
 	"testing"
+
+	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
 func TestConfigFile_Validation(t *testing.T) {
 	tests := []struct {
 		name   string
-		config ConfigFile
+		config shared.ConfigFile
 		valid  bool
 	}{
 		{
 			name: "Valid config file",
-			config: ConfigFile{
+			config: shared.ConfigFile{
 				FilePath:         "/app/config.yaml",
 				TemplateFilePath: "/app/page.templ",
-				RouteMetadata:    map[string]interface{}{"title": "Test"},
-				I18nMappings:     map[string]string{"en": "English", "de": "German"},
-				AuthSettings: &AuthSettings{
-					Type:        AuthTypeUser,
+				Metadata: &shared.MetadataConfig{
+					Custom: map[string]interface{}{"title": "Test"},
+				},
+				I18n: &shared.I18nConfig{
+					FlatMappings: map[string]string{"en": "English", "de": "German"},
+				},
+				Auth: &shared.AuthConfig{
+					Type:        "UserRequired",
 					RedirectURL: "/login",
 					Roles:       []string{"user"},
 				},
@@ -28,7 +34,7 @@ func TestConfigFile_Validation(t *testing.T) {
 		},
 		{
 			name: "Config without file path",
-			config: ConfigFile{
+			config: shared.ConfigFile{
 				FilePath:         "",
 				TemplateFilePath: "/app/page.templ",
 			},
@@ -36,7 +42,7 @@ func TestConfigFile_Validation(t *testing.T) {
 		},
 		{
 			name: "Minimal valid config",
-			config: ConfigFile{
+			config: shared.ConfigFile{
 				FilePath: "/app/config.yaml",
 			},
 			valid: true,
@@ -46,7 +52,7 @@ func TestConfigFile_Validation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			isValid := tt.config.FilePath != ""
-			
+
 			if isValid != tt.valid {
 				t.Errorf("ConfigFile validation = %v, want %v", isValid, tt.valid)
 			}
@@ -55,26 +61,42 @@ func TestConfigFile_Validation(t *testing.T) {
 }
 
 func TestConfigFile_JSONSerialization(t *testing.T) {
-	config := ConfigFile{
+	config := shared.ConfigFile{
 		FilePath:         "/app/config.yaml",
 		TemplateFilePath: "/app/page.templ",
-		RouteMetadata:    map[string]interface{}{"title": "Test", "priority": 1},
-		I18nMappings:     map[string]string{"en": "English", "de": "German"},
-		MultiLocaleI18n: map[string]map[string]string{
-			"en": {"title": "English Title", "description": "English Description"},
-			"de": {"title": "German Title", "description": "German Description"},
+		Metadata: &shared.MetadataConfig{
+			Custom: map[string]interface{}{"title": "Test", "priority": 1},
 		},
-		AuthSettings: &AuthSettings{
-			Type:        AuthTypeUser,
+		I18n: &shared.I18nConfig{
+			FlatMappings: map[string]string{"en": "English", "de": "German"},
+			Translations: map[string]*shared.LocaleTranslations{
+				"en": {
+					Locale: "en",
+					Translations: map[string]interface{}{
+						"title":       "English Title",
+						"description": "English Description",
+					},
+				},
+				"de": {
+					Locale: "de",
+					Translations: map[string]interface{}{
+						"title":       "German Title",
+						"description": "German Description",
+					},
+				},
+			},
+		},
+		Auth: &shared.AuthConfig{
+			Type:        "UserRequired",
 			RedirectURL: "/login",
 			Roles:       []string{"user", "admin"},
 		},
-		DynamicSettings: &DynamicSettings{
-			Parameters: map[string]*DynamicParameterConfig{
+		Dynamic: &shared.DynamicConfig{
+			Rules: map[string]*shared.ValidationRule{
 				"id": {
-					Validation:      "numeric",
-					Description:     "User ID",
-					SupportedValues: []string{"1", "2", "3"},
+					Name:    "id",
+					Type:    "numeric",
+					Pattern: "^[0-9]+$",
 				},
 			},
 		},
@@ -87,28 +109,29 @@ func TestConfigFile_JSONSerialization(t *testing.T) {
 	}
 
 	// Test JSON unmarshaling
-	var unmarshaled ConfigFile
+	var unmarshaled shared.ConfigFile
 	err = json.Unmarshal(data, &unmarshaled)
 	if err != nil {
 		t.Fatalf("Failed to unmarshal ConfigFile: %v", err)
 	}
 
-	// Verify basic fields
-	if unmarshaled.FilePath != config.FilePath {
-		t.Errorf("FilePath mismatch: got %v, want %v", unmarshaled.FilePath, config.FilePath)
-	}
+	// Verify basic fields (FilePath is excluded from JSON due to json:"-" tag)
 	if unmarshaled.TemplateFilePath != config.TemplateFilePath {
 		t.Errorf("TemplateFilePath mismatch: got %v, want %v", unmarshaled.TemplateFilePath, config.TemplateFilePath)
 	}
 
 	// Verify I18n mappings
-	if len(unmarshaled.I18nMappings) != len(config.I18nMappings) {
-		t.Errorf("I18nMappings length mismatch: got %v, want %v", len(unmarshaled.I18nMappings), len(config.I18nMappings))
+	if unmarshaled.I18n != nil && config.I18n != nil {
+		if len(unmarshaled.I18n.FlatMappings) != len(config.I18n.FlatMappings) {
+			t.Errorf("I18n.FlatMappings length mismatch: got %v, want %v", len(unmarshaled.I18n.FlatMappings), len(config.I18n.FlatMappings))
+		}
 	}
 
 	// Verify auth settings
-	if unmarshaled.AuthSettings.Type != config.AuthSettings.Type {
-		t.Errorf("AuthSettings.Type mismatch: got %v, want %v", unmarshaled.AuthSettings.Type, config.AuthSettings.Type)
+	if unmarshaled.Auth != nil && config.Auth != nil {
+		if unmarshaled.Auth.Type != config.Auth.Type {
+			t.Errorf("Auth.Type mismatch: got %v, want %v", unmarshaled.Auth.Type, config.Auth.Type)
+		}
 	}
 }
 
@@ -141,9 +164,11 @@ func TestConfigFile_I18nMappings(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := ConfigFile{
-				FilePath:     "/app/config.yaml",
-				I18nMappings: tt.mappings,
+			config := shared.ConfigFile{
+				FilePath: "/app/config.yaml",
+				I18n: &shared.I18nConfig{
+					FlatMappings: tt.mappings,
+				},
 			}
 
 			// All mapping configurations should be valid
@@ -152,8 +177,8 @@ func TestConfigFile_I18nMappings(t *testing.T) {
 			}
 
 			// Test that we can access mappings safely
-			if config.I18nMappings != nil {
-				for locale, name := range config.I18nMappings {
+			if config.I18n != nil && config.I18n.FlatMappings != nil {
+				for locale, name := range config.I18n.FlatMappings {
 					if locale == "" {
 						t.Errorf("Empty locale found in mappings")
 					}
@@ -167,44 +192,55 @@ func TestConfigFile_I18nMappings(t *testing.T) {
 }
 
 func TestConfigFile_MultiLocaleI18n(t *testing.T) {
-	multiLocale := map[string]map[string]string{
+	multiLocale := map[string]*shared.LocaleTranslations{
 		"en": {
-			"title":       "English Title",
-			"description": "English Description",
-			"button":      "Click Here",
+			Locale: "en",
+			Translations: map[string]interface{}{
+				"title":       "English Title",
+				"description": "English Description",
+				"button":      "Click Here",
+			},
 		},
 		"de": {
-			"title":       "German Title",
-			"description": "German Description",
-			"button":      "Hier Klicken",
+			Locale: "de",
+			Translations: map[string]interface{}{
+				"title":       "German Title",
+				"description": "German Description",
+				"button":      "Hier Klicken",
+			},
 		},
 		"fr": {
-			"title":       "French Title",
-			"description": "French Description",
-			"button":      "Cliquez Ici",
+			Locale: "fr",
+			Translations: map[string]interface{}{
+				"title":       "French Title",
+				"description": "French Description",
+				"button":      "Cliquez Ici",
+			},
 		},
 	}
 
-	config := ConfigFile{
-		FilePath:        "/app/config.yaml",
-		MultiLocaleI18n: multiLocale,
+	config := shared.ConfigFile{
+		FilePath: "/app/config.yaml",
+		I18n: &shared.I18nConfig{
+			Translations: multiLocale,
+		},
 	}
 
 	// Verify structure
-	if len(config.MultiLocaleI18n) != 3 {
-		t.Errorf("Expected 3 locales, got %d", len(config.MultiLocaleI18n))
+	if len(config.I18n.Translations) != 3 {
+		t.Errorf("Expected 3 locales, got %d", len(config.I18n.Translations))
 	}
 
 	// Verify each locale has translations
-	for locale, translations := range config.MultiLocaleI18n {
-		if len(translations) == 0 {
+	for locale, localeTranslations := range config.I18n.Translations {
+		if len(localeTranslations.Translations) == 0 {
 			t.Errorf("Locale %s has no translations", locale)
 		}
-		
+
 		// Check for required keys
 		requiredKeys := []string{"title", "description", "button"}
 		for _, key := range requiredKeys {
-			if value, exists := translations[key]; !exists {
+			if value, exists := localeTranslations.Translations[key]; !exists {
 				t.Errorf("Locale %s missing key %s", locale, key)
 			} else if value == "" {
 				t.Errorf("Locale %s has empty value for key %s", locale, key)
@@ -216,22 +252,22 @@ func TestConfigFile_MultiLocaleI18n(t *testing.T) {
 func TestDynamicSettings_Validation(t *testing.T) {
 	tests := []struct {
 		name     string
-		settings *DynamicSettings
+		settings *shared.DynamicConfig
 		valid    bool
 	}{
 		{
 			name: "Valid dynamic settings",
-			settings: &DynamicSettings{
-				Parameters: map[string]*DynamicParameterConfig{
+			settings: &shared.DynamicConfig{
+				Rules: map[string]*DynamicParameterConfig{
 					"id": {
-						Validation:      "numeric",
-						Description:     "User ID",
-						SupportedValues: []string{"1", "2", "3"},
+						Name:    "id",
+						Type:    "numeric",
+						Pattern: "^[0-9]+$",
 					},
 					"slug": {
-						Validation:      "alphanumeric",
-						Description:     "URL slug",
-						SupportedValues: []string{"home", "about", "contact"},
+						Name:    "slug",
+						Type:    "alphanumeric",
+						Pattern: "^[a-z0-9-]+$",
 					},
 				},
 			},
@@ -239,8 +275,8 @@ func TestDynamicSettings_Validation(t *testing.T) {
 		},
 		{
 			name: "Empty parameters",
-			settings: &DynamicSettings{
-				Parameters: map[string]*DynamicParameterConfig{},
+			settings: &shared.DynamicConfig{
+				Rules: map[string]*DynamicParameterConfig{},
 			},
 			valid: true,
 		},
@@ -253,9 +289,9 @@ func TestDynamicSettings_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := ConfigFile{
-				FilePath:        "/app/config.yaml",
-				DynamicSettings: tt.settings,
+			config := shared.ConfigFile{
+				FilePath: "/app/config.yaml",
+				Dynamic:  tt.settings,
 			}
 
 			// All dynamic settings configurations should be valid
@@ -264,8 +300,8 @@ func TestDynamicSettings_Validation(t *testing.T) {
 			}
 
 			// Test that we can access parameters safely
-			if config.DynamicSettings != nil && config.DynamicSettings.Parameters != nil {
-				for paramName, paramConfig := range config.DynamicSettings.Parameters {
+			if config.Dynamic != nil && config.Dynamic.Rules != nil {
+				for paramName, paramConfig := range config.Dynamic.Rules {
 					if paramName == "" {
 						t.Errorf("Empty parameter name found")
 					}
@@ -287,45 +323,35 @@ func TestDynamicParameterConfig_Validation(t *testing.T) {
 		{
 			name: "Valid parameter config",
 			config: DynamicParameterConfig{
-				Validation:      "numeric",
-				Description:     "User ID parameter",
-				SupportedValues: []string{"1", "2", "3"},
+				Name:    "id",
+				Type:    "numeric",
+				Pattern: "^[0-9]+$",
 			},
 			valid: true,
 		},
 		{
-			name: "Config without validation",
+			name: "Config without type",
 			config: DynamicParameterConfig{
-				Validation:      "",
-				Description:     "User ID parameter",
-				SupportedValues: []string{"1", "2", "3"},
+				Name:    "id",
+				Type:    "",
+				Pattern: "^[0-9]+$",
 			},
 			valid: false,
 		},
 		{
-			name: "Config without description",
+			name: "Config without name",
 			config: DynamicParameterConfig{
-				Validation:      "numeric",
-				Description:     "",
-				SupportedValues: []string{"1", "2", "3"},
-			},
-			valid: false,
-		},
-		{
-			name: "Config without supported values",
-			config: DynamicParameterConfig{
-				Validation:      "numeric",
-				Description:     "User ID parameter",
-				SupportedValues: []string{},
+				Name:    "",
+				Type:    "numeric",
+				Pattern: "^[0-9]+$",
 			},
 			valid: false,
 		},
 		{
 			name: "Minimal valid config",
 			config: DynamicParameterConfig{
-				Validation:      "alphanumeric",
-				Description:     "Parameter description",
-				SupportedValues: []string{"value1"},
+				Name: "slug",
+				Type: "alphanumeric",
 			},
 			valid: true,
 		},
@@ -333,10 +359,8 @@ func TestDynamicParameterConfig_Validation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			isValid := tt.config.Validation != "" && 
-					  tt.config.Description != "" && 
-					  len(tt.config.SupportedValues) > 0
-			
+			isValid := tt.config.Name != "" && tt.config.Type != ""
+
 			if isValid != tt.valid {
 				t.Errorf("DynamicParameterConfig validation = %v, want %v", isValid, tt.valid)
 			}

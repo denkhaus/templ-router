@@ -13,8 +13,8 @@ import (
 )
 
 type ConfigLoader interface {
-	LoadRouteConfig(templateFile string) (*ConfigFile, error)
-	LoadConfig(templatePath string) (*ConfigFile, error)
+	LoadRouteConfig(templateFile string) (*shared.ConfigFile, error)
+	LoadConfig(templatePath string) (*shared.ConfigFile, error)
 	LoadAuthSettings(templatePath string) (*AuthSettings, error)
 }
 
@@ -105,13 +105,9 @@ type ErrorTemplate struct {
 // 	ParentErrorTemplate string
 // }
 
-// AuthSettings contains authentication configuration
-// CONSOLIDATES: interfaces/services.go:81, router/auth_types.go:66, router/middleware/auth_middleware.go:27
-type AuthSettings struct {
-	Type        AuthType `json:"type"`
-	RedirectURL string   `json:"redirect_url,omitempty"`
-	Roles       []string `json:"roles,omitempty"`
-}
+// AuthSettings is an alias to the shared.AuthConfig for backward compatibility
+// This ensures we have a single AuthSettings definition in the codebase
+type AuthSettings = shared.AuthConfig
 
 // AuthType represents different authentication types
 type AuthType int
@@ -168,36 +164,8 @@ type Template struct {
 	Params        map[string]interface{} `json:"params,omitempty"`
 }
 
-// ConfigFile represents a YAML file containing metadata and settings
-// CONSOLIDATES: router/models.go:54 and related config definitions
-type ConfigFile struct {
-	// File paths
-	FilePath         string `json:"file_path"`
-	TemplateFilePath string `json:"template_file_path,omitempty"`
-
-	// Metadata
-	RouteMetadata   interface{}                  `json:"route_metadata,omitempty"`
-	I18nMappings    map[string]string            `json:"i18n_mappings,omitempty"`
-	MultiLocaleI18n map[string]map[string]string `json:"multi_locale_i18n,omitempty"`
-
-	// Settings
-	AuthSettings    *AuthSettings    `json:"auth_settings,omitempty"`
-	LayoutSettings  interface{}      `json:"layout_settings,omitempty"`
-	ErrorSettings   interface{}      `json:"error_settings,omitempty"`
-	DynamicSettings *DynamicSettings `json:"dynamic_settings,omitempty"`
-}
-
-// DynamicSettings contains configuration for dynamic route parameters
-type DynamicSettings struct {
-	Parameters map[string]*DynamicParameterConfig `json:"parameters,omitempty"`
-}
-
-// DynamicParameterConfig contains validation configuration for a single parameter
-type DynamicParameterConfig struct {
-	Validation      string   `json:"validation,omitempty"`
-	Description     string   `json:"description,omitempty"`
-	SupportedValues []string `json:"supported_values,omitempty"`
-}
+// DynamicParameterConfig is an alias to the shared.ValidationRule for backward compatibility
+type DynamicParameterConfig = shared.ValidationRule
 
 // InternationalizationIdentifier represents a structured key for translations
 type InternationalizationIdentifier struct {
@@ -343,9 +311,9 @@ type MiddlewareSetup interface {
 
 // CustomMiddlewareDefinition holds a custom middleware with its definition order
 type CustomMiddlewareDefinition struct {
-	Name   string
-	Func   func(http.Handler) http.Handler
-	Order  int // Definition order
+	Name  string
+	Func  func(http.Handler) http.Handler
+	Order int // Definition order
 }
 
 // HandlerBuilder defines the contract for handler building

@@ -15,7 +15,7 @@ func TestRoute_JSONSerialization(t *testing.T) {
 		Precedence:   1,
 		Locale:       "en",
 		AuthSettings: &AuthSettings{
-			Type:        AuthTypeUser,
+			Type:        "UserRequired",
 			RedirectURL: "/login",
 			Roles:       []string{"user", "admin"},
 		},

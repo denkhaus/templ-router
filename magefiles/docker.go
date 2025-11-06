@@ -30,7 +30,7 @@ func (p Docker) Clean() error {
 // Logs shows Docker logs
 func (p Docker) Logs() error {
 	fmt.Println("Showing Docker logs...")
-	return sh.RunV("docker-compose", "-f", "docker/docker-compose.dev.yml", "logs", "-f")
+	return sh.RunV("docker-compose", "-f", "docker/docker-compose.dev.yml", "logs")
 }
 
 // Build builds the Docker image

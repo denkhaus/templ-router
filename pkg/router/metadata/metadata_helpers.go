@@ -2,8 +2,8 @@ package metadata
 
 import (
 	"context"
+	"strings"
 
-	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
@@ -15,14 +15,18 @@ func M(ctx context.Context, key string) string {
 		return "[MISSING_METADATA_CONTEXT: " + key + "]" // No config available
 	}
 
-	// Try router.ConfigFile first
-	if config, ok := configValue.(*interfaces.ConfigFile); ok {
-		return extractMetadataFromConfig(config.RouteMetadata, key)
-	}
-
-	// Try shared.ConfigFile as fallback
+	// Use shared.ConfigFile
 	if sharedConfig, ok := configValue.(*shared.ConfigFile); ok {
-		return extractMetadataFromConfig(sharedConfig.RouteMetadata, key)
+		result := extractMetadataFromConfig(sharedConfig.GetRouteMetadata(), key)
+		if result != "[MISSING_METADATA: "+key+"]" {
+			return result // Found in main config
+		}
+
+		// Try to load metadata from the component's own YAML file
+		// This handles embedded components that have their own metadata
+		if componentResult := tryLoadComponentMetadata(ctx, key); componentResult != "" {
+			return componentResult
+		}
 	}
 
 	return "[INVALID_METADATA_CONFIG: " + key + "]" // Invalid config type
@@ -53,4 +57,66 @@ func extractMetadataFromConfig(routeMetadata interface{}, key string) string {
 	}
 
 	return "[MISSING_METADATA: " + key + "]" // Key not found
+}
+
+// tryLoadComponentMetadata attempts to load metadata from the component's own YAML file
+// This handles embedded components that have their own metadata separate from the page/layout
+func tryLoadComponentMetadata(ctx context.Context, key string) string {
+	// Get the current template path from context
+	templatePath, ok := ctx.Value(shared.I18nTemplateKey).(string)
+	if !ok {
+		return "" // No template path available
+	}
+
+	// Extract component name from template path
+	// e.g., "app/components/footer.templ" -> "footer"
+	componentName := extractComponentNameFromPath(templatePath)
+	if componentName == "" {
+		return "" // Not a component
+	}
+
+	// Build the YAML path for this component
+	yamlPath := buildComponentYAMLPath(templatePath)
+	if yamlPath == "" {
+		return "" // No YAML path
+	}
+
+	// Load the component's metadata directly
+	_, config, err := shared.ParseYAMLMetadata(yamlPath)
+	if err != nil {
+		return "" // Failed to load component metadata
+	}
+
+	// Extract the metadata from the component's config
+	return extractMetadataFromConfig(config.GetRouteMetadata(), key)
+}
+
+// extractComponentNameFromPath extracts component name from template path
+func extractComponentNameFromPath(templatePath string) string {
+	// Check if this is a component template
+	if !strings.Contains(templatePath, "/components/") {
+		return "" // Not a component
+	}
+
+	// Extract filename without extension
+	parts := strings.Split(templatePath, "/")
+	if len(parts) == 0 {
+		return ""
+	}
+
+	filename := parts[len(parts)-1]
+	if strings.HasSuffix(filename, ".templ") {
+		filename = filename[:len(filename)-6] // Remove ".templ"
+	}
+
+	return filename
+}
+
+// buildComponentYAMLPath builds the YAML path for a component
+func buildComponentYAMLPath(templatePath string) string {
+	// Replace .templ with .templ.yaml
+	if strings.HasSuffix(templatePath, ".templ") {
+		return templatePath + ".yaml"
+	}
+	return templatePath + ".templ.yaml"
 }

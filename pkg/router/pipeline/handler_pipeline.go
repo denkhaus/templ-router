@@ -84,7 +84,7 @@ func (hp *HandlerPipeline) resolveAuthSettings(config PipelineConfig) *interface
 	if config.ConfigFile != nil && config.ConfigFile.AuthSettings != nil {
 		hp.logger.Debug("Using template-level auth settings",
 			zap.String("route", config.Route.Path),
-			zap.String("auth_type", config.ConfigFile.AuthSettings.Type.String()))
+			zap.String("auth_type", config.ConfigFile.AuthSettings.Type))
 		return config.ConfigFile.AuthSettings
 	}
 
@@ -92,14 +92,14 @@ func (hp *HandlerPipeline) resolveAuthSettings(config PipelineConfig) *interface
 	if config.AuthSettings != nil {
 		hp.logger.Debug("Using route-level auth settings",
 			zap.String("route", config.Route.Path),
-			zap.String("auth_type", config.AuthSettings.Type.String()))
+			zap.String("auth_type", config.AuthSettings.Type))
 		return config.AuthSettings
 	}
 
 	// Default to public
 	hp.logger.Debug("Using default public auth settings",
 		zap.String("route", config.Route.Path))
-	return &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}
+	return &interfaces.AuthSettings{Type: "Public"}
 }
 
 // BuildHandlerFunc creates an http.HandlerFunc using the pipeline

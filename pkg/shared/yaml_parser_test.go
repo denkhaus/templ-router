@@ -47,24 +47,26 @@ func TestParseYAMLMetadata_NestedI18n_MultiLocale(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify multi-locale i18n is populated with flattened nested keys
-	assert.NotEmpty(t, config.MultiLocaleI18n)
-	assert.Contains(t, config.MultiLocaleI18n, "en")
-	assert.Contains(t, config.MultiLocaleI18n, "de")
+	multiLocaleI18n := config.GetMultiLocaleI18n()
+	assert.NotEmpty(t, multiLocaleI18n)
+	assert.Contains(t, multiLocaleI18n, "en")
+	assert.Contains(t, multiLocaleI18n, "de")
 
 	// Test English translations
-	enTranslations := config.MultiLocaleI18n["en"]
+	enTranslations := multiLocaleI18n["en"]
 	assert.Equal(t, "Feedback Dashboard", enTranslations["feedback.title"])
 	assert.Equal(t, "Total Reviews", enTranslations["feedback.stats.total_reviews"])
 	assert.Equal(t, "Export Data", enTranslations["feedback.actions.export"])
 
 	// Test German translations
-	deTranslations := config.MultiLocaleI18n["de"]
+	deTranslations := multiLocaleI18n["de"]
 	assert.Equal(t, "Feedback Dashboard (DE)", deTranslations["feedback.title"])
 	assert.Equal(t, "Gesamtbewertungen", deTranslations["feedback.stats.total_reviews"])
 	assert.Equal(t, "Daten exportieren", deTranslations["feedback.actions.export"])
 
 	// Verify I18nMappings is empty for multi-locale configurations
-	assert.Empty(t, config.I18nMappings)
+	i18nMappings := config.GetI18nMappings()
+	assert.Empty(t, i18nMappings)
 }
 
 func TestParseYAMLMetadata_NestedI18n_SimpleStructure(t *testing.T) {
@@ -93,13 +95,15 @@ func TestParseYAMLMetadata_NestedI18n_SimpleStructure(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify I18nMappings is populated with flattened nested keys
-	assert.NotEmpty(t, config.I18nMappings)
-	assert.Equal(t, "Simple Feedback Dashboard", config.I18nMappings["feedback.title"])
-	assert.Equal(t, "Total Reviews", config.I18nMappings["feedback.stats.total_reviews"])
-	assert.Equal(t, "Export Data", config.I18nMappings["feedback.actions.export"])
+	i18nMappings := config.GetI18nMappings()
+	assert.NotEmpty(t, i18nMappings)
+	assert.Equal(t, "Simple Feedback Dashboard", i18nMappings["feedback.title"])
+	assert.Equal(t, "Total Reviews", i18nMappings["feedback.stats.total_reviews"])
+	assert.Equal(t, "Export Data", i18nMappings["feedback.actions.export"])
 
 	// Verify MultiLocaleI18n is empty for simple structures
-	assert.Empty(t, config.MultiLocaleI18n)
+	multiLocaleI18n := config.GetMultiLocaleI18n()
+	assert.Empty(t, multiLocaleI18n)
 }
 
 func TestParseYAMLMetadata_FlatI18n(t *testing.T) {
@@ -122,13 +126,15 @@ func TestParseYAMLMetadata_FlatI18n(t *testing.T) {
 	require.NoError(t, err)
 
 	// Verify I18nMappings is populated
-	assert.NotEmpty(t, config.I18nMappings)
-	assert.Equal(t, "Dashboard", config.I18nMappings["title"])
-	assert.Equal(t, "Overview", config.I18nMappings["subtitle"])
-	assert.Equal(t, "Export", config.I18nMappings["export"])
+	i18nMappings := config.GetI18nMappings()
+	assert.NotEmpty(t, i18nMappings)
+	assert.Equal(t, "Dashboard", i18nMappings["title"])
+	assert.Equal(t, "Overview", i18nMappings["subtitle"])
+	assert.Equal(t, "Export", i18nMappings["export"])
 
 	// Verify MultiLocaleI18n is empty
-	assert.Empty(t, config.MultiLocaleI18n)
+	multiLocaleI18n := config.GetMultiLocaleI18n()
+	assert.Empty(t, multiLocaleI18n)
 }
 
 func TestIsValidLocaleCode(t *testing.T) {

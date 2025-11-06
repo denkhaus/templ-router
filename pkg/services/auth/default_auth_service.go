@@ -33,12 +33,12 @@ func NewDefaultAuthService(i do.Injector) (interfaces.AuthService, error) {
 func (s *DefaultAuthService) Authenticate(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
 	// Check authentication type
 	switch requirements.Type {
-	case interfaces.AuthTypePublic:
+	case "Public":
 		return &interfaces.AuthResult{
 			IsAuthenticated: true,
 		}, nil
 
-	case interfaces.AuthTypeUser, interfaces.AuthTypeAdmin:
+	case "UserRequired", "AdminRequired":
 		return s.authenticateUser(req, requirements)
 
 	default:

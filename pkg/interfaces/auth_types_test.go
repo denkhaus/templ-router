@@ -32,7 +32,7 @@ func TestAuthSettings_Validation(t *testing.T) {
 		{
 			name: "Valid user auth settings",
 			settings: AuthSettings{
-				Type:        AuthTypeUser,
+				Type:        "UserRequired",
 				RedirectURL: "/login",
 				Roles:       []string{"user"},
 			},
@@ -41,7 +41,7 @@ func TestAuthSettings_Validation(t *testing.T) {
 		{
 			name: "Valid admin auth settings",
 			settings: AuthSettings{
-				Type:        AuthTypeAdmin,
+				Type:        "AdminRequired",
 				RedirectURL: "/admin/login",
 				Roles:       []string{"admin", "super_admin"},
 			},
@@ -50,7 +50,7 @@ func TestAuthSettings_Validation(t *testing.T) {
 		{
 			name: "Public auth with no redirect",
 			settings: AuthSettings{
-				Type:        AuthTypePublic,
+				Type:        "Public",
 				RedirectURL: "",
 				Roles:       nil,
 			},
@@ -62,7 +62,7 @@ func TestAuthSettings_Validation(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Basic validation logic
 			isValid := true
-			if tt.settings.Type == AuthTypeUser || tt.settings.Type == AuthTypeAdmin {
+			if tt.settings.Type == "UserRequired" || tt.settings.Type == "AdminRequired" {
 				if tt.settings.RedirectURL == "" {
 					isValid = false
 				}
@@ -210,7 +210,7 @@ func TestSession_InvalidSession(t *testing.T) {
 
 func TestAuthSettings_RoleValidation(t *testing.T) {
 	settings := AuthSettings{
-		Type:        AuthTypeAdmin,
+		Type:        "AdminRequired",
 		RedirectURL: "/admin/login",
 		Roles:       []string{"admin", "super_admin"},
 	}

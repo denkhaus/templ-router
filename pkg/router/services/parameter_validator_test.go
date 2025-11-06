@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,11 +16,11 @@ import (
 type mockConfigService struct{}
 
 // Router configuration methods
-func (m *mockConfigService) GetRouterEnableTrailingSlash() bool     { return true }
-func (m *mockConfigService) GetRouterEnableSlashRedirect() bool     { return true }
-func (m *mockConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
-func (m *mockConfigService) GetRouterEnableAuthRoutes() bool        { return true }
-func (m *mockConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }
+func (m *mockConfigService) GetRouterEnableTrailingSlash() bool    { return true }
+func (m *mockConfigService) GetRouterEnableSlashRedirect() bool    { return true }
+func (m *mockConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
+func (m *mockConfigService) GetRouterEnableAuthRoutes() bool       { return true }
+func (m *mockConfigService) GetRouterAuthRoutePrefix() string      { return "/api" }
 
 // Implement all required ConfigService methods
 func (m *mockConfigService) GetLayoutRootDirectory() string            { return "app" }
@@ -108,13 +109,13 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 	require.NoError(t, err)
 
 	tests := []struct {
-		name           string
-		route          *interfaces.Route
-		config         *interfaces.ConfigFile
-		hierarchyMap   map[string][]string
-		configs        map[string]*interfaces.ConfigFile
-		expectedErrors int
-		expectedWarnings int
+		name                 string
+		route                *interfaces.Route
+		config               *shared.ConfigFile
+		hierarchyMap         map[string][]string
+		configs              map[string]*shared.ConfigFile
+		expectedErrors       int
+		expectedWarnings     int
 		expectedWarningTypes []string
 	}{
 		{
@@ -123,19 +124,19 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				Path:         "/user/profile",
 				TemplateFile: "user/profile/page.templ",
 			},
-			config: &interfaces.ConfigFile{
+			config: &shared.ConfigFile{
 				DynamicSettings: &interfaces.DynamicSettings{
 					Parameters: map[string]*interfaces.DynamicParameterConfig{
 						"id": {
-							Validation: "^[0-9]+$",
+							Validation:  "^[0-9]+$",
 							Description: "User ID",
 						},
 					},
 				},
 			},
-			hierarchyMap: map[string][]string{},
-			configs:      map[string]*interfaces.ConfigFile{},
-			expectedErrors: 0,
+			hierarchyMap:     map[string][]string{},
+			configs:          map[string]*shared.ConfigFile{},
+			expectedErrors:   0,
 			expectedWarnings: 0,
 		},
 		{
@@ -144,11 +145,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				Path:         "/user/$id/profile",
 				TemplateFile: "user/id_/profile/page.templ",
 			},
-			config: &interfaces.ConfigFile{
+			config: &shared.ConfigFile{
 				DynamicSettings: &interfaces.DynamicSettings{
 					Parameters: map[string]*interfaces.DynamicParameterConfig{
 						"id": {
-							Validation: "^[0-9]+$",
+							Validation:  "^[0-9]+$",
 							Description: "User ID",
 						},
 					},
@@ -157,19 +158,19 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			hierarchyMap: map[string][]string{
 				"/user/$id/profile": {"/user"},
 			},
-			configs: map[string]*interfaces.ConfigFile{
+			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
 					DynamicSettings: &interfaces.DynamicSettings{
 						Parameters: map[string]*interfaces.DynamicParameterConfig{
 							"id": {
-								Validation: "^[0-9]+$",
+								Validation:  "^[0-9]+$",
 								Description: "User ID",
 							},
 						},
 					},
 				},
 			},
-			expectedErrors: 0,
+			expectedErrors:   0,
 			expectedWarnings: 0,
 		},
 		{
@@ -178,11 +179,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				Path:         "/user/$id/profile",
 				TemplateFile: "user/id_/profile/page.templ",
 			},
-			config: &interfaces.ConfigFile{
+			config: &shared.ConfigFile{
 				DynamicSettings: &interfaces.DynamicSettings{
 					Parameters: map[string]*interfaces.DynamicParameterConfig{
 						"id": {
-							Validation: "^[a-z]+$", // Different from parent
+							Validation:  "^[a-z]+$", // Different from parent
 							Description: "User ID",
 						},
 					},
@@ -191,20 +192,20 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			hierarchyMap: map[string][]string{
 				"/user/$id/profile": {"/user"},
 			},
-			configs: map[string]*interfaces.ConfigFile{
+			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
 					DynamicSettings: &interfaces.DynamicSettings{
 						Parameters: map[string]*interfaces.DynamicParameterConfig{
 							"id": {
-								Validation: "^[0-9]+$", // Different from child
+								Validation:  "^[0-9]+$", // Different from child
 								Description: "User ID",
 							},
 						},
 					},
 				},
 			},
-			expectedErrors: 0,
-			expectedWarnings: 1,
+			expectedErrors:       0,
+			expectedWarnings:     1,
 			expectedWarningTypes: []string{"PARAMETER_VALIDATION_CONFLICT"},
 		},
 		{
@@ -213,12 +214,12 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				Path:         "/user/$role/dashboard",
 				TemplateFile: "user/role_/dashboard/page.templ",
 			},
-			config: &interfaces.ConfigFile{
+			config: &shared.ConfigFile{
 				DynamicSettings: &interfaces.DynamicSettings{
 					Parameters: map[string]*interfaces.DynamicParameterConfig{
 						"role": {
 							SupportedValues: []string{"admin", "user", "guest", "superuser"}, // Contains values not in parent
-							Description: "User role",
+							Description:     "User role",
 						},
 					},
 				},
@@ -226,20 +227,20 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			hierarchyMap: map[string][]string{
 				"/user/$role/dashboard": {"/user"},
 			},
-			configs: map[string]*interfaces.ConfigFile{
+			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
 					DynamicSettings: &interfaces.DynamicSettings{
 						Parameters: map[string]*interfaces.DynamicParameterConfig{
 							"role": {
 								SupportedValues: []string{"admin", "user", "guest"}, // Subset of child
-								Description: "User role",
+								Description:     "User role",
 							},
 						},
 					},
 				},
 			},
-			expectedErrors: 0,
-			expectedWarnings: 1,
+			expectedErrors:       0,
+			expectedWarnings:     1,
 			expectedWarningTypes: []string{"PARAMETER_VALUES_CONFLICT"},
 		},
 		{
@@ -248,11 +249,11 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				Path:         "/user/$id/settings",
 				TemplateFile: "user/id_/settings/page.templ",
 			},
-			config: &interfaces.ConfigFile{
+			config: &shared.ConfigFile{
 				DynamicSettings: &interfaces.DynamicSettings{
 					Parameters: map[string]*interfaces.DynamicParameterConfig{
 						"id": {
-							Validation: "^[0-9]+$", // Child adds validation
+							Validation:  "^[0-9]+$", // Child adds validation
 							Description: "User ID",
 						},
 					},
@@ -261,7 +262,7 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			hierarchyMap: map[string][]string{
 				"/user/$id/settings": {"/user"},
 			},
-			configs: map[string]*interfaces.ConfigFile{
+			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
 					DynamicSettings: &interfaces.DynamicSettings{
 						Parameters: map[string]*interfaces.DynamicParameterConfig{
@@ -273,8 +274,8 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 					},
 				},
 			},
-			expectedErrors: 0,
-			expectedWarnings: 1,
+			expectedErrors:       0,
+			expectedWarnings:     1,
 			expectedWarningTypes: []string{"PARAMETER_INHERITANCE_INFO"},
 		},
 		{
@@ -283,7 +284,7 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 				Path:         "/user/$id/profile",
 				TemplateFile: "user/id_/profile/page.templ",
 			},
-			config: &interfaces.ConfigFile{
+			config: &shared.ConfigFile{
 				DynamicSettings: &interfaces.DynamicSettings{
 					Parameters: map[string]*interfaces.DynamicParameterConfig{
 						// Missing "id" parameter config
@@ -293,20 +294,20 @@ func TestParameterValidator_ValidateParameterInheritance(t *testing.T) {
 			hierarchyMap: map[string][]string{
 				"/user/$id/profile": {"/user"},
 			},
-			configs: map[string]*interfaces.ConfigFile{
+			configs: map[string]*shared.ConfigFile{
 				"user/page.templ": {
 					DynamicSettings: &interfaces.DynamicSettings{
 						Parameters: map[string]*interfaces.DynamicParameterConfig{
 							"id": {
-								Validation: "^[0-9]+$",
+								Validation:  "^[0-9]+$",
 								Description: "User ID",
 							},
 						},
 					},
 				},
 			},
-			expectedErrors: 0,
-			expectedWarnings: 1,
+			expectedErrors:       0,
+			expectedWarnings:     1,
 			expectedWarningTypes: []string{"INHERITED_PARAMETER_MISSING_CONFIG"},
 		},
 	}
@@ -460,4 +461,3 @@ func TestParameterValidator_IsConfigForRoute(t *testing.T) {
 		})
 	}
 }
-

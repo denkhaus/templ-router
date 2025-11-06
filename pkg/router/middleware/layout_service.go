@@ -122,8 +122,8 @@ func (ls *layoutServiceImpl) WrapInLayout(component templ.Component, layout *int
 					// Safe access to metadata
 					templateTitle := ""
 					layoutTitle := ""
-					if mergedConfig.RouteMetadata != nil {
-						if metadataMap, ok := mergedConfig.RouteMetadata.(map[string]interface{}); ok {
+					if mergedConfig.GetRouteMetadata() != nil {
+						if metadataMap, ok := mergedConfig.GetRouteMetadata().(map[string]interface{}); ok {
 							if title, exists := metadataMap["title"]; exists {
 								if titleStr, ok := title.(string); ok {
 									templateTitle = titleStr
@@ -131,8 +131,8 @@ func (ls *layoutServiceImpl) WrapInLayout(component templ.Component, layout *int
 							}
 						}
 					}
-					if layoutConfig.RouteMetadata != nil {
-						if metadataMap, ok := layoutConfig.RouteMetadata.(map[string]interface{}); ok {
+					if layoutConfig.GetRouteMetadata() != nil {
+						if metadataMap, ok := layoutConfig.GetRouteMetadata().(map[string]interface{}); ok {
 							if title, exists := metadataMap["title"]; exists {
 								if titleStr, ok := title.(string); ok {
 									layoutTitle = titleStr
@@ -150,14 +150,14 @@ func (ls *layoutServiceImpl) WrapInLayout(component templ.Component, layout *int
 					ctx = context.WithValue(ctx, shared.TemplateConfigKey, layoutConfig)
 					ls.logger.Info("Added layout metadata to context (fallback)",
 						zap.String("yaml_path", layout.YamlPath),
-						zap.Any("metadata", layoutConfig.RouteMetadata))
+						zap.Any("metadata", layoutConfig.GetRouteMetadata()))
 				}
 			} else {
 				// No existing template config, use layout config
 				ctx = context.WithValue(ctx, shared.TemplateConfigKey, layoutConfig)
 				ls.logger.Info("Added layout metadata to context (no template config)",
 					zap.String("yaml_path", layout.YamlPath),
-					zap.Any("metadata", layoutConfig.RouteMetadata))
+					zap.Any("metadata", layoutConfig.GetRouteMetadata()))
 			}
 		}
 	}
@@ -210,41 +210,169 @@ func (lwc *LayoutWrappedComponent) Render(ctx context.Context, w io.Writer) erro
 func mergeConfigs(layoutConfig, templateConfig *shared.ConfigFile) *shared.ConfigFile {
 	// Start with layout config as base
 	merged := &shared.ConfigFile{
-		RouteMetadata:   layoutConfig.RouteMetadata,
-		MultiLocaleI18n: make(map[string]map[string]string),
-		AuthSettings:    layoutConfig.AuthSettings, // Use layout auth settings as default
+		FilePath: layoutConfig.FilePath,
+	}
+
+	// Copy layout metadata first
+	if layoutConfig.Metadata != nil {
+		merged.Metadata = &shared.MetadataConfig{
+			Title:       layoutConfig.Metadata.Title,
+			Description: layoutConfig.Metadata.Description,
+			Keywords:    make([]string, len(layoutConfig.Metadata.Keywords)),
+			Author:      layoutConfig.Metadata.Author,
+			Version:     layoutConfig.Metadata.Version,
+			Custom:      make(map[string]interface{}),
+		}
+		copy(merged.Metadata.Keywords, layoutConfig.Metadata.Keywords)
+		for k, v := range layoutConfig.Metadata.Custom {
+			merged.Metadata.Custom[k] = v
+		}
 	}
 
 	// Copy layout i18n data first
-	if layoutConfig.MultiLocaleI18n != nil {
-		for locale, translations := range layoutConfig.MultiLocaleI18n {
-			merged.MultiLocaleI18n[locale] = make(map[string]string)
-			for key, value := range translations {
-				merged.MultiLocaleI18n[locale][key] = value
+	if layoutConfig.I18n != nil {
+		merged.I18n = &shared.I18nConfig{
+			FlatMappings: make(map[string]string),
+			Translations: make(map[string]*shared.LocaleTranslations),
+		}
+		// Copy flat mappings
+		for k, v := range layoutConfig.I18n.FlatMappings {
+			merged.I18n.FlatMappings[k] = v
+		}
+		// Copy translations
+		for locale, translations := range layoutConfig.I18n.Translations {
+			merged.I18n.Translations[locale] = &shared.LocaleTranslations{
+				Locale:       translations.Locale,
+				Translations: make(map[string]interface{}),
+			}
+			for k, v := range translations.Translations {
+				merged.I18n.Translations[locale].Translations[k] = v
 			}
 		}
 	}
 
-	// Override with template metadata (template takes precedence)
-	if templateConfig.RouteMetadata != nil {
-		merged.RouteMetadata = templateConfig.RouteMetadata
-	}
-
-	// Override with template i18n data (template takes precedence)
-	if templateConfig.MultiLocaleI18n != nil {
-		for locale, translations := range templateConfig.MultiLocaleI18n {
-			if merged.MultiLocaleI18n[locale] == nil {
-				merged.MultiLocaleI18n[locale] = make(map[string]string)
-			}
-			for key, value := range translations {
-				merged.MultiLocaleI18n[locale][key] = value
-			}
+	// Copy layout auth settings as default
+	if layoutConfig.Auth != nil {
+		merged.Auth = &shared.AuthConfig{
+			Type:        layoutConfig.Auth.Type,
+			RedirectURL: layoutConfig.Auth.RedirectURL,
+			Roles:       make([]string, len(layoutConfig.Auth.Roles)),
+			Settings:    make(map[string]interface{}),
+		}
+		copy(merged.Auth.Roles, layoutConfig.Auth.Roles)
+		for k, v := range layoutConfig.Auth.Settings {
+			merged.Auth.Settings[k] = v
 		}
 	}
 
-	// Use template auth settings if available
-	if templateConfig.AuthSettings != nil {
-		merged.AuthSettings = templateConfig.AuthSettings
+	// Copy layout settings
+	if layoutConfig.Layout != nil {
+		merged.Layout = &shared.LayoutConfig{
+			Template: layoutConfig.Layout.Template,
+			Settings: make(map[string]interface{}),
+		}
+		for k, v := range layoutConfig.Layout.Settings {
+			merged.Layout.Settings[k] = v
+		}
+	}
+
+	// Copy error settings
+	if layoutConfig.Error != nil {
+		merged.Error = &shared.ErrorConfig{
+			Template: layoutConfig.Error.Template,
+			Settings: make(map[string]interface{}),
+		}
+		for k, v := range layoutConfig.Error.Settings {
+			merged.Error.Settings[k] = v
+		}
+	}
+
+	// Copy dynamic settings
+	if layoutConfig.Dynamic != nil {
+		merged.Dynamic = &shared.DynamicConfig{
+			Rules:    make(map[string]*shared.ValidationRule),
+			Settings: make(map[string]interface{}),
+		}
+		for k, v := range layoutConfig.Dynamic.Rules {
+			merged.Dynamic.Rules[k] = &shared.ValidationRule{
+				Name:     v.Name,
+				Type:     v.Type,
+				Required: v.Required,
+				Pattern:  v.Pattern,
+				Default:  v.Default,
+				Settings: make(map[string]interface{}),
+			}
+			for rk, rv := range v.Settings {
+				merged.Dynamic.Rules[k].Settings[rk] = rv
+			}
+		}
+		for k, v := range layoutConfig.Dynamic.Settings {
+			merged.Dynamic.Settings[k] = v
+		}
+	}
+
+	// Now merge with template config (template takes precedence)
+	merged.MergeMetadata(templateConfig)
+	merged.MergeI18n(templateConfig)
+
+	// Override auth settings if template has them
+	if templateConfig.Auth != nil {
+		merged.Auth = &shared.AuthConfig{
+			Type:        templateConfig.Auth.Type,
+			RedirectURL: templateConfig.Auth.RedirectURL,
+			Roles:       make([]string, len(templateConfig.Auth.Roles)),
+			Settings:    make(map[string]interface{}),
+		}
+		copy(merged.Auth.Roles, templateConfig.Auth.Roles)
+		for k, v := range templateConfig.Auth.Settings {
+			merged.Auth.Settings[k] = v
+		}
+	}
+
+	// Override layout settings if template has them
+	if templateConfig.Layout != nil {
+		merged.Layout = &shared.LayoutConfig{
+			Template: templateConfig.Layout.Template,
+			Settings: make(map[string]interface{}),
+		}
+		for k, v := range templateConfig.Layout.Settings {
+			merged.Layout.Settings[k] = v
+		}
+	}
+
+	// Override error settings if template has them
+	if templateConfig.Error != nil {
+		merged.Error = &shared.ErrorConfig{
+			Template: templateConfig.Error.Template,
+			Settings: make(map[string]interface{}),
+		}
+		for k, v := range templateConfig.Error.Settings {
+			merged.Error.Settings[k] = v
+		}
+	}
+
+	// Override dynamic settings if template has them
+	if templateConfig.Dynamic != nil {
+		merged.Dynamic = &shared.DynamicConfig{
+			Rules:    make(map[string]*shared.ValidationRule),
+			Settings: make(map[string]interface{}),
+		}
+		for k, v := range templateConfig.Dynamic.Rules {
+			merged.Dynamic.Rules[k] = &shared.ValidationRule{
+				Name:     v.Name,
+				Type:     v.Type,
+				Required: v.Required,
+				Pattern:  v.Pattern,
+				Default:  v.Default,
+				Settings: make(map[string]interface{}),
+			}
+			for rk, rv := range v.Settings {
+				merged.Dynamic.Rules[k].Settings[rk] = rv
+			}
+		}
+		for k, v := range templateConfig.Dynamic.Settings {
+			merged.Dynamic.Settings[k] = v
+		}
 	}
 
 	return merged

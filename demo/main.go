@@ -103,10 +103,10 @@ func startupStreamlined(ctx context.Context) error {
 		}),
 
 		// NEW: Custom Session Store - demonstrates pluggable session management
-	// By default, templ-router uses in-memory session store
-	// Here we create our own simple in-memory session store to show the principle
-	// In production, you might use Redis, database, or other custom implementations
-	// Create a factory function that provides our custom session store
+		// By default, templ-router uses in-memory session store
+		// Here we create our own simple in-memory session store to show the principle
+		// In production, you might use Redis, database, or other custom implementations
+		// Create a factory function that provides our custom session store
 		di.WithSessionStoreFactory(func(i do.Injector) (interfaces.SessionStore, error) {
 			logger := do.MustInvoke[*zap.Logger](i)
 			configService := do.MustInvoke[interfaces.ConfigService](i)
@@ -157,7 +157,7 @@ func startupStreamlined(ctx context.Context) error {
 
 // logRouteInformation logs information about discovered routes
 func logRouteInformation(routerCore interface{}, logger *zap.Logger) {
-	// This would need to be adapted based on the actual interface available
+	// TODO: This would need to be adapted based on the actual interface available
 	// For now, just log that routes were discovered
 	logger.Info("Router bootstrap completed successfully",
 		zap.String("architecture", "streamlined"),

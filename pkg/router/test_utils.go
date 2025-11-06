@@ -9,6 +9,7 @@ import (
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -132,28 +133,28 @@ func (m *MockRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfac
 
 type MockConfigLoader struct {
 	ShouldError  bool
-	Config       *interfaces.ConfigFile
+	Config       *shared.ConfigFile
 	AuthSettings *interfaces.AuthSettings
 }
 
-func (m *MockConfigLoader) LoadRouteConfig(templateFile string) (*interfaces.ConfigFile, error) {
+func (m *MockConfigLoader) LoadRouteConfig(templateFile string) (*shared.ConfigFile, error) {
 	if m.ShouldError {
 		return nil, errors.New("mock config load error")
 	}
 	if m.Config != nil {
 		return m.Config, nil
 	}
-	return &interfaces.ConfigFile{FilePath: templateFile}, nil
+	return &shared.ConfigFile{FilePath: templateFile}, nil
 }
 
-func (m *MockConfigLoader) LoadConfig(templatePath string) (*interfaces.ConfigFile, error) {
+func (m *MockConfigLoader) LoadConfig(templatePath string) (*shared.ConfigFile, error) {
 	if m.ShouldError {
 		return nil, errors.New("mock config load error")
 	}
 	if m.Config != nil {
 		return m.Config, nil
 	}
-	return &interfaces.ConfigFile{FilePath: templatePath}, nil
+	return &shared.ConfigFile{FilePath: templatePath}, nil
 }
 
 func (m *MockConfigLoader) LoadAuthSettings(templatePath string) (*interfaces.AuthSettings, error) {
@@ -163,7 +164,7 @@ func (m *MockConfigLoader) LoadAuthSettings(templatePath string) (*interfaces.Au
 	if m.AuthSettings != nil {
 		return m.AuthSettings, nil
 	}
-	return &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}, nil
+	return &interfaces.AuthSettings{Type: "Public"}, nil
 }
 
 type MockHandlerPipeline struct {

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 	"gopkg.in/yaml.v2"
@@ -25,12 +26,12 @@ func NewConfigLoader(i do.Injector) (interfaces.ConfigLoader, error) {
 }
 
 // LoadRouteConfig implements router.ConfigLoader
-func (cl *configLoaderImpl) LoadRouteConfig(templateFile string) (*interfaces.ConfigFile, error) {
+func (cl *configLoaderImpl) LoadRouteConfig(templateFile string) (*shared.ConfigFile, error) {
 	return cl.LoadConfig(templateFile)
 }
 
 // LoadConfig implements router.ConfigLoader
-func (cl *configLoaderImpl) LoadConfig(templatePath string) (*interfaces.ConfigFile, error) {
+func (cl *configLoaderImpl) LoadConfig(templatePath string) (*shared.ConfigFile, error) {
 	yamlPath := cl.getYAMLPath(templatePath)
 
 	// Check if YAML file exists
@@ -57,8 +58,8 @@ func (cl *configLoaderImpl) LoadConfig(templatePath string) (*interfaces.ConfigF
 		return nil, fmt.Errorf("failed to parse YAML file %s: %w", yamlPath, err)
 	}
 
-	// Convert to interfaces.ConfigFile
-	config := &interfaces.ConfigFile{}
+	// Convert to shared.ConfigFile
+	config := &shared.ConfigFile{}
 
 	// Parse auth settings if present
 	if authData, ok := rawConfig["auth"]; ok {
@@ -68,13 +69,13 @@ func (cl *configLoaderImpl) LoadConfig(templatePath string) (*interfaces.ConfigF
 				zap.String("yaml_path", yamlPath),
 				zap.Error(err))
 		} else {
-			config.AuthSettings = authSettings
+			config.Auth = authSettings
 		}
 	}
 
 	cl.logger.Debug("Config loaded successfully",
 		zap.String("template", templatePath),
-		zap.Bool("has_auth", config.AuthSettings != nil))
+		zap.Bool("has_auth", config.Auth != nil))
 
 	return config, nil
 }
@@ -86,11 +87,12 @@ func (cl *configLoaderImpl) LoadAuthSettings(templatePath string) (*interfaces.A
 		return nil, err
 	}
 
-	if config == nil || config.AuthSettings == nil {
+	if config == nil || config.Auth == nil {
 		return nil, nil // No auth settings is not an error
 	}
 
-	return config.AuthSettings, nil
+	// Convert *shared.AuthConfig to *interfaces.AuthSettings (they are the same type)
+	return (*interfaces.AuthSettings)(config.Auth), nil
 }
 
 // getYAMLPath returns the YAML file path for a template
@@ -102,13 +104,15 @@ func (cl *configLoaderImpl) getYAMLPath(templatePath string) string {
 }
 
 // parseAuthSettings parses auth settings from YAML data
-func (cl *configLoaderImpl) parseAuthSettings(authData interface{}) (*interfaces.AuthSettings, error) {
+func (cl *configLoaderImpl) parseAuthSettings(authData interface{}) (*shared.AuthConfig, error) {
 	authMap, ok := authData.(map[interface{}]interface{})
 	if !ok {
 		return nil, fmt.Errorf("auth settings must be a map")
 	}
 
-	settings := &interfaces.AuthSettings{}
+	settings := &shared.AuthConfig{
+		Settings: make(map[string]interface{}),
+	}
 
 	// Parse auth type
 	if typeData, ok := authMap["type"]; ok {
@@ -141,19 +145,30 @@ func (cl *configLoaderImpl) parseAuthSettings(authData interface{}) (*interfaces
 		}
 	}
 
+	// Parse any additional settings
+	for key, value := range authMap {
+		keyStr, ok := key.(string)
+		if !ok {
+			continue
+		}
+		if keyStr != "type" && keyStr != "redirect_url" && keyStr != "roles" {
+			settings.Settings[keyStr] = value
+		}
+	}
+
 	return settings, nil
 }
 
-// parseAuthType converts string to AuthType
-func (cl *configLoaderImpl) parseAuthType(typeStr string) (interfaces.AuthType, error) {
+// parseAuthType converts string to AuthType string
+func (cl *configLoaderImpl) parseAuthType(typeStr string) (string, error) {
 	switch strings.ToLower(typeStr) {
 	case "public", "none":
-		return interfaces.AuthTypePublic, nil
+		return "Public", nil
 	case "user", "authenticated", "login", "userrequired":
-		return interfaces.AuthTypeUser, nil
+		return "UserRequired", nil
 	case "admin", "administrator", "adminrequired":
-		return interfaces.AuthTypeAdmin, nil
+		return "AdminRequired", nil
 	default:
-		return interfaces.AuthTypePublic, fmt.Errorf("unknown auth type: %s", typeStr)
+		return "Public", fmt.Errorf("unknown auth type: %s", typeStr)
 	}
 }

@@ -84,30 +84,9 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 			templateKey = route.TemplateFile // fallback to template file
 		}
 
-		// Load template config and add to context for router.M() access
-		ctx = tm.addTemplateConfigToContext(ctx, route.TemplateFile)
-
-		// Load component metadata based on route type
-		if metadata, err := tm.templateRegistry.GetTemplateMetadata(templateKey); err == nil {
-			if metadata.Type == "component" {
-				tm.logger.Debug("Component template detected, loading metadata",
-					zap.String("route_path", route.Path),
-					zap.String("template_file", route.TemplateFile),
-					zap.String("template_key", templateKey),
-					zap.String("component_name", metadata.ComponentName))
-				// Load metadata for components using the full template key
-				ctx = tm.addComponentMetadataForComponentRoute(ctx, templateKey)
-			} else {
-				tm.logger.Debug("Non-component template detected",
-					zap.String("route_path", route.Path),
-					zap.String("template_type", string(metadata.Type)))
-			}
-		} else {
-			tm.logger.Debug("Page template detected, embedded component loading temporarily disabled",
-				zap.String("template_file", route.TemplateFile))
-			// Temporarily disable embedded component loading for pages
-			// ctx = tm.addEmbeddedComponentsMetadataToContext(ctx, route.TemplateFile)
-		}
+	// Load metadata and i18n for ALL templates using unified approach
+		// Everything is a component - pages, layouts, and components use the same loading mechanism
+		ctx = tm.loadTemplateMetadataAndI18n(ctx, templateKey, route.Path)
 
 		tm.logger.Debug("Rendering template",
 			zap.String("template", route.TemplateFile),
@@ -181,90 +160,85 @@ func (tm *templateMiddleware) renderFallback(w http.ResponseWriter, route interf
 	w.Write([]byte(response))
 }
 
-// addTemplateConfigToContext loads template config and adds it to context for router.M() access
-func (tm *templateMiddleware) addTemplateConfigToContext(ctx context.Context, templateFile string) context.Context {
-	// Build YAML metadata path from template file
-	yamlPath := tm.buildYamlPath(templateFile)
-
-	tm.logger.Debug("Loading template config for context",
-		zap.String("template_file", templateFile),
-		zap.String("yaml_path", yamlPath))
-
-	// Load shared config
-	configFileFound, sharedConfig, err := shared.ParseYAMLMetadata(yamlPath)
+// loadTemplateMetadataAndI18n loads metadata and i18n for ALL templates using unified approach
+// Everything is a component - pages, layouts, and components use the same loading mechanism
+func (tm *templateMiddleware) loadTemplateMetadataAndI18n(ctx context.Context, templateKey, routePath string) context.Context {
+	// Get template metadata from registry
+	metadata, err := tm.templateRegistry.GetTemplateMetadata(templateKey)
 	if err != nil {
-		if configFileFound {
-			tm.logger.Debug("Failed to load template config",
-				zap.String("yaml_path", yamlPath),
-				zap.Error(err),
-			)
-		}
-
-		return ctx // Return original context if no config
+		tm.logger.Debug("No metadata found in registry for template",
+			zap.String("template_key", templateKey),
+			zap.String("route_path", routePath))
+		return ctx
 	}
 
-	// Add shared config to context for router.M() access
-	ctx = context.WithValue(ctx, shared.TemplateConfigKey, sharedConfig)
-	tm.logger.Info("Added template metadata to context",
-		zap.String("yaml_path", yamlPath),
-		zap.Any("metadata", sharedConfig.RouteMetadata))
+	tm.logger.Debug("Loading template metadata and i18n",
+		zap.String("template_key", templateKey),
+		zap.String("route_path", routePath),
+		zap.String("template_type", string(metadata.Type)),
+		zap.String("component_name", metadata.ComponentName))
+
+	// Initialize i18n context for ALL templates
+	ctx = tm.initializeI18nContext(ctx, metadata.TemplatePath)
+
+	// Load hierarchical metadata and i18n: Layout -> Page -> Component
+	// Components have highest priority and override parent settings
+	mergedConfig, mergedTranslations := tm.loadHierarchicalMetadataAndI18n(ctx, templateKey, metadata)
+
+	// Add merged template config to context for metadata.M() access
+	ctx = context.WithValue(ctx, shared.TemplateConfigKey, mergedConfig)
+
+	// Update i18n context with merged translations
+	if i18nData, ok := ctx.Value(shared.I18nDataKey).(*i18n.I18nData); ok {
+		i18nData.Translations = mergedTranslations
+		ctx = context.WithValue(ctx, shared.I18nDataKey, i18nData)
+	}
+
+	tm.logger.Debug("Processed template metadata and i18n",
+		zap.String("component_name", metadata.ComponentName),
+		zap.String("template_type", string(metadata.Type)),
+		zap.Bool("yaml_exists", metadata.YAMLExists),
+		zap.Bool("has_i18n", metadata.HasI18n))
 
 	return ctx
 }
 
-// buildYamlPath builds the YAML metadata path from template file path
-func (tm *templateMiddleware) buildYamlPath(templateFile string) string {
-	// Remove .templ extension and add .templ.yaml
-	// e.g., "app/page.templ" -> "app/page.templ.yaml"
-	if strings.HasSuffix(templateFile, ".templ") {
-		return templateFile + ".yaml"
-	}
-
-	// Fallback: add .yaml to whatever we have
-	return templateFile + ".yaml"
+// initializeI18nContext creates i18n context for any template
+func (tm *templateMiddleware) initializeI18nContext(ctx context.Context, templatePath string) context.Context {
+	// Use i18n service to create context for any template type
+	return tm.i18nService.CreateContext(ctx, templatePath)
 }
 
-// REMOVED: loadComponentMetadata and buildComponentYamlPath
-// Component metadata loading is now handled by ComponentMetadataService
-// This removes tight coupling and improves separation of concerns
-
-// mergeComponentMetadata merges component metadata with existing page context
-// Component metadata takes precedence over page metadata
-func (tm *templateMiddleware) mergeComponentMetadata(ctx context.Context, componentConfig *shared.ConfigFile) context.Context {
-	// Get existing config from context
-	existingConfig := ctx.Value(shared.TemplateConfigKey)
-	if existingConfig == nil {
-		// No existing config, use component config directly
-		ctx = context.WithValue(ctx, shared.TemplateConfigKey, componentConfig)
-		return tm.addComponentI18nToContext(ctx, componentConfig)
-	}
-
-	// Get page/template config
-	pageConfig, ok := existingConfig.(*shared.ConfigFile)
-	if !ok {
-		// Invalid config type, use component config
-		ctx = context.WithValue(ctx, shared.TemplateConfigKey, componentConfig)
-		return tm.addComponentI18nToContext(ctx, componentConfig)
-	}
-
-	// Merge configs: component takes precedence over page
-	merged := tm.mergeConfigs(pageConfig, componentConfig)
-
-	tm.logger.Info("Merged component metadata with page metadata (component takes precedence)",
-		zap.Any("page_metadata", pageConfig.RouteMetadata),
-		zap.Any("component_metadata", componentConfig.RouteMetadata),
-		zap.Any("merged_metadata", merged.RouteMetadata))
-
-	ctx = context.WithValue(ctx, shared.TemplateConfigKey, merged)
-	return tm.addComponentI18nToContext(ctx, componentConfig)
+// buildCorrectYAMLPath builds the correct YAML file path from registry metadata
+func (tm *templateMiddleware) buildCorrectYAMLPath(registryYAMLPath string) string {
+	// The registry gives us paths that start with the layout root directory name
+	// layoutRoot = "demo/app" means layout root directory is "demo/app"
+	// working directory = project root = "/app"
+	// registry path = "app/components/footer.templ.yaml" (starts with layout root directory name)
+	// actual file location = "demo/app/components/footer.templ.yaml"
+	// We need to extract the base directory from layoutRoot and add it
+	layoutRoot := tm.configService.GetLayoutRootDirectory()
+	baseDir := strings.Split(layoutRoot, "/")[0] // "demo" from "demo/app"
+	return baseDir + "/" + registryYAMLPath
 }
 
-// addComponentI18nToContext adds component i18n data to the I18n context
-func (tm *templateMiddleware) addComponentI18nToContext(ctx context.Context, componentConfig *shared.ConfigFile) context.Context {
-	if componentConfig.MultiLocaleI18n == nil {
-		tm.logger.Debug("No component i18n data to add to context")
-		return ctx
-	}
+// loadHierarchicalMetadataAndI18n loads and merges metadata and i18n data in hierarchical order
+// Layout -> Page -> Component (higher priority overrides lower priority)
+func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Context, templateKey string, currentMetadata *interfaces.TemplateMetadata) (*shared.ConfigFile, map[string]string) {
+	// Step 1: Load layout metadata (lowest priority)
+	layoutConfig := tm.loadLayoutMetadata()
+
+	// Step 2: Load current template metadata (page or component)
+	currentConfig := tm.loadCurrentTemplateMetadata(currentMetadata)
+
+	// Step 3: Load embedded components metadata (highest priority)
+	componentsConfigs := tm.loadEmbeddedComponentsMetadata(currentMetadata)
+
+	// Step 4: Merge hierarchically: Layout + Current + Components
+	mergedConfig := tm.mergeConfigsHierarchically(layoutConfig, currentConfig, componentsConfigs)
+
+	// Step 5: Merge i18n translations hierarchically
+	mergedTranslations := tm.mergeTranslationsHierarchically(layoutConfig, currentConfig, componentsConfigs)
 
 	// Get current locale from context
 	locale, _ := ctx.Value(shared.LocaleKey).(string)
@@ -272,126 +246,543 @@ func (tm *templateMiddleware) addComponentI18nToContext(ctx context.Context, com
 		locale = "en" // Default fallback
 	}
 
-	// Check if component has translations for current locale
-	componentTranslations, hasLocale := componentConfig.MultiLocaleI18n[locale]
-	if !hasLocale {
-		tm.logger.Debug("No component translations found for locale",
-			zap.String("locale", locale),
-			zap.Strings("available_locales", tm.getAvailableLocales(componentConfig.MultiLocaleI18n)))
-		return ctx
-	}
-
-	// Get existing i18n data from context
-	i18nData, ok := ctx.Value(shared.I18nDataKey).(*i18n.I18nData)
-	if !ok {
-		tm.logger.Debug("No existing i18n data found in context")
-		return ctx
-	}
-
-	// Add component translations to existing i18n data
-	tm.logger.Info("Adding component i18n translations to context",
+	tm.logger.Debug("Hierarchical metadata merge completed",
+		zap.String("template_type", string(currentMetadata.Type)),
+		zap.String("template_path", currentMetadata.TemplatePath),
 		zap.String("locale", locale),
-		zap.Int("translation_count", len(componentTranslations)))
+		zap.Int("layout_metadata_count", len(tm.getRouteMetadata(layoutConfig))),
+		zap.Int("current_metadata_count", len(tm.getRouteMetadata(currentConfig))),
+		zap.Int("components_count", len(componentsConfigs)),
+		zap.Int("merged_metadata_count", len(tm.getRouteMetadata(mergedConfig))),
+		zap.Int("merged_translation_count", len(mergedTranslations)))
 
-	// Create a copy of the translations map to avoid race conditions
-	newTranslations := make(map[string]string)
-	for key, value := range i18nData.Translations {
-		newTranslations[key] = value
-	}
-
-	// Component translations take precedence over existing translations
-	for key, value := range componentTranslations {
-		newTranslations[key] = value
-	}
-
-	// Update i18n data with merged translations
-	updatedI18nData := &i18n.I18nData{
-		Locale:          i18nData.Locale,
-		Translations:    newTranslations,
-		CurrentTemplate: i18nData.CurrentTemplate,
-		Logger:          i18nData.Logger,
-	}
-
-	return context.WithValue(ctx, shared.I18nDataKey, updatedI18nData)
+	return mergedConfig, mergedTranslations
 }
 
-// getAvailableLocales returns a slice of available locale strings
-func (tm *templateMiddleware) getAvailableLocales(i18nData map[string]map[string]string) []string {
-	locales := make([]string, 0, len(i18nData))
-	for locale := range i18nData {
-		locales = append(locales, locale)
+// loadLayoutMetadata loads layout metadata if available
+func (tm *templateMiddleware) loadLayoutMetadata() *shared.ConfigFile {
+	// Find layout template in registry
+	layoutTemplateKey := shared.GenerateTemplateKey("app/layout.templ#Layout")
+	layoutMetadata, err := tm.templateRegistry.GetTemplateMetadata(layoutTemplateKey)
+	if err != nil || !layoutMetadata.YAMLExists {
+		tm.logger.Debug("No layout metadata found or layout YAML doesn't exist")
+		return tm.createEmptyConfig()
 	}
-	return locales
+
+	// Load layout YAML
+	yamlPath := tm.buildCorrectYAMLPath(layoutMetadata.YAMLFile)
+	_, config, err := shared.ParseYAMLMetadata(yamlPath)
+	if err != nil {
+		tm.logger.Debug("Failed to load layout metadata",
+			zap.String("yaml_path", yamlPath),
+			zap.Error(err))
+		return tm.createEmptyConfig()
+	}
+
+	metadataCount := len(tm.getRouteMetadata(config))
+	tm.logger.Debug("Successfully loaded layout metadata",
+		zap.String("yaml_path", yamlPath),
+		zap.Int("metadata_count", metadataCount))
+
+	return config
 }
 
-// mergeConfigs creates a merged config where higherPriorityConfig overrides baseConfig
-func (tm *templateMiddleware) mergeConfigs(baseConfig, higherPriorityConfig *shared.ConfigFile) *shared.ConfigFile {
-	// Start with base config as base
-	merged := &shared.ConfigFile{
-		RouteMetadata:    baseConfig.RouteMetadata,
-		MultiLocaleI18n:  make(map[string]map[string]string),
-		AuthSettings:     baseConfig.AuthSettings,
-		FilePath:         baseConfig.FilePath,
-		TemplateFilePath: baseConfig.TemplateFilePath,
-		I18nMappings:     make(map[string]string),
-		ErrorSettings:    baseConfig.ErrorSettings,
-		DynamicSettings:  baseConfig.DynamicSettings,
+// loadCurrentTemplateMetadata loads the current template's metadata
+func (tm *templateMiddleware) loadCurrentTemplateMetadata(metadata *interfaces.TemplateMetadata) *shared.ConfigFile {
+	if !metadata.YAMLExists || metadata.YAMLFile == "" {
+		tm.logger.Debug("No YAML file for current template",
+			zap.String("template_path", metadata.TemplatePath))
+		return tm.createEmptyConfig()
 	}
 
-	// Copy base i18n data first
-	if baseConfig.MultiLocaleI18n != nil {
-		for locale, translations := range baseConfig.MultiLocaleI18n {
-			merged.MultiLocaleI18n[locale] = make(map[string]string)
-			for key, value := range translations {
-				merged.MultiLocaleI18n[locale][key] = value
-			}
+	// Load current template YAML
+	yamlPath := tm.buildCorrectYAMLPath(metadata.YAMLFile)
+	_, config, err := shared.ParseYAMLMetadata(yamlPath)
+	if err != nil {
+		tm.logger.Debug("Failed to load current template metadata",
+			zap.String("yaml_path", yamlPath),
+			zap.String("template_path", metadata.TemplatePath),
+			zap.Error(err))
+		return tm.createEmptyConfig()
+	}
+
+	tm.logger.Debug("Successfully loaded current template metadata",
+		zap.String("template_path", metadata.TemplatePath),
+		zap.String("yaml_path", yamlPath),
+		zap.String("template_type", string(metadata.Type)),
+		zap.Any("metadata", config.GetRouteMetadata()))
+
+	return config
+}
+
+// loadEmbeddedComponentsMetadata finds and loads all embedded components metadata
+func (tm *templateMiddleware) loadEmbeddedComponentsMetadata(currentMetadata *interfaces.TemplateMetadata) map[string]*shared.ConfigFile {
+	components := make(map[string]*shared.ConfigFile)
+
+	// For now, load all available components as a simple approach
+	// In a more sophisticated implementation, we could analyze template files
+	// to find exactly which components are used
+	routeMapping := tm.templateRegistry.GetRouteToTemplateMapping()
+	for routePath, templateKey := range routeMapping {
+		// Only process component routes
+		if !strings.Contains(routePath, "/components/") {
+			continue
 		}
-	}
 
-	// Copy base i18n mappings
-	if baseConfig.I18nMappings != nil {
-		for key, value := range baseConfig.I18nMappings {
-			merged.I18nMappings[key] = value
+		// Get component metadata
+		componentMetadata, err := tm.templateRegistry.GetTemplateMetadata(templateKey)
+		if err != nil {
+			continue
 		}
-	}
 
-	// Override with higher priority metadata
-	if higherPriorityConfig.RouteMetadata != nil {
-		merged.RouteMetadata = higherPriorityConfig.RouteMetadata
-	}
-
-	// Override with higher priority i18n data
-	if higherPriorityConfig.MultiLocaleI18n != nil {
-		for locale, translations := range higherPriorityConfig.MultiLocaleI18n {
-			if merged.MultiLocaleI18n[locale] == nil {
-				merged.MultiLocaleI18n[locale] = make(map[string]string)
-			}
-			for key, value := range translations {
-				merged.MultiLocaleI18n[locale][key] = value
-			}
+		// Only load if YAML exists
+		if !componentMetadata.YAMLExists || componentMetadata.YAMLFile == "" {
+			continue
 		}
-	}
 
-	// Override with higher priority i18n mappings
-	if higherPriorityConfig.I18nMappings != nil {
-		for key, value := range higherPriorityConfig.I18nMappings {
-			merged.I18nMappings[key] = value
+		// Load component YAML
+		yamlPath := tm.buildCorrectYAMLPath(componentMetadata.YAMLFile)
+		_, config, err := shared.ParseYAMLMetadata(yamlPath)
+		if err != nil {
+			tm.logger.Debug("Failed to load component metadata",
+				zap.String("component_name", componentMetadata.ComponentName),
+				zap.String("yaml_path", yamlPath),
+				zap.Error(err))
+			continue
 		}
+
+		components[componentMetadata.ComponentName] = config
 	}
 
-	// Use higher priority settings if available
-	if higherPriorityConfig.AuthSettings != nil {
-		merged.AuthSettings = higherPriorityConfig.AuthSettings
+	tm.logger.Debug("Loaded embedded components metadata",
+		zap.Int("components_count", len(components)))
+
+	return components
+}
+
+// createEmptyConfig creates an empty config structure
+func (tm *templateMiddleware) createEmptyConfig() *shared.ConfigFile {
+	config := &shared.ConfigFile{}
+
+	// Initialize all the type-safe structures with empty data
+	config.Metadata = &shared.MetadataConfig{
+		Custom: make(map[string]interface{}),
 	}
-	if higherPriorityConfig.ErrorSettings != nil {
-		merged.ErrorSettings = higherPriorityConfig.ErrorSettings
+	config.I18n = &shared.I18nConfig{
+		FlatMappings: make(map[string]string),
+		Translations: make(map[string]*shared.LocaleTranslations),
 	}
-	if higherPriorityConfig.DynamicSettings != nil {
-		merged.DynamicSettings = higherPriorityConfig.DynamicSettings
+	config.Auth = &shared.AuthConfig{
+		Settings: make(map[string]interface{}),
+	}
+	config.Layout = &shared.LayoutConfig{
+		Settings: make(map[string]interface{}),
+	}
+	config.Error = &shared.ErrorConfig{
+		Settings: make(map[string]interface{}),
+	}
+	config.Dynamic = &shared.DynamicConfig{
+		Rules:    make(map[string]*shared.ValidationRule),
+		Settings: make(map[string]interface{}),
+	}
+
+	return config
+}
+
+// mergeConfigsHierarchically merges configs in hierarchical order: Layout + Current + Components
+// Components (highest priority) override Current, which overrides Layout (lowest priority)
+func (tm *templateMiddleware) mergeConfigsHierarchically(layoutConfig, currentConfig *shared.ConfigFile, componentsConfigs map[string]*shared.ConfigFile) *shared.ConfigFile {
+	// Start with layout as base
+	merged := tm.cloneConfig(layoutConfig)
+
+	// Merge current template (overrides layout)
+	merged = tm.mergeTwoConfigs(merged, currentConfig, "current_template")
+
+	// Merge all components (overrides current + layout)
+	for componentName, componentConfig := range componentsConfigs {
+		merged = tm.mergeTwoConfigs(merged, componentConfig, componentName)
 	}
 
 	return merged
 }
+
+// mergeTranslationsHierarchically merges i18n translations hierarchically: Layout + Current + Components
+// Only merges translations for the specified locale
+func (tm *templateMiddleware) mergeTranslationsHierarchically(layoutConfig, currentConfig *shared.ConfigFile, componentsConfigs map[string]*shared.ConfigFile) map[string]string {
+	merged := make(map[string]string)
+
+	// Step 1: Start with layout translations (lowest priority)
+	layoutI18n := layoutConfig.GetMultiLocaleI18n()
+	if layoutI18n != nil {
+		for _, translations := range layoutI18n {
+			for key, value := range translations {
+				merged[key] = value // This will be overridden by higher priority items
+			}
+		}
+	}
+
+	// Step 2: Merge current template translations (overrides layout)
+	currentI18n := currentConfig.GetMultiLocaleI18n()
+	if currentI18n != nil {
+		for _, translations := range currentI18n {
+			for key, value := range translations {
+				merged[key] = value // Overrides layout
+			}
+		}
+	}
+
+	// Step 3: Merge all components translations (highest priority)
+	for _, componentConfig := range componentsConfigs {
+		componentI18n := componentConfig.GetMultiLocaleI18n()
+		if componentI18n != nil {
+			for _, translations := range componentI18n {
+				for key, value := range translations {
+					merged[key] = value // Components have highest priority
+				}
+			}
+		}
+	}
+
+	return merged
+}
+
+// mergeTwoConfigs merges two configs with the second overriding the first
+func (tm *templateMiddleware) mergeTwoConfigs(base, override *shared.ConfigFile, sourceName string) *shared.ConfigFile {
+	merged := tm.cloneConfig(base)
+
+	// Merge route metadata
+	overrideMetadata := override.GetRouteMetadata()
+	if overrideMetadata != nil {
+		if overrideMetadataMap, ok := overrideMetadata.(map[string]interface{}); ok {
+			if merged.Metadata == nil {
+				merged.Metadata = &shared.MetadataConfig{
+					Custom: make(map[string]interface{}),
+				}
+			}
+			// Use the MergeMetadata method which handles all the merging logic
+			overrideConfig := &shared.ConfigFile{Metadata: &shared.MetadataConfig{Custom: overrideMetadataMap}}
+			merged.MergeMetadata(overrideConfig)
+		}
+	}
+
+	// Merge i18n data
+	overrideI18n := override.GetMultiLocaleI18n()
+	if overrideI18n != nil {
+		// For i18n, we need to work with the I18nConfig directly
+		if merged.I18n == nil {
+			merged.I18n = &shared.I18nConfig{
+				FlatMappings: make(map[string]string),
+				Translations: make(map[string]*shared.LocaleTranslations),
+			}
+		}
+		for locale, translations := range overrideI18n {
+			if merged.I18n.Translations[locale] == nil {
+				merged.I18n.Translations[locale] = &shared.LocaleTranslations{
+					Locale:       locale,
+					Translations: make(map[string]interface{}),
+				}
+			}
+			for key, value := range translations {
+				merged.I18n.Translations[locale].Translations[key] = value
+			}
+		}
+	}
+
+	// Merge auth settings
+	overrideAuth := override.GetAuthSettings()
+	if overrideAuth != nil {
+		if overrideAuthMap, ok := overrideAuth.(map[string]interface{}); ok {
+			if merged.Auth == nil {
+				merged.Auth = &shared.AuthConfig{
+					Settings: make(map[string]interface{}),
+				}
+			}
+			// Set auth fields from map
+			if authType, ok := overrideAuthMap["type"].(string); ok {
+				merged.Auth.Type = authType
+			}
+			if redirectURL, ok := overrideAuthMap["redirect_url"].(string); ok {
+				merged.Auth.RedirectURL = redirectURL
+			}
+			if roles, ok := overrideAuthMap["roles"].([]string); ok {
+				merged.Auth.Roles = roles
+			}
+			// Merge other settings
+			for key, value := range overrideAuthMap {
+				if key != "type" && key != "redirect_url" && key != "roles" {
+					merged.Auth.Settings[key] = value
+				}
+			}
+		}
+	}
+
+	// Merge i18n mappings (flat mappings)
+	overrideI18nMappings := override.GetI18nMappings()
+	if overrideI18nMappings != nil {
+		if merged.I18n == nil {
+			merged.I18n = &shared.I18nConfig{
+				FlatMappings: make(map[string]string),
+				Translations: make(map[string]*shared.LocaleTranslations),
+			}
+		}
+		for key, value := range overrideI18nMappings {
+			merged.I18n.FlatMappings[key] = value
+		}
+	}
+
+	// Merge error settings
+	overrideError := override.GetErrorSettings()
+	if overrideError != nil {
+		if overrideErrorMap, ok := overrideError.(map[string]interface{}); ok {
+			if merged.Error == nil {
+				merged.Error = &shared.ErrorConfig{
+					Settings: make(map[string]interface{}),
+				}
+			}
+			if template, ok := overrideErrorMap["template"].(string); ok {
+				merged.Error.Template = template
+			}
+			// Merge other settings
+			for key, value := range overrideErrorMap {
+				if key != "template" {
+					merged.Error.Settings[key] = value
+				}
+			}
+		}
+	}
+
+	// Merge dynamic settings
+	overrideDynamic := override.GetDynamicSettings()
+	if overrideDynamic != nil {
+		if overrideDynamicMap, ok := overrideDynamic.(map[string]interface{}); ok {
+			if merged.Dynamic == nil {
+				merged.Dynamic = &shared.DynamicConfig{
+					Rules:    make(map[string]*shared.ValidationRule),
+					Settings: make(map[string]interface{}),
+				}
+			}
+			// Handle rules separately if they exist
+			if rulesData, ok := overrideDynamicMap["rules"].(map[string]interface{}); ok {
+				for ruleName, ruleData := range rulesData {
+					if ruleMap, ok := ruleData.(map[string]interface{}); ok {
+						rule := &shared.ValidationRule{
+							Name:    ruleName,
+							Settings: make(map[string]interface{}),
+						}
+						if ruleType, ok := ruleMap["type"].(string); ok {
+							rule.Type = ruleType
+						}
+						if required, ok := ruleMap["required"].(bool); ok {
+							rule.Required = required
+						}
+						if pattern, ok := ruleMap["pattern"].(string); ok {
+							rule.Pattern = pattern
+						}
+						if defaultValue, ok := ruleMap["default"]; ok {
+							rule.Default = defaultValue
+						}
+						// Merge other rule settings
+						for key, value := range ruleMap {
+							if key != "name" && key != "type" && key != "required" && key != "pattern" && key != "default" {
+								rule.Settings[key] = value
+							}
+						}
+						merged.Dynamic.Rules[ruleName] = rule
+					}
+				}
+			}
+			// Merge other settings
+			for key, value := range overrideDynamicMap {
+				if key != "rules" {
+					merged.Dynamic.Settings[key] = value
+				}
+			}
+		}
+	}
+
+	tm.logger.Debug("Merged config with override",
+		zap.String("source", sourceName),
+		zap.Int("base_metadata_count", len(tm.getRouteMetadata(base))),
+		zap.Int("override_metadata_count", len(tm.getRouteMetadata(override))),
+		zap.Int("merged_metadata_count", len(tm.getRouteMetadata(merged))))
+
+	return merged
+}
+
+// cloneConfig creates a deep copy of a config
+func (tm *templateMiddleware) cloneConfig(original *shared.ConfigFile) *shared.ConfigFile {
+	clone := &shared.ConfigFile{
+		FilePath:         original.FilePath,
+		TemplateFilePath: original.TemplateFilePath,
+	}
+
+	// Deep copy Metadata
+	if original.Metadata != nil {
+		clone.Metadata = &shared.MetadataConfig{
+			Title:       original.Metadata.Title,
+			Description: original.Metadata.Description,
+			Author:      original.Metadata.Author,
+			Version:     original.Metadata.Version,
+		}
+		if len(original.Metadata.Keywords) > 0 {
+			clone.Metadata.Keywords = make([]string, len(original.Metadata.Keywords))
+			copy(clone.Metadata.Keywords, original.Metadata.Keywords)
+		}
+		if original.Metadata.Custom != nil {
+			clone.Metadata.Custom = make(map[string]interface{})
+			for key, value := range original.Metadata.Custom {
+				clone.Metadata.Custom[key] = value
+			}
+		}
+	}
+
+	// Deep copy I18n
+	if original.I18n != nil {
+		clone.I18n = &shared.I18nConfig{
+			FlatMappings: make(map[string]string),
+			Translations: make(map[string]*shared.LocaleTranslations),
+		}
+		for key, value := range original.I18n.FlatMappings {
+			clone.I18n.FlatMappings[key] = value
+		}
+		for locale, translations := range original.I18n.Translations {
+			clone.I18n.Translations[locale] = &shared.LocaleTranslations{
+				Locale:       translations.Locale,
+				Translations: make(map[string]interface{}),
+			}
+			for key, value := range translations.Translations {
+				clone.I18n.Translations[locale].Translations[key] = value
+			}
+		}
+	}
+
+	// Deep copy Auth
+	if original.Auth != nil {
+		clone.Auth = &shared.AuthConfig{
+			Type:        original.Auth.Type,
+			RedirectURL: original.Auth.RedirectURL,
+			Settings:    make(map[string]interface{}),
+		}
+		if len(original.Auth.Roles) > 0 {
+			clone.Auth.Roles = make([]string, len(original.Auth.Roles))
+			copy(clone.Auth.Roles, original.Auth.Roles)
+		}
+		for key, value := range original.Auth.Settings {
+			clone.Auth.Settings[key] = value
+		}
+	}
+
+	// Deep copy Layout
+	if original.Layout != nil {
+		clone.Layout = &shared.LayoutConfig{
+			Template: original.Layout.Template,
+			Settings: make(map[string]interface{}),
+		}
+		for key, value := range original.Layout.Settings {
+			clone.Layout.Settings[key] = value
+		}
+	}
+
+	// Deep copy Error
+	if original.Error != nil {
+		clone.Error = &shared.ErrorConfig{
+			Template: original.Error.Template,
+			Settings: make(map[string]interface{}),
+		}
+		for key, value := range original.Error.Settings {
+			clone.Error.Settings[key] = value
+		}
+	}
+
+	// Deep copy Dynamic
+	if original.Dynamic != nil {
+		clone.Dynamic = &shared.DynamicConfig{
+			Rules:    make(map[string]*shared.ValidationRule),
+			Settings: make(map[string]interface{}),
+		}
+		for ruleName, rule := range original.Dynamic.Rules {
+			clone.Dynamic.Rules[ruleName] = &shared.ValidationRule{
+				Name:     rule.Name,
+				Type:     rule.Type,
+				Required: rule.Required,
+				Pattern:  rule.Pattern,
+				Default:  rule.Default,
+				Settings: make(map[string]interface{}),
+			}
+			for key, value := range rule.Settings {
+				clone.Dynamic.Rules[ruleName].Settings[key] = value
+			}
+		}
+		for key, value := range original.Dynamic.Settings {
+			clone.Dynamic.Settings[key] = value
+		}
+	}
+
+	return clone
+}
+
+// Helper functions for safe interface{} access
+
+// getRouteMetadata safely extracts route metadata as map[string]interface{}
+func (tm *templateMiddleware) getRouteMetadata(config *shared.ConfigFile) map[string]interface{} {
+	if config == nil || config.Metadata == nil {
+		return make(map[string]interface{})
+	}
+
+	result := make(map[string]interface{})
+
+	// Add standard fields
+	if config.Metadata.Title != "" {
+		result["title"] = config.Metadata.Title
+	}
+	if config.Metadata.Description != "" {
+		result["description"] = config.Metadata.Description
+	}
+	if len(config.Metadata.Keywords) > 0 {
+		result["keywords"] = config.Metadata.Keywords
+	}
+	if config.Metadata.Author != "" {
+		result["author"] = config.Metadata.Author
+	}
+	if config.Metadata.Version != "" {
+		result["version"] = config.Metadata.Version
+	}
+
+	// Add custom fields
+	for key, value := range config.Metadata.Custom {
+		result[key] = value
+	}
+
+	return result
+}
+
+// setRouteMetadata safely sets route metadata
+func (tm *templateMiddleware) setRouteMetadata(config *shared.ConfigFile, metadata map[string]interface{}) {
+	if config == nil {
+		return
+	}
+	// This would require converting back to MetadataConfig, but for now
+	// we rely on the merge methods to handle this
+}
+
+// getI18nData safely extracts i18n data as map[string]map[string]string
+func (tm *templateMiddleware) getI18nData(config *shared.ConfigFile) map[string]map[string]string {
+	if config == nil {
+		return make(map[string]map[string]string)
+	}
+	// Use the getter method which already returns flattened data
+	return config.GetMultiLocaleI18n()
+}
+
+// setI18nData safely sets i18n data
+func (tm *templateMiddleware) setI18nData(config *shared.ConfigFile, i18nData map[string]map[string]string) {
+	if config == nil {
+		return
+	}
+	// This would require converting back to I18nConfig, but for now
+	// we rely on the merge methods to handle this
+}
+
 
 // isComponentRoute determines if a route is a component route using registry
 // This is generic - components can be in any route, not just /components/
@@ -442,61 +833,3 @@ func (tm *templateMiddleware) isHTMXRequest(r *http.Request) bool {
 	return r.Header.Get("HX-Request") != ""
 }
 
-// addComponentMetadataForComponentRoute loads component metadata for component routes
-func (tm *templateMiddleware) addComponentMetadataForComponentRoute(ctx context.Context, templateFile string) context.Context {
-	// Get component name directly from template registry metadata
-	if metadata, err := tm.templateRegistry.GetTemplateMetadata(templateFile); err == nil {
-		componentName := metadata.ComponentName
-		if componentName == "" {
-			tm.logger.Debug("No component name found in registry metadata",
-				zap.String("template_file", templateFile))
-			return ctx
-		}
-
-		// Load component metadata using the service
-		componentConfig, err := tm.componentMetadataService.LoadComponentMetadata(componentName)
-		if err != nil {
-			// No component metadata available, return unchanged context
-			tm.logger.Debug("No component metadata found for component route",
-				zap.String("component", componentName),
-				zap.String("template_file", templateFile),
-				zap.Error(err))
-			return ctx
-		}
-
-		tm.logger.Debug("Successfully loaded component metadata for component route",
-			zap.String("component", componentName),
-			zap.String("template_file", templateFile))
-
-		// Load component translations into i18n context
-		ctx = tm.loadComponentTranslations(ctx, componentName)
-
-		// Merge component metadata with existing context
-		return tm.mergeComponentMetadata(ctx, componentConfig)
-	}
-
-	tm.logger.Debug("No metadata found in registry for template file",
-		zap.String("template_file", templateFile))
-	return ctx
-}
-
-// loadComponentTranslations loads component translations into the i18n context
-func (tm *templateMiddleware) loadComponentTranslations(ctx context.Context, componentName string) context.Context {
-	// Use I18nService to load component translations into context
-	if tm.i18nService == nil {
-		tm.logger.Debug("I18nService not available, skipping component translation loading",
-			zap.String("component", componentName))
-		return ctx
-	}
-
-	// Call the I18nService method to load component translations
-	newCtx := tm.i18nService.LoadComponentTranslationsIntoContext(ctx, componentName)
-
-	tm.logger.Debug("Loaded component translations using I18nService",
-		zap.String("component", componentName))
-
-	return newCtx
-}
-
-// REMOVED: extractParametersFromURL - replaced with pluggable ParameterExtractor interface
-// This eliminates hardcoded "user" and "product" route assumptions, making the middleware library-agnostic

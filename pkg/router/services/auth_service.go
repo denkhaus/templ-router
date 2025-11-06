@@ -23,7 +23,7 @@ func NewAuthService(i do.Injector) (interfaces.AuthService, error) {
 
 // Authenticate implements interfaces.AuthService
 func (cas *CleanAuthService) Authenticate(req *http.Request, requirements *interfaces.AuthSettings) (*interfaces.AuthResult, error) {
-	if requirements == nil || requirements.Type == interfaces.AuthTypePublic {
+	if requirements == nil || requirements.Type == "Public" {
 		return &interfaces.AuthResult{IsAuthenticated: true}, nil
 	}
 
@@ -68,7 +68,7 @@ func (cas *CleanAuthService) Authenticate(req *http.Request, requirements *inter
 
 // HasRequiredPermissions implements interfaces.AuthService
 func (cas *CleanAuthService) HasRequiredPermissions(req *http.Request, settings *interfaces.AuthSettings) bool {
-	if settings == nil || settings.Type == interfaces.AuthTypePublic {
+	if settings == nil || settings.Type == "Public" {
 		return true
 	}
 
@@ -88,11 +88,11 @@ func (cas *CleanAuthService) HasRequiredPermissions(req *http.Request, settings 
 // userHasRequiredRoles checks if user has required roles
 func (cas *CleanAuthService) userHasRequiredRoles(user interfaces.UserEntity, settings *interfaces.AuthSettings) bool {
 	switch settings.Type {
-	case interfaces.AuthTypePublic:
+	case "Public":
 		return true
-	case interfaces.AuthTypeUser:
+	case "UserRequired":
 		return len(user.GetRoles()) > 0 // Any authenticated user
-	case interfaces.AuthTypeAdmin:
+	case "AdminRequired":
 		return cas.userHasRole(user, "admin")
 	default:
 		// Check specific roles if provided

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -49,7 +50,7 @@ func NewValidationOrchestrator(i do.Injector) (interfaces.ValidationService, err
 }
 
 // ValidateConfiguration validates the complete configuration (implements interfaces.ValidationService)
-func (vo *validationOrchestrator) ValidateConfiguration(routes []interfaces.Route, configs map[string]*interfaces.ConfigFile) error {
+func (vo *validationOrchestrator) ValidateConfiguration(routes []interfaces.Route, configs map[string]*shared.ConfigFile) error {
 	vo.logger.Info("Starting configuration validation",
 		zap.Int("routes", len(routes)),
 		zap.Int("configs", len(configs)))
@@ -72,7 +73,7 @@ func (vo *validationOrchestrator) ValidateConfiguration(routes []interfaces.Rout
 }
 
 // validateAll performs comprehensive validation using specialized validators
-func (vo *validationOrchestrator) validateAll(routes []interfaces.Route, configs map[string]*interfaces.ConfigFile) *ValidationResult {
+func (vo *validationOrchestrator) validateAll(routes []interfaces.Route, configs map[string]*shared.ConfigFile) *ValidationResult {
 	result := &ValidationResult{
 		Errors:   make([]ValidationError, 0),
 		Warnings: make([]ValidationWarning, 0),
@@ -95,7 +96,7 @@ func (vo *validationOrchestrator) validateAll(routes []interfaces.Route, configs
 }
 
 // validateSingleRoute validates a single route using all specialized validators
-func (vo *validationOrchestrator) validateSingleRoute(route *interfaces.Route, config *interfaces.ConfigFile, hierarchyMap map[string][]string, configs map[string]*interfaces.ConfigFile, result *ValidationResult) {
+func (vo *validationOrchestrator) validateSingleRoute(route *interfaces.Route, config *shared.ConfigFile, hierarchyMap map[string][]string, configs map[string]*shared.ConfigFile, result *ValidationResult) {
 	vo.logger.Debug("Validating route",
 		zap.String("path", route.Path),
 		zap.String("template", route.TemplateFile))

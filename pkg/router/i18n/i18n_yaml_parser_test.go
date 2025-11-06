@@ -74,7 +74,7 @@ auth:
 	assert.Contains(t, config.MultiLocaleI18n, "de")
 
 	// Verify I18nMappings is empty for multi-locale configurations
-	assert.Empty(t, config.I18nMappings)
+	assert.Empty(t, config.GetI18nMappings())
 
 	// Test English nested translations
 	enTranslations := config.MultiLocaleI18n["en"]
@@ -97,9 +97,10 @@ auth:
 	assert.Equal(t, "Aktuelle Bewertungen", deTranslations["feedback.recent.title"])
 
 	// Verify auth settings are parsed correctly
-	assert.NotNil(t, config.AuthSettings)
-	assert.Equal(t, "user", config.AuthSettings.Type.String())
-	assert.Equal(t, "/login", config.AuthSettings.RedirectURL)
+	assert.NotNil(t, config.GetAuthSettings())
+	authSettings := config.GetAuthSettings().(map[string]interface{})
+	assert.Equal(t, "UserRequired", authSettings["type"])
+	assert.Equal(t, "/login", authSettings["redirect_url"])
 }
 
 func TestParseYAMLMetadataExtended_SingleLocaleNested(t *testing.T) {
@@ -139,12 +140,12 @@ func TestParseYAMLMetadataExtended_SingleLocaleNested(t *testing.T) {
 	assert.Empty(t, config.MultiLocaleI18n)
 
 	// Verify I18nMappings contains flattened nested keys
-	assert.NotEmpty(t, config.I18nMappings)
-	assert.Equal(t, "Home", config.I18nMappings["navigation.main.home"])
-	assert.Equal(t, "About Us", config.I18nMappings["navigation.main.about"])
-	assert.Equal(t, "My Profile", config.I18nMappings["navigation.user.profile"])
-	assert.Equal(t, "Submit", config.I18nMappings["forms.buttons.submit"])
-	assert.Equal(t, "Save Changes", config.I18nMappings["forms.buttons.save"])
+	assert.NotEmpty(t, config.GetI18nMappings())
+	assert.Equal(t, "Home", config.GetI18nMappings()["navigation.main.home"])
+	assert.Equal(t, "About Us", config.GetI18nMappings()["navigation.main.about"])
+	assert.Equal(t, "My Profile", config.GetI18nMappings()["navigation.user.profile"])
+	assert.Equal(t, "Submit", config.GetI18nMappings()["forms.buttons.submit"])
+	assert.Equal(t, "Save Changes", config.GetI18nMappings()["forms.buttons.save"])
 }
 
 func TestParseYAMLMetadataExtended_FlatStructure(t *testing.T) {

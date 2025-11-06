@@ -20,6 +20,56 @@ type I18nData struct {
 	mu              sync.RWMutex
 }
 
+// Embedded component support - v2.0
+
+// tryLoadComponentTranslation attempts to load translation from the component's own YAML file
+// This handles embedded components that have their own translations separate from the page/layout
+func tryLoadComponentTranslation(ctx context.Context, key, locale string) string {
+	// Get the current template path from context
+	templatePath, ok := ctx.Value(shared.I18nTemplateKey).(string)
+	if !ok {
+		return "" // No template path available
+	}
+
+	// Check if this is a component template
+	if !strings.Contains(templatePath, "/components/") {
+		return "" // Not a component
+	}
+
+	// Build the YAML path for this component
+	yamlPath := buildComponentYAMLPath(templatePath)
+	if yamlPath == "" {
+		return "" // No YAML path
+	}
+
+	// Load the component's metadata directly
+	_, config, err := shared.ParseYAMLMetadata(yamlPath)
+	if err != nil {
+		return "" // Failed to load component metadata
+	}
+
+	// Look for translations in the component's config
+	multiLocaleI18n := config.GetMultiLocaleI18n()
+	if multiLocaleI18n != nil {
+		if localeTranslations, exists := multiLocaleI18n[locale]; exists {
+			if translation, exists := localeTranslations[key]; exists {
+				return translation
+			}
+		}
+	}
+
+	return "" // Translation not found
+}
+
+// buildComponentYAMLPath builds the YAML path for a component
+func buildComponentYAMLPath(templatePath string) string {
+	// Replace .templ with .templ.yaml
+	if strings.HasSuffix(templatePath, ".templ") {
+		return templatePath + ".yaml"
+	}
+	return templatePath + ".templ.yaml"
+}
+
 // T translates a key using the current context
 func T(ctx context.Context, key string) string {
 	data, ok := ctx.Value(shared.I18nDataKey).(*I18nData)
@@ -38,6 +88,12 @@ func T(ctx context.Context, key string) string {
 			zap.String("template", data.CurrentTemplate),
 			zap.String("translation", translation))
 		return translation
+	}
+
+	// Try to load translations from the component's own YAML file
+	// This handles embedded components that have their own translations
+	if componentTranslation := tryLoadComponentTranslation(ctx, key, data.Locale); componentTranslation != "" {
+		return componentTranslation
 	}
 
 	// Graceful fallback for missing translations
@@ -217,3 +273,4 @@ func getCurrentRouteWithoutLocaleFallback(ctx context.Context, fullPath string) 
 	// No locale segment found, return full path
 	return fullPath
 }
+

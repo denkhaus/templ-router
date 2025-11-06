@@ -169,17 +169,21 @@ func (s *simpleTranslationStore) loadTranslationsForPath(templatePath string) er
 				zap.String("locale", locale),
 				zap.Int("keys", len(translations)))
 		}
-	} else if len(config.ConfigFile.I18nMappings) > 0 {
-		// Simple format - assume English
-		s.logger.Debug("Loading simple format translations as English",
-			zap.String("template_path", templatePath),
-			zap.Int("keys", len(config.ConfigFile.I18nMappings)))
+	} else {
+		// Simple format - use GetI18nMappings() to get flat mappings
+		i18nMappings := config.GetI18nMappings()
+		if len(i18nMappings) > 0 {
+			// Simple format - assume English
+			s.logger.Debug("Loading simple format translations as English",
+				zap.String("template_path", templatePath),
+				zap.Int("keys", len(i18nMappings)))
 
-		if s.translations[templatePath]["en"] == nil {
-			s.translations[templatePath]["en"] = make(map[string]string)
-		}
-		for key, value := range config.ConfigFile.I18nMappings {
-			s.translations[templatePath]["en"][key] = value
+			if s.translations[templatePath]["en"] == nil {
+				s.translations[templatePath]["en"] = make(map[string]string)
+			}
+			for key, value := range i18nMappings {
+				s.translations[templatePath]["en"][key] = value
+			}
 		}
 	}
 

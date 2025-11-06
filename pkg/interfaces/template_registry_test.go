@@ -103,6 +103,36 @@ func (m *MockTemplateRegistry) GetDataServiceInfo(key string) (DataServiceInfo, 
 	return DataServiceInfo{}, false
 }
 
+// FindComponentTemplates returns all component templates
+func (m *MockTemplateRegistry) FindComponentTemplates() map[string]*TemplateMetadata {
+	// For testing, return empty map
+	return make(map[string]*TemplateMetadata)
+}
+
+// GetTemplateMetadata returns metadata for a template
+func (m *MockTemplateRegistry) GetTemplateMetadata(key string) (*TemplateMetadata, error) {
+	// For testing, return empty metadata
+	return &TemplateMetadata{}, nil
+}
+
+// GetTemplateMetadataByRoute returns metadata for a template by route
+func (m *MockTemplateRegistry) GetTemplateMetadataByRoute(route string) (*TemplateMetadata, error) {
+	// For testing, return empty metadata
+	return &TemplateMetadata{}, nil
+}
+
+// GetAllTemplateMetadata returns all template metadata
+func (m *MockTemplateRegistry) GetAllTemplateMetadata() map[string]*TemplateMetadata {
+	// For testing, return empty map
+	return make(map[string]*TemplateMetadata)
+}
+
+// GetTemplateKeyByComponentName gets template key by component name
+func (m *MockTemplateRegistry) GetTemplateKeyByComponentName(componentName string) (string, bool) {
+	// For testing, return empty
+	return "", false
+}
+
 // Tests for TemplateRegistry interface
 func TestTemplateRegistry_GetTemplate(t *testing.T) {
 	registry := NewMockTemplateRegistry()
@@ -288,15 +318,15 @@ func TestTemplateRegistry_GetTemplateByRoute(t *testing.T) {
 // Test interface compliance
 func TestTemplateRegistryInterfaceCompliance(t *testing.T) {
 	var _ TemplateRegistry = (*MockTemplateRegistry)(nil)
-	
+
 	// This test ensures our mock implements the interface correctly
 	registry := NewMockTemplateRegistry()
-	
+
 	// Test all interface methods are callable
 	_ = registry.GetAllTemplateKeys()
 	_ = registry.IsAvailable("test")
 	_ = registry.GetRouteToTemplateMapping()
-	
+
 	_, _ = registry.GetTemplate("test")
 	_, _ = registry.GetTemplateFunction("test")
 	_, _ = registry.GetTemplateByRoute("/test")

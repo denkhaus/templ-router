@@ -3,6 +3,7 @@ package interfaces
 import (
 	"net/http"
 
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -13,7 +14,7 @@ type AssetsService interface {
 
 // ValidationService handles unified validation of routes and configurations
 type ValidationService interface {
-	ValidateConfiguration(routes []Route, configs map[string]*ConfigFile) error
+	ValidateConfiguration(routes []Route, configs map[string]*shared.ConfigFile) error
 }
 
 // SessionStore interface for session management (pluggable)

@@ -3,6 +3,7 @@ package services
 import (
 	"fmt"
 	"regexp"
+	"strings"
 	"sync"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
@@ -99,13 +100,14 @@ func (cms *componentMetadataService) LoadComponentTranslations(componentName, lo
 	// Extract translations for the specific locale
 	var translations map[string]string
 
-	if config.MultiLocaleI18n != nil {
-		if localeTranslations, found := config.MultiLocaleI18n[locale]; found {
+	multiLocaleI18n := config.GetMultiLocaleI18n()
+	if multiLocaleI18n != nil {
+		if localeTranslations, found := multiLocaleI18n[locale]; found {
 			translations = localeTranslations
 		} else {
 			// Try fallback locale if configured
 			if fallbackLocale := cms.getFallbackLocale(); fallbackLocale != "" {
-				if fallbackTranslations, found := config.MultiLocaleI18n[fallbackLocale]; found {
+				if fallbackTranslations, found := multiLocaleI18n[fallbackLocale]; found {
 					cms.logger.Debug("Using fallback locale for component translations",
 						zap.String("component", componentName),
 						zap.String("requested_locale", locale),
@@ -187,16 +189,28 @@ func (cms *componentMetadataService) buildComponentYAMLPath(componentName string
 	if templateKey, exists := cms.templateRegistry.GetTemplateKeyByComponentName(componentName); exists {
 		if metadata, err := cms.templateRegistry.GetTemplateMetadata(templateKey); err == nil {
 			if metadata.YAMLExists {
-				// Use the YAML file path directly from registry metadata
-				yamlPath := metadata.YAMLFile
+				// Use the YAML file path from registry metadata and build correct absolute path
+				relativeYAMLPath := metadata.YAMLFile
+				layoutRoot := cms.configService.GetLayoutRootDirectory()
+
+				// The registry gives us paths that start with the layout root directory name
+				// layoutRoot = "demo/app" means layout root directory is "demo/app"
+				// working directory = project root = "/app"
+				// registry path = "app/components/footer.templ.yaml" (starts with layout root directory name)
+				// actual file location = "demo/app/components/footer.templ.yaml"
+				// We need to extract the base directory from layoutRoot and add it
+				baseDir := strings.Split(layoutRoot, "/")[0] // "demo" from "demo/app"
+				absoluteYAMLPath := baseDir + "/" + relativeYAMLPath
 
 				cms.logger.Debug("Found component YAML via registry metadata",
 					zap.String("component", componentName),
-					zap.String("yaml_file", yamlPath),
+					zap.String("layout_root", layoutRoot),
+					zap.String("relative_yaml_path", relativeYAMLPath),
+					zap.String("absolute_yaml_path", absoluteYAMLPath),
 					zap.Bool("has_i18n", metadata.HasI18n),
 					zap.Bool("has_metadata", metadata.HasMetadata))
 
-				return yamlPath
+				return absoluteYAMLPath
 			} else {
 				cms.logger.Debug("Component has no YAML file according to registry",
 					zap.String("component", componentName))

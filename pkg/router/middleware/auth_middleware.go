@@ -44,7 +44,7 @@ func NewAuthMiddleware(i do.Injector) (interfaces.AuthMiddlewareInterface, error
 func (am *authMiddleware) Handle(next http.Handler, requirements *interfaces.AuthSettings) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Skip auth for public routes
-		if requirements == nil || requirements.Type == interfaces.AuthTypePublic {
+		if requirements == nil || requirements.Type == "Public" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -80,7 +80,7 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *interfaces.Aut
 func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Request, authResult *interfaces.AuthResult, requirements *interfaces.AuthSettings) {
 	am.logger.Info("Authentication required but user not authenticated",
 		zap.String("path", r.URL.Path),
-		zap.String("auth_type", requirements.Type.String()))
+		zap.String("auth_type", requirements.Type))
 
 	// Determine redirect URL
 	var redirectURL string
@@ -118,14 +118,14 @@ func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Reque
 func (am *authMiddleware) handlePermissionFailure(w http.ResponseWriter, r *http.Request, requirements *interfaces.AuthSettings) {
 	am.logger.Warn("User lacks required permissions",
 		zap.String("path", r.URL.Path),
-		zap.String("required_auth_type", requirements.Type.String()))
+		zap.String("required_auth_type", requirements.Type))
 
 	if requirements.RedirectURL != "" {
 		http.Redirect(w, r, requirements.RedirectURL, http.StatusFound)
 	} else {
 		am.logger.Warn("Auth-required page has no redirect_url configured",
 			zap.String("path", r.URL.Path),
-			zap.String("auth_type", requirements.Type.String()))
+			zap.String("auth_type", requirements.Type))
 		http.Error(w, "Forbidden: Insufficient permissions", http.StatusForbidden)
 	}
 }

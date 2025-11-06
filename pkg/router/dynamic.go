@@ -43,7 +43,7 @@ func RecognizeDynamicRoutes(routePath string, templateName string) []DynamicRout
 }
 
 // RecognizeDynamicRoutesWithConfig identifies dynamic route patterns with YAML configuration
-func RecognizeDynamicRoutesWithConfig(routePath string, templateName string, dynamicSettings *interfaces.DynamicSettings) []DynamicRouteSegment {
+func RecognizeDynamicRoutesWithConfig(routePath string, templateName string, dynamicSettings *shared.DynamicConfig) []DynamicRouteSegment {
 	segments := []DynamicRouteSegment{}
 
 	// Split the route path into parts
@@ -62,12 +62,19 @@ func RecognizeDynamicRoutesWithConfig(routePath string, templateName string, dyn
 			}
 
 			// Check if we have YAML configuration for this parameter
-			if dynamicSettings != nil && dynamicSettings.Parameters != nil {
-				if config, exists := dynamicSettings.Parameters[parameterName]; exists {
+			if dynamicSettings != nil && dynamicSettings.Rules != nil {
+				if config, exists := dynamicSettings.Rules[parameterName]; exists {
 					segment.Config = config
-					segment.ValidationRegex = config.Validation
-					segment.Description = config.Description
-					segment.SupportedValues = config.SupportedValues
+					segment.ValidationRegex = config.Pattern
+					// Description and SupportedValues are now in the Settings map
+					if config.Settings != nil {
+						if desc, ok := config.Settings["description"].(string); ok {
+							segment.Description = desc
+						}
+						if values, ok := config.Settings["supported_values"].([]string); ok {
+							segment.SupportedValues = values
+						}
+					}
 				}
 			}
 
@@ -120,24 +127,32 @@ func ValidateParameterValue(paramName string, value string, config *interfaces.D
 		return true, ""
 	}
 
+	// Extract supported values from Settings if available
+	var supportedValues []string
+	if config.Settings != nil {
+		if values, ok := config.Settings["supported_values"].([]string); ok {
+			supportedValues = values
+		}
+	}
+
 	// Check supported values first (more specific)
-	if len(config.SupportedValues) > 0 {
-		for _, supportedValue := range config.SupportedValues {
+	if len(supportedValues) > 0 {
+		for _, supportedValue := range supportedValues {
 			if value == supportedValue {
 				return true, ""
 			}
 		}
-		return false, fmt.Sprintf("parameter '%s' value '%s' is not in supported values: %v", paramName, value, config.SupportedValues)
+		return false, fmt.Sprintf("parameter '%s' value '%s' is not in supported values: %v", paramName, value, supportedValues)
 	}
 
-	// Check regex validation
-	if config.Validation != "" {
-		matched, err := regexp.MatchString(config.Validation, value)
+	// Check regex validation - use Pattern field instead of Validation
+	if config.Pattern != "" {
+		matched, err := regexp.MatchString(config.Pattern, value)
 		if err != nil {
 			return false, fmt.Sprintf("parameter '%s' validation regex error: %v", paramName, err)
 		}
 		if !matched {
-			return false, fmt.Sprintf("parameter '%s' value '%s' does not match validation pattern '%s'", paramName, value, config.Validation)
+			return false, fmt.Sprintf("parameter '%s' value '%s' does not match validation pattern '%s'", paramName, value, config.Pattern)
 		}
 	}
 

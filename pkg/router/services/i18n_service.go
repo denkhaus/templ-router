@@ -68,7 +68,7 @@ func (cis *cleanI18nService) ExtractLocale(req *http.Request) string {
 	return cis.configService.GetDefaultLocale()
 }
 
-// CreateContext implements middleware.I18nService
+// CreateContext implements middleware.I18nService - creates i18n context for ANY template
 func (cis *cleanI18nService) CreateContext(ctx context.Context, templatePath string) context.Context {
 	// Extract locale from context (set by middleware)
 	locale, ok := ctx.Value(shared.LocaleKey).(string)
@@ -83,39 +83,22 @@ func (cis *cleanI18nService) CreateContext(ctx context.Context, templatePath str
 		zap.String("locale", locale),
 		zap.String("template_path", templatePath))
 
-	// Load translations for this template
+	// Load translations for this template using TranslationStore
 	if err := cis.translationStore.LoadTranslations(templatePath); err != nil {
-		cis.logger.Warn("Failed to load translations",
+		cis.logger.Debug("Failed to load translations",
 			zap.String("template_path", templatePath),
 			zap.String("locale", locale),
 			zap.Error(err))
 	}
 
-	// Create i18n data structure that router.T() expects
+	// Create i18n data structure that i18n.T() expects
 	i18nData := &i18n.I18nData{
 		Locale:          locale,
 		CurrentTemplate: templatePath,
 		Translations:    make(map[string]string),
-		FallbackLocale:  "en",
+		FallbackLocale:  cis.configService.GetDefaultLocale(),
 		Logger:          cis.logger,
 	}
-
-	// Load translations using the TranslationStore interface (separation of concerns)
-	// The TranslationStore handles its own internal state and caching
-	cis.logger.Debug("Loading translations via TranslationStore interface",
-		zap.String("template_path", templatePath),
-		zap.String("locale", locale))
-
-	// Use the interface method to load translations - this respects abstraction boundaries
-	if err := cis.translationStore.LoadTranslations(templatePath); err != nil {
-		cis.logger.Warn("Failed to load translations via TranslationStore",
-			zap.String("template_path", templatePath),
-			zap.String("locale", locale),
-			zap.Error(err))
-	}
-
-	// Note: Component translation loading is handled by template middleware
-	// when processing component routes. This keeps the I18N service focused.
 
 	// Set the context values that i18n.T() expects
 	ctx = context.WithValue(ctx, shared.I18nDataKey, i18nData)

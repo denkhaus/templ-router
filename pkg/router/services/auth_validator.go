@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -27,14 +28,14 @@ func NewAuthValidator(i do.Injector) (*AuthValidator, error) {
 }
 
 // ValidateAuthSettings validates authentication and authorization settings for a route
-func (av *AuthValidator) ValidateAuthSettings(route *interfaces.Route, config *interfaces.ConfigFile, result *ValidationResult) {
-	if config == nil || config.AuthSettings == nil {
+func (av *AuthValidator) ValidateAuthSettings(route *interfaces.Route, config *shared.ConfigFile, result *ValidationResult) {
+	if config == nil || config.Auth == nil {
 		// No auth settings - this is valid for public routes
 		av.logger.Debug("No auth settings found for route", zap.String("route", route.Path))
 		return
 	}
 
-	authSettings := config.AuthSettings
+	authSettings := config.Auth
 
 	// Validate authentication requirements
 	av.validateAuthenticationSettings(route, authSettings, result)
@@ -47,21 +48,27 @@ func (av *AuthValidator) ValidateAuthSettings(route *interfaces.Route, config *i
 
 	av.logger.Debug("Auth settings validated",
 		zap.String("route", route.Path),
-		zap.String("auth_type", authSettings.Type.String()),
+		zap.String("auth_type", authSettings.Type),
 		zap.Strings("roles", authSettings.Roles))
 }
 
 // validateAuthenticationSettings validates basic authentication requirements
-func (av *AuthValidator) validateAuthenticationSettings(route *interfaces.Route, authSettings *interfaces.AuthSettings, result *ValidationResult) {
+func (av *AuthValidator) validateAuthenticationSettings(route *interfaces.Route, authSettings *shared.AuthConfig, result *ValidationResult) {
 	// Check auth type validity
-	if authSettings.Type < 0 || authSettings.Type > 2 {
+	validAuthTypes := map[string]bool{
+		"Public":        true,
+		"UserRequired":  true,
+		"AdminRequired": true,
+	}
+
+	if !validAuthTypes[authSettings.Type] {
 		result.Errors = append(result.Errors, ValidationError{
 			Type:      "INVALID_AUTH_TYPE",
 			Message:   "Invalid authentication type specified",
 			RoutePath: route.Path,
 			FilePath:  route.TemplateFile,
 			Suggestions: []string{
-				"Use 'public', 'user', or 'admin' auth type",
+				"Use 'Public', 'UserRequired', or 'AdminRequired' auth type",
 			},
 		})
 	}
@@ -73,9 +80,9 @@ func (av *AuthValidator) validateAuthenticationSettings(route *interfaces.Route,
 }
 
 // validateAuthorizationSettings validates authorization requirements
-func (av *AuthValidator) validateAuthorizationSettings(route *interfaces.Route, authSettings *interfaces.AuthSettings, result *ValidationResult) {
+func (av *AuthValidator) validateAuthorizationSettings(route *interfaces.Route, authSettings *shared.AuthConfig, result *ValidationResult) {
 	// Check for admin routes without proper protection
-	if authSettings.Type == interfaces.AuthTypeAdmin && len(authSettings.Roles) == 0 {
+	if authSettings.Type == "AdminRequired" && len(authSettings.Roles) == 0 {
 		result.Warnings = append(result.Warnings, ValidationWarning{
 			Type:      "ADMIN_WITHOUT_ROLES",
 			Message:   "Admin route has no specific roles defined",
@@ -90,7 +97,7 @@ func (av *AuthValidator) validateAuthorizationSettings(route *interfaces.Route, 
 }
 
 // validateRoleSettings validates role-based access control
-func (av *AuthValidator) validateRoleSettings(route *interfaces.Route, authSettings *interfaces.AuthSettings, result *ValidationResult) {
+func (av *AuthValidator) validateRoleSettings(route *interfaces.Route, authSettings *shared.AuthConfig, result *ValidationResult) {
 	for _, role := range authSettings.Roles {
 		if role == "" {
 			result.Errors = append(result.Errors, ValidationError{

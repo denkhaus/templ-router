@@ -155,16 +155,16 @@ func (m *mockRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfac
 
 type mockConfigLoader struct{}
 
-func (m *mockConfigLoader) LoadConfig(templatePath string) (*interfaces.ConfigFile, error) {
-	return &interfaces.ConfigFile{}, nil
+func (m *mockConfigLoader) LoadConfig(templatePath string) (*shared.ConfigFile, error) {
+	return &shared.ConfigFile{}, nil
 }
 
 func (m *mockConfigLoader) LoadAuthSettings(templatePath string) (*interfaces.AuthSettings, error) {
-	return &interfaces.AuthSettings{Type: interfaces.AuthTypePublic}, nil
+	return &interfaces.AuthSettings{Type: "Public"}, nil
 }
 
-func (m *mockConfigLoader) LoadRouteConfig(templatePath string) (*interfaces.ConfigFile, error) {
-	return &interfaces.ConfigFile{}, nil
+func (m *mockConfigLoader) LoadRouteConfig(templatePath string) (*shared.ConfigFile, error) {
+	return &shared.ConfigFile{}, nil
 }
 
 type mockAuthService struct{}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -71,15 +72,15 @@ func (t *testRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfac
 }
 
 type testConfigLoader struct {
-	config       *interfaces.ConfigFile
+	config       *shared.ConfigFile
 	authSettings *interfaces.AuthSettings
 }
 
-func (t *testConfigLoader) LoadRouteConfig(templateFile string) (*interfaces.ConfigFile, error) {
+func (t *testConfigLoader) LoadRouteConfig(templateFile string) (*shared.ConfigFile, error) {
 	return t.config, nil
 }
 
-func (t *testConfigLoader) LoadConfig(templatePath string) (*interfaces.ConfigFile, error) {
+func (t *testConfigLoader) LoadConfig(templatePath string) (*shared.ConfigFile, error) {
 	return t.config, nil
 }
 
@@ -208,7 +209,7 @@ func TestConfigLoader_InterfaceCompliance(t *testing.T) {
 	var _ interfaces.ConfigLoader = (*testConfigLoader)(nil)
 
 	loader := &testConfigLoader{
-		config: &interfaces.ConfigFile{
+		config: &shared.ConfigFile{
 			FilePath: "/app/test.yaml",
 			I18nMappings: map[string]string{
 				"en": "English",

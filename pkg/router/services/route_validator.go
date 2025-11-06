@@ -5,13 +5,14 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
 
 type RouteValidator interface {
 	ValidateTemplateFileExists(route *interfaces.Route, result *ValidationResult)
-	ValidateRouteConfig(route *interfaces.Route, config *interfaces.ConfigFile, result *ValidationResult)
+	ValidateRouteConfig(route *interfaces.Route, config *shared.ConfigFile, result *ValidationResult)
 	ValidateRouteConflicts(routes []interfaces.Route, result *ValidationResult)
 }
 
@@ -64,7 +65,7 @@ func (rv *routeValidator) ValidateTemplateFileExists(route *interfaces.Route, re
 }
 
 // ValidateRouteConfig validates route configuration settings
-func (rv *routeValidator) ValidateRouteConfig(route *interfaces.Route, config *interfaces.ConfigFile, result *ValidationResult) {
+func (rv *routeValidator) ValidateRouteConfig(route *interfaces.Route, config *shared.ConfigFile, result *ValidationResult) {
 	if config == nil {
 		result.Warnings = append(result.Warnings, ValidationWarning{
 			Type:      "MISSING_CONFIG",
@@ -76,7 +77,8 @@ func (rv *routeValidator) ValidateRouteConfig(route *interfaces.Route, config *i
 	}
 
 	// Validate route-specific settings
-	if config.RouteMetadata != nil {
+	routeMetadata := config.GetRouteMetadata()
+	if routeMetadata != nil {
 		rv.validateRouteSettings(route, config, result)
 	}
 
@@ -114,9 +116,10 @@ func (rv *routeValidator) ValidateRouteConflicts(routes []interfaces.Route, resu
 }
 
 // validateRouteSettings validates specific route configuration settings
-func (rv *routeValidator) validateRouteSettings(route *interfaces.Route, config *interfaces.ConfigFile, result *ValidationResult) {
+func (rv *routeValidator) validateRouteSettings(route *interfaces.Route, config *shared.ConfigFile, result *ValidationResult) {
 	// Basic route metadata validation
-	if config.RouteMetadata == nil {
+	routeMetadata := config.GetRouteMetadata()
+	if routeMetadata == nil {
 		rv.logger.Debug("No route metadata found", zap.String("route", route.Path))
 		return
 	}
@@ -124,7 +127,7 @@ func (rv *routeValidator) validateRouteSettings(route *interfaces.Route, config 
 	// Additional route-specific validations can be added here
 	rv.logger.Debug("Route settings validated",
 		zap.String("route", route.Path),
-		zap.Bool("has_metadata", config.RouteMetadata != nil))
+		zap.Bool("has_metadata", routeMetadata != nil))
 }
 
 // normalizeRoutePath normalizes a route path for comparison
