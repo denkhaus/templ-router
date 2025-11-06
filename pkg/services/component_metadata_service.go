@@ -2,7 +2,6 @@ package services
 
 import (
 	"fmt"
-	"path/filepath"
 	"regexp"
 	"sync"
 
@@ -188,18 +187,16 @@ func (cms *componentMetadataService) buildComponentYAMLPath(componentName string
 	if templateKey, exists := cms.templateRegistry.GetTemplateKeyByComponentName(componentName); exists {
 		if metadata, err := cms.templateRegistry.GetTemplateMetadata(templateKey); err == nil {
 			if metadata.YAMLExists {
-				// Use config service to get the root directory for generic file access
-				layoutRoot := cms.configService.GetLayoutRootDirectory()
-				fullYamlPath := filepath.Join(layoutRoot, metadata.YAMLFile)
+				// Use the YAML file path directly from registry metadata
+				yamlPath := metadata.YAMLFile
 
 				cms.logger.Debug("Found component YAML via registry metadata",
 					zap.String("component", componentName),
-					zap.String("yaml_file", metadata.YAMLFile),
-					zap.String("full_path", fullYamlPath),
+					zap.String("yaml_file", yamlPath),
 					zap.Bool("has_i18n", metadata.HasI18n),
 					zap.Bool("has_metadata", metadata.HasMetadata))
 
-				return fullYamlPath
+				return yamlPath
 			} else {
 				cms.logger.Debug("Component has no YAML file according to registry",
 					zap.String("component", componentName))

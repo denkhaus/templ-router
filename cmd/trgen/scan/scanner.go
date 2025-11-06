@@ -264,8 +264,16 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		// Convert absolute file path to relative template path
 		templatePath := convertToTemplatePath(filePath, config)
 
-		// Determine template type and component name based on naming conventions
-		templateType, componentName := determineTemplateTypeAndComponentName(templatePath)
+		// Determine template type based on naming conventions
+		templateType := determineTemplateType(templatePath)
+
+		// For component routes, derive component name from route pattern
+		var componentName string
+		if templateType == "component" && strings.HasPrefix(routePattern, "/components/") {
+			// Extract component name from route pattern: "/components/footer" -> "footer"
+			componentName = strings.TrimPrefix(routePattern, "/components/")
+			componentName = strings.ToLower(strings.ReplaceAll(componentName, "-", "_"))
+		}
 
 		// Analyze YAML file for metadata
 		yamlAnalysis := analyzeYAMLFile(templatePath, config.ScanPath)
@@ -423,8 +431,8 @@ func analyzeYAMLFile(templatePath string, scanPath string) YAMLAnalysis {
 	return analysis
 }
 
-// determineTemplateTypeAndComponentName determines template type and component name based on naming conventions
-func determineTemplateTypeAndComponentName(templatePath string) (string, string) {
+// determineTemplateType determines template type based on naming conventions
+func determineTemplateType(templatePath string) string {
 	// Extract filename from path
 	filename := filepath.Base(templatePath)
 
@@ -434,16 +442,14 @@ func determineTemplateTypeAndComponentName(templatePath string) (string, string)
 	// Check for specific template types based on naming conventions
 	switch filename {
 	case "layout":
-		return "layout", ""
+		return "layout"
 	case "page":
-		return "page", ""
+		return "page"
 	case "error":
-		return "error", ""
+		return "error"
 	default:
-		// This is a component - use the filename as component name
-		// Handle common naming conventions (kebab-case, snake_case, camelCase)
-		componentName := strings.ToLower(strings.ReplaceAll(filename, "-", "_"))
-		return "component", componentName
+		// This is a component
+		return "component"
 	}
 }
 

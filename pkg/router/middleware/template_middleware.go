@@ -537,6 +537,11 @@ func (tm *templateMiddleware) loadSingleComponentMetadata(ctx context.Context, c
 // - "templates/ui/header.templ" -> "header"
 // - "web/partials/sidebar.templ" -> "sidebar"
 func (tm *templateMiddleware) extractComponentNameFromTemplatePath(templatePath string) string {
+	// Remove hash suffix if present (e.g., "app/components/footer.templ#Footer" -> "app/components/footer.templ")
+	if hashIndex := strings.Index(templatePath, "#"); hashIndex != -1 {
+		templatePath = templatePath[:hashIndex]
+	}
+
 	// Remove file extension if present
 	basePath := templatePath
 	if strings.HasSuffix(basePath, ".templ") {
@@ -623,34 +628,40 @@ func (tm *templateMiddleware) isPageTemplate(templateFile string) bool {
 
 // addComponentMetadataForComponentRoute loads component metadata for component routes
 func (tm *templateMiddleware) addComponentMetadataForComponentRoute(ctx context.Context, templateFile string) context.Context {
-	// Extract component name from template file path using a generic approach
-	componentName := tm.extractComponentNameFromTemplatePath(templateFile)
-	if componentName == "" {
-		tm.logger.Debug("Could not extract component name from template path for component route",
-			zap.String("template_file", templateFile))
-		return ctx
-	}
+	// Get component name directly from template registry metadata
+	if metadata, err := tm.templateRegistry.GetTemplateMetadata(templateFile); err == nil {
+		componentName := metadata.ComponentName
+		if componentName == "" {
+			tm.logger.Debug("No component name found in registry metadata",
+				zap.String("template_file", templateFile))
+			return ctx
+		}
 
-	// Load component metadata using the service
-	componentConfig, err := tm.componentMetadataService.LoadComponentMetadata(componentName)
-	if err != nil {
-		// No component metadata available, return unchanged context
-		tm.logger.Debug("No component metadata found for component route",
+		// Load component metadata using the service
+		componentConfig, err := tm.componentMetadataService.LoadComponentMetadata(componentName)
+		if err != nil {
+			// No component metadata available, return unchanged context
+			tm.logger.Debug("No component metadata found for component route",
+				zap.String("component", componentName),
+				zap.String("template_file", templateFile),
+				zap.Error(err))
+			return ctx
+		}
+
+		tm.logger.Debug("Successfully loaded component metadata for component route",
 			zap.String("component", componentName),
-			zap.String("template_file", templateFile),
-			zap.Error(err))
-		return ctx
+			zap.String("template_file", templateFile))
+
+		// Load component translations into i18n context
+		ctx = tm.loadComponentTranslations(ctx, componentName)
+
+		// Merge component metadata with existing context
+		return tm.mergeComponentMetadata(ctx, componentConfig)
 	}
 
-	tm.logger.Debug("Successfully loaded component metadata for component route",
-		zap.String("component", componentName),
+	tm.logger.Debug("No metadata found in registry for template file",
 		zap.String("template_file", templateFile))
-
-	// Load component translations into i18n context
-	ctx = tm.loadComponentTranslations(ctx, componentName)
-
-	// Merge component metadata with existing context
-	return tm.mergeComponentMetadata(ctx, componentConfig)
+	return ctx
 }
 
 // templateContainsComponents checks if a template file contains embedded components
@@ -681,6 +692,12 @@ func (tm *templateMiddleware) templateContainsComponents(templateFile string) bo
 // Generic approach: components are anything that's not page.templ, layout.templ, or error.templ
 func (tm *templateMiddleware) isComponentTemplate(templatePath string) bool {
 	filename := filepath.Base(templatePath)
+
+	// Remove hash suffix if present (e.g., "footer.templ#Footer" -> "footer.templ")
+	if hashIndex := strings.Index(filename, "#"); hashIndex != -1 {
+		filename = filename[:hashIndex]
+	}
+
 	filename = strings.TrimSuffix(filename, ".templ")
 
 	// These are the standard template types that are NOT components
