@@ -73,10 +73,45 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Rout
 			zap.Bool("requires_data_service", requiresDataService),
 			zap.String("data_service_interface", dataServiceInterface))
 
+		// First try the original working approach
+		templateFile := rd.generateTemplateFilePathFromPattern(routePattern)
+
+		rd.logger.Debug("Template path generation",
+			zap.String("route_pattern", routePattern),
+			zap.String("generated_template_file", templateFile),
+			zap.Bool("file_exists", rd.fileSystem.FileExists(templateFile)))
+
+		// Only if the generated template file doesn't exist, try registry-based extraction
+		if !rd.fileSystem.FileExists(templateFile) {
+			rd.logger.Debug("Generated template file doesn't exist, trying registry extraction",
+				zap.String("route_pattern", routePattern),
+				zap.String("template_key", templateKey),
+				zap.String("missing_file", templateFile))
+
+			extractedFile := rd.extractTemplateFileFromRegistryKey(templateKey, routePattern)
+			if extractedFile != "" {
+				templateFile = extractedFile
+				rd.logger.Info("Template path extraction successful - using extracted path",
+					zap.String("route_pattern", routePattern),
+					zap.String("template_key", templateKey),
+					zap.String("original_generated", templateFile),
+					zap.String("final_extracted", extractedFile))
+			} else {
+				rd.logger.Error("Both generated and extracted template files don't exist",
+					zap.String("route_pattern", routePattern),
+					zap.String("template_key", templateKey),
+					zap.String("generated_file", templateFile))
+			}
+		} else {
+			rd.logger.Debug("Using generated template file (file exists)",
+				zap.String("route_pattern", routePattern),
+				zap.String("template_file", templateFile))
+		}
+
 		// Create route object
 		route := interfaces.Route{
 			Path:                 routePattern,
-			TemplateFile:         rd.generateTemplateFilePathFromPattern(routePattern),
+			TemplateFile:         templateFile,
 			IsDynamic:            strings.Contains(routePattern, "$"),
 			Handler:              rd.generateHandlerName(routePattern),
 			Precedence:           rd.calculateRoutePrecedence(routePattern),
@@ -142,6 +177,142 @@ func (rd *routeDiscoveryImpl) generateTemplateFilePathFromPattern(routePattern s
 	pathParts = append(pathParts, "page"+templateExtension)
 
 	return filepath.Join(templateRoot, filepath.Join(pathParts...))
+}
+
+// extractTemplateFileFromRegistryKey extracts the template file path from a template registry key
+// Uses the routeMapping to find the original template path by regenerating keys
+// Template key format: "app/components/footer.templ#Footer" or hash format
+// Returns: "app/components/footer.templ"
+func (rd *routeDiscoveryImpl) extractTemplateFileFromRegistryKey(templateKey, routePattern string) string {
+	// First try to split by # to separate the path from the template name
+	parts := strings.Split(templateKey, "#")
+	if len(parts) >= 2 && parts[0] != "" {
+		templatePath := parts[0]
+		rd.logger.Debug("Extracted template file path from registry key",
+			zap.String("template_key", templateKey),
+			zap.String("template_file", templatePath))
+		return templatePath
+	}
+
+	// If it's a hash format, use the routeMapping to find the original template path
+	// We know the routePattern maps to this templateKey, so we can try to reconstruct
+	// the original template path by testing common patterns
+	routeMapping := rd.templateRegistry.GetRouteToTemplateMapping()
+
+	// Look for the current route in the mapping to confirm our templateKey
+	if mappedKey, exists := routeMapping[routePattern]; exists && mappedKey == templateKey {
+		// Try different template name patterns for this route
+		candidateTemplateNames := []string{"Page", "Footer", "Navbar", "Error", "Layout"}
+
+		for _, templateName := range candidateTemplateNames {
+			// Generate candidate template path based on route pattern
+			candidatePath := rd.buildCandidatePathFromRoute(routePattern, templateName)
+			if candidatePath != "" {
+				// Generate the key this path would create
+				candidateKey := shared.GenerateTemplateKey(candidatePath + "#" + templateName)
+
+				rd.logger.Debug("Testing candidate template path",
+					zap.String("route_pattern", routePattern),
+					zap.String("candidate_path", candidatePath),
+					zap.String("template_name", templateName),
+					zap.String("expected_key", candidateKey),
+					zap.String("target_key", templateKey))
+
+				if candidateKey == templateKey {
+					rd.logger.Debug("Found matching template path",
+						zap.String("template_key", templateKey),
+						zap.String("route_pattern", routePattern),
+						zap.String("matched_path", candidatePath))
+					return candidatePath
+				}
+			}
+		}
+	}
+
+	rd.logger.Warn("Could not extract template file path from registry key",
+		zap.String("template_key", templateKey),
+		zap.String("route_pattern", routePattern))
+	return ""
+}
+
+// buildCandidatePathFromRoute builds a candidate template path from route pattern and template name
+func (rd *routeDiscoveryImpl) buildCandidatePathFromRoute(routePattern, templateName string) string {
+	// Remove leading slash and split into parts
+	parts := strings.Split(strings.Trim(routePattern, "/"), "/")
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	// For component routes like "/components/footer"
+	if strings.HasPrefix(routePattern, "/components/") && len(parts) >= 2 {
+		// Component template path: "app/components/footer.templ"
+		return "app/components/" + parts[1] + ".templ"
+	}
+
+	// For other routes, try standard patterns
+	if len(parts) == 1 && parts[0] == "" {
+		// Root route: "app/page.templ"
+		return "app/page.templ"
+	}
+
+	if len(parts) == 1 {
+		// Single part route like "login": "app/login/page.templ"
+		return "app/" + parts[0] + "/page.templ"
+	}
+
+	if len(parts) >= 2 {
+		// Multi-part route like "locale/dashboard": "app/locale_/dashboard/page.templ"
+		return "app/" + strings.Join(parts[:len(parts)-1], "_") + "/" + parts[len(parts)-1] + "/page.templ"
+	}
+
+	return ""
+}
+
+// generateCandidateTemplatePath generates a candidate template file path from a route pattern
+// This is a generic approach that learns from existing template registry patterns
+func (rd *routeDiscoveryImpl) generateCandidateTemplatePath(routePattern string) string {
+	// Analyze existing route mappings to understand the pattern
+	routeMapping := rd.templateRegistry.GetRouteToTemplateMapping()
+
+	// Find similar routes to learn the pattern
+	for existingRoute, templateKey := range routeMapping {
+		// Try to extract template path from non-hash keys
+		if parts := strings.Split(templateKey, "#"); len(parts) >= 2 && parts[0] != "" {
+			existingTemplatePath := parts[0]
+
+			// Extract the pattern by comparing routes
+			inferredPath := rd.inferTemplatePathFromExample(routePattern, existingRoute, existingTemplatePath)
+			if inferredPath != "" {
+				return inferredPath
+			}
+		}
+	}
+
+	// Fallback: use the existing generic path generation
+	return rd.generateTemplateFilePathFromPattern(routePattern)
+}
+
+// inferTemplatePathFromExample infers a template path by comparing two routes
+func (rd *routeDiscoveryImpl) inferTemplatePathFromExample(targetRoute, exampleRoute, exampleTemplatePath string) string {
+	// Split both routes into parts
+	targetParts := strings.Split(strings.Trim(targetRoute, "/"), "/")
+	exampleParts := strings.Split(strings.Trim(exampleRoute, "/"), "/")
+
+	// Split template path into parts
+	templateParts := strings.Split(exampleTemplatePath, "/")
+
+	// Find the mapping between route parts and template parts
+	// This is a simplified pattern matching - replace corresponding parts
+	if len(targetParts) == len(exampleParts) && len(templateParts) > 0 {
+		// Replace the last route part with the target's last part
+		if len(templateParts) >= 1 {
+			templateParts[len(templateParts)-1] = targetParts[len(targetParts)-1] + rd.config.GetTemplateExtension()
+			return strings.Join(templateParts, "/")
+		}
+	}
+
+	return ""
 }
 
 // generateHandlerName generates a handler name from a route pattern

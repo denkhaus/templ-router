@@ -9,6 +9,7 @@ import (
 	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
 	"github.com/denkhaus/templ-router/pkg/router/services"
+	appservices "github.com/denkhaus/templ-router/pkg/services"
 	"github.com/denkhaus/templ-router/pkg/services/auth"
 	"github.com/denkhaus/templ-router/pkg/services/cache"
 	"github.com/denkhaus/templ-router/pkg/services/logger"
@@ -65,6 +66,7 @@ func (c *Container) RegisterRouterServices(ctx context.Context, configPraefix st
 	do.Provide(c.injector, auth.NewAuthHandlers)
 	do.Provide(c.injector, services.NewAuthService)
 	do.Provide(c.injector, services.NewI18nService)
+	do.Provide(c.injector, appservices.NewComponentMetadataService)
 
 	// UNIFIED TEMPLATE ARCHITECTURE - Performance Optimized
 	// Note: This will use the externally registered TemplateRegistry

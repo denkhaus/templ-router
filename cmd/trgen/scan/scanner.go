@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"go/ast"
 	gotypes "go/types"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/denkhaus/templ-router/cmd/trgen/types"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/tools/go/packages"
+	"gopkg.in/yaml.v3"
 )
 
 // isDataServiceType checks if a given type implements the DataService interface
@@ -261,6 +264,12 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		// Convert absolute file path to relative template path
 		templatePath := convertToTemplatePath(filePath, config)
 
+		// Determine template type and component name based on naming conventions
+		templateType, componentName := determineTemplateTypeAndComponentName(templatePath)
+
+		// Analyze YAML file for metadata
+		yamlAnalysis := analyzeYAMLFile(templatePath, config.ScanPath)
+
 		templateInfo := types.TemplateInfo{
 			FilePath:     filePath,
 			TemplatePath: templatePath,
@@ -271,7 +280,18 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 			TemplateKey:  templateKey,
 			RoutePattern: routePattern,
 			HumanName:    humanName,
-			
+
+			// Template Classification (for generic discovery)
+			TemplateType:  templateType,
+			ComponentName: componentName,
+
+			// YAML Metadata Analysis (determined during scanning)
+			YAMLExists:    yamlAnalysis.Exists,
+			YAMLFile:      yamlAnalysis.FilePath,
+			YAMLHasI18n:   yamlAnalysis.HasI18n,
+			YAMLHasMetadata: yamlAnalysis.HasMetadata,
+			YAMLHasAuth:   yamlAnalysis.HasAuth,
+
 			// Data Service Integration
 			RequiresDataService:  requiresDataService,
 			DataServiceInterface: dataServiceInterface,
@@ -345,6 +365,86 @@ func generateUniqueTemplateKey(templatePath, functionName string) string {
 	// Combine template path and function name for uniqueness
 	combined := templatePath + "#" + functionName
 	return shared.GenerateTemplateKey(combined)
+}
+
+// YAMLAnalysis contains analysis results for a template's YAML file
+type YAMLAnalysis struct {
+	Exists     bool   // Whether YAML file exists
+	FilePath   string // Full path to YAML file
+	HasI18n    bool   // Whether YAML contains i18n data
+	HasMetadata bool  // Whether YAML contains metadata
+	HasAuth    bool   // Whether YAML contains auth settings
+}
+
+// analyzeYAMLFile checks if a YAML file exists and analyzes its content
+func analyzeYAMLFile(templatePath string, scanPath string) YAMLAnalysis {
+	// Build YAML file path - just use templatePath directly since we're working from scan directory
+	yamlPath := templatePath + ".yaml"
+	fullYamlPath := yamlPath
+
+	cmsLogger := func(msg string, args ...interface{}) {
+		fmt.Printf("    [YAML] %s\n", fmt.Sprintf(msg, args...))
+	}
+
+	cmsLogger("Analyzing YAML file: templatePath=%s, fullYamlPath=%s", templatePath, fullYamlPath)
+
+	// Check if file exists
+	if _, err := os.Stat(fullYamlPath); os.IsNotExist(err) {
+		cmsLogger("YAML file does not exist: %s", fullYamlPath)
+		return YAMLAnalysis{Exists: false}
+	}
+
+	cmsLogger("YAML file exists: %s", fullYamlPath)
+
+	// File exists - analyze its content
+	data, err := os.ReadFile(fullYamlPath)
+	if err != nil {
+		cmsLogger("Error reading YAML file: %s, error: %v", fullYamlPath, err)
+		return YAMLAnalysis{Exists: true, FilePath: fullYamlPath}
+	}
+
+	// Parse YAML to check content structure
+	var yamlContent map[string]interface{}
+	if err := yaml.Unmarshal(data, &yamlContent); err != nil {
+		cmsLogger("Error parsing YAML file: %s, error: %v", fullYamlPath, err)
+		return YAMLAnalysis{Exists: true, FilePath: fullYamlPath}
+	}
+
+	analysis := YAMLAnalysis{
+		Exists:     true,
+		FilePath:   fullYamlPath,
+		HasI18n:    yamlContent["i18n"] != nil,
+		HasMetadata: yamlContent["metadata"] != nil,
+		HasAuth:    yamlContent["auth"] != nil,
+	}
+
+	cmsLogger("YAML analysis complete: HasI18n=%t, HasMetadata=%t, HasAuth=%t", analysis.HasI18n, analysis.HasMetadata, analysis.HasAuth)
+
+	return analysis
+}
+
+// determineTemplateTypeAndComponentName determines template type and component name based on naming conventions
+func determineTemplateTypeAndComponentName(templatePath string) (string, string) {
+	// Extract filename from path
+	filename := filepath.Base(templatePath)
+
+	// Remove .templ extension
+	filename = strings.TrimSuffix(filename, ".templ")
+
+	// Check for specific template types based on naming conventions
+	switch filename {
+	case "layout":
+		return "layout", ""
+	case "page":
+		return "page", ""
+	case "error":
+		return "error", ""
+	default:
+		// This is a component - use the filename as component name
+		// Handle common naming conventions (kebab-case, snake_case, camelCase)
+		componentName := strings.ToLower(strings.ReplaceAll(filename, "-", "_"))
+		return "component", componentName
+	}
 }
 
 // scanAllTemplates is the original scanTemplates function renamed

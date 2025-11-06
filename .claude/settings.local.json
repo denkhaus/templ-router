@@ -8,7 +8,14 @@
       "Bash(knot dependency add:*)",
       "Bash(knot actionable)",
       "Bash(knot task update-description:*)",
-      "Bash(knot:*)"
+      "Bash(knot:*)",
+      "Bash(go test:*)",
+      "Bash(find:*)",
+      "Bash(mage generator:build:*)",
+      "Bash(mage build:registryGenerate:*)",
+      "mcp__chrome-devtools__new_page",
+      "mcp__chrome-devtools__take_snapshot",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

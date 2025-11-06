@@ -212,6 +212,10 @@ func (m *MockI18nService) LoadAllTranslations(templatePaths []string) error {
 	return nil
 }
 
+func (m *MockI18nService) LoadComponentTranslationsIntoContext(ctx context.Context, componentName string) context.Context {
+	return ctx
+}
+
 type MockTemplateService struct{}
 
 func (m *MockTemplateService) RenderComponent(route interfaces.Route, routerCtx interfaces.RouterContext, ctx context.Context) (templ.Component, error) {

@@ -256,6 +256,7 @@ type I18nService interface {
 	CreateContext(ctx context.Context, templatePath string) context.Context
 	GetSupportedLocales() []string
 	LoadAllTranslations(templatePaths []string) error
+	LoadComponentTranslationsIntoContext(ctx context.Context, componentName string) context.Context
 }
 
 // TemplateService handles template rendering

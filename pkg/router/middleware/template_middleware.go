@@ -3,6 +3,9 @@ package middleware
 import (
 	"context"
 	"net/http"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 
 	"github.com/a-h/templ"
@@ -15,12 +18,15 @@ import (
 
 // templateMiddleware handles template rendering concerns (private implementation)
 type templateMiddleware struct {
-	templateService    interfaces.TemplateService
-	layoutService      interfaces.LayoutService
-	errorService       interfaces.ErrorService
-	parameterExtractor ParameterExtractor
-	templateRegistry   interfaces.TemplateRegistry
-	logger             *zap.Logger
+	templateService           interfaces.TemplateService
+	layoutService             interfaces.LayoutService
+	errorService              interfaces.ErrorService
+	parameterExtractor        ParameterExtractor
+	templateRegistry          interfaces.TemplateRegistry
+	componentMetadataService  interfaces.ComponentMetadataService
+	i18nService               interfaces.I18nService
+	configService             interfaces.ConfigService
+	logger                    *zap.Logger
 }
 
 // ParameterExtractor interface for extracting parameters from URLs (library-agnostic)
@@ -39,15 +45,21 @@ func NewTemplateMiddleware(i do.Injector) (interfaces.TemplateMiddlewareInterfac
 	errorService := do.MustInvoke[interfaces.ErrorService](i)
 	parameterExtractor := do.MustInvoke[ParameterExtractor](i)
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
+	componentMetadataService := do.MustInvoke[interfaces.ComponentMetadataService](i)
+	i18nService := do.MustInvoke[interfaces.I18nService](i)
+	configService := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &templateMiddleware{
-		templateService:    templateService,
-		layoutService:      layoutService,
-		errorService:       errorService,
-		parameterExtractor: parameterExtractor,
-		templateRegistry:   templateRegistry,
-		logger:             logger,
+		templateService:           templateService,
+		layoutService:             layoutService,
+		errorService:              errorService,
+		parameterExtractor:        parameterExtractor,
+		templateRegistry:          templateRegistry,
+		componentMetadataService:  componentMetadataService,
+		i18nService:               i18nService,
+		configService:             configService,
+		logger:                    logger,
 	}, nil
 }
 
@@ -69,9 +81,17 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 		// Load template config and add to context for router.M() access
 		ctx = tm.addTemplateConfigToContext(ctx, route.TemplateFile)
 
-		// Load component metadata if this is a component route and merge with page metadata
-		if tm.isComponentRoute(route.Path) {
-			ctx = tm.addComponentMetadataToContext(ctx, route.TemplateFile)
+		// Load component metadata based on route type
+		if tm.isComponentTemplate(route.TemplateFile) {
+			tm.logger.Debug("Component template detected, loading metadata",
+				zap.String("template_file", route.TemplateFile))
+			// Load metadata for components
+			ctx = tm.addComponentMetadataForComponentRoute(ctx, route.TemplateFile)
+		} else {
+			tm.logger.Debug("Page template detected, embedded component loading temporarily disabled",
+				zap.String("template_file", route.TemplateFile))
+			// Temporarily disable embedded component loading for pages
+			// ctx = tm.addEmbeddedComponentsMetadataToContext(ctx, route.TemplateFile)
 		}
 
 		tm.logger.Debug("Rendering template",
@@ -97,13 +117,23 @@ func (tm *templateMiddleware) Handle(route interfaces.Route, params map[string]s
 			component = tm.errorService.CreateErrorComponent(err.Error(), route.Path)
 		}
 
-		// Wrap in layout if available
-		if layout := tm.layoutService.FindLayoutForTemplate(route.TemplateFile); layout != nil {
-			tm.logger.Debug("Wrapping component in layout",
-				zap.String("layout", layout.FilePath),
-				zap.Int("layout_level", layout.LayoutLevel))
+		// Check if we should skip layout wrapping
+		shouldSkipLayout := tm.shouldSkipLayout(route, r)
 
-			component = tm.layoutService.WrapInLayout(component, layout, ctx)
+		// Wrap in layout if available and not skipping
+		if !shouldSkipLayout {
+			if layout := tm.layoutService.FindLayoutForTemplate(route.TemplateFile); layout != nil {
+				tm.logger.Debug("Wrapping component in layout",
+					zap.String("layout", layout.FilePath),
+					zap.Int("layout_level", layout.LayoutLevel))
+
+				component = tm.layoutService.WrapInLayout(component, layout, ctx)
+			}
+		} else {
+			tm.logger.Debug("Skipping layout wrapping for partial rendering",
+				zap.String("route", route.Path),
+				zap.Bool("is_component_route", tm.isComponentRoute(route.Path)),
+				zap.Bool("is_htmx_request", tm.isHTMXRequest(r)))
 		}
 
 		// Render the final component
@@ -179,51 +209,9 @@ func (tm *templateMiddleware) buildYamlPath(templateFile string) string {
 	return templateFile + ".yaml"
 }
 
-// loadComponentMetadata loads component YAML metadata for a given template file
-// Returns the loaded config or nil if no metadata file exists
-func (tm *templateMiddleware) loadComponentMetadata(templateFile string) *shared.ConfigFile {
-	// Build component-specific YAML metadata path
-	yamlPath := tm.buildComponentYamlPath(templateFile)
-
-	tm.logger.Debug("Loading component metadata",
-		zap.String("template_file", templateFile),
-		zap.String("component_yaml_path", yamlPath))
-
-	// Load component config
-	configFileFound, config, err := shared.ParseYAMLMetadata(yamlPath)
-	if err != nil {
-		if configFileFound {
-			tm.logger.Debug("Failed to load component metadata",
-				zap.String("yaml_path", yamlPath),
-				zap.Error(err))
-		} else {
-			tm.logger.Debug("No component metadata file found",
-				zap.String("yaml_path", yamlPath))
-		}
-		return nil // No metadata available
-	}
-
-	tm.logger.Debug("Successfully loaded component metadata",
-		zap.String("yaml_path", yamlPath),
-		zap.Any("metadata", config.RouteMetadata))
-
-	return config
-}
-
-// buildComponentYamlPath builds the correct YAML metadata path for component templates
-// Components have different path structure than pages
-// e.g., "app/components/footer/page.templ" -> "app/components/footer.templ.yaml"
-func (tm *templateMiddleware) buildComponentYamlPath(templateFile string) string {
-	// Check if this is a component template path (contains /components/ and ends with /page.templ)
-	if strings.Contains(templateFile, "/components/") && strings.HasSuffix(templateFile, "/page.templ") {
-		// Convert component path: app/components/footer/page.templ -> app/components/footer.templ
-		componentPath := strings.TrimSuffix(templateFile, "/page.templ")
-		return componentPath + ".templ.yaml"
-	}
-
-	// Fallback to standard YAML path generation
-	return tm.buildYamlPath(templateFile)
-}
+// REMOVED: loadComponentMetadata and buildComponentYamlPath
+// Component metadata loading is now handled by ComponentMetadataService
+// This removes tight coupling and improves separation of concerns
 
 // mergeComponentMetadata merges component metadata with existing page context
 // Component metadata takes precedence over page metadata
@@ -398,17 +386,351 @@ func (tm *templateMiddleware) isComponentRoute(routePath string) bool {
 
 // addComponentMetadataToContext loads component metadata and merges it with existing context
 func (tm *templateMiddleware) addComponentMetadataToContext(ctx context.Context, templateFile string) context.Context {
-	// Load component metadata
-	componentConfig := tm.loadComponentMetadata(templateFile)
-	if componentConfig == nil {
-		// No component metadata available, return unchanged context
-		tm.logger.Debug("No component metadata found, using page context only",
+	// Extract component name from template file path using a generic approach
+	componentName := tm.extractComponentNameFromTemplatePath(templateFile)
+	if componentName == "" {
+		tm.logger.Debug("Could not extract component name from template path",
 			zap.String("template_file", templateFile))
 		return ctx
 	}
 
+	// Load component metadata using the service
+	componentConfig, err := tm.componentMetadataService.LoadComponentMetadata(componentName)
+	if err != nil {
+		// No component metadata available, return unchanged context
+		tm.logger.Debug("No component metadata found, using page context only",
+			zap.String("component", componentName),
+			zap.String("template_file", templateFile),
+			zap.Error(err))
+		return ctx
+	}
+
+	tm.logger.Debug("Successfully loaded component metadata via service",
+		zap.String("component", componentName),
+		zap.String("template_file", templateFile))
+
+	// Load component translations into i18n context
+	ctx = tm.loadComponentTranslations(ctx, componentName)
+
 	// Merge component metadata with existing page context
 	return tm.mergeComponentMetadata(ctx, componentConfig)
+}
+
+// addEmbeddedComponentsMetadataToContext parses template content to find embedded components and loads their metadata
+func (tm *templateMiddleware) addEmbeddedComponentsMetadataToContext(ctx context.Context, templateFile string) context.Context {
+	// Read template file content
+	templateContent, err := tm.readTemplateFile(templateFile)
+	if err != nil {
+		tm.logger.Debug("Failed to read template file for component detection",
+			zap.String("template_file", templateFile),
+			zap.Error(err))
+		return ctx
+	}
+
+	// Extract component names from template content
+	componentNames := tm.extractComponentsFromTemplateContent(templateContent)
+	if len(componentNames) == 0 {
+		tm.logger.Debug("No components found in template content",
+			zap.String("template_file", templateFile))
+		return ctx
+	}
+
+	tm.logger.Debug("Found embedded components in template",
+		zap.String("template_file", templateFile),
+		zap.Strings("components", componentNames))
+
+	// Load metadata for each discovered component
+	for _, componentName := range componentNames {
+		ctx = tm.loadSingleComponentMetadata(ctx, componentName)
+	}
+
+	return ctx
+}
+
+// readTemplateFile reads the content of a template file
+func (tm *templateMiddleware) readTemplateFile(templateFile string) (string, error) {
+	// TemplateFile should already be the full path from route discovery
+	// If it's a relative path, make it absolute using the layout root
+	if !filepath.IsAbs(templateFile) {
+		layoutRoot := tm.configService.GetLayoutRootDirectory()
+		templateFile = filepath.Join(layoutRoot, templateFile)
+	}
+
+	content, err := os.ReadFile(templateFile)
+	if err != nil {
+		return "", err
+	}
+
+	return string(content), nil
+}
+
+// extractComponentsFromTemplateContent parses template content to find component usages
+// Looks for patterns like @components.Footer(), @navbar(), @components.UserSection()
+func (tm *templateMiddleware) extractComponentsFromTemplateContent(content string) []string {
+	var components []string
+
+	// Pattern to match component usage in templates
+	// Examples: @components.Footer(), @navbar(), @components.UserSection()
+	pattern := regexp.MustCompile(`@(\w+(?:\.\w+)*)\s*\(`)
+
+	matches := pattern.FindAllStringSubmatch(content, -1)
+	for _, match := range matches {
+		if len(match) > 1 {
+			componentRef := match[1]
+
+			// Convert the reference to component name
+			// - "components.Footer" -> "Footer"
+			// - "navbar" -> "navbar"
+			// - "components.UserSection" -> "UserSection"
+			parts := strings.Split(componentRef, ".")
+			var componentName string
+			if len(parts) > 1 {
+				componentName = parts[len(parts)-1]
+			} else {
+				componentName = parts[0]
+			}
+
+			// Avoid duplicates
+			found := false
+			for _, existing := range components {
+				if existing == componentName {
+					found = true
+					break
+				}
+			}
+			if !found {
+				components = append(components, componentName)
+			}
+		}
+	}
+
+	return components
+}
+
+// loadSingleComponentMetadata loads metadata for a single component
+func (tm *templateMiddleware) loadSingleComponentMetadata(ctx context.Context, componentName string) context.Context {
+	// Load component metadata using the service
+	componentConfig, err := tm.componentMetadataService.LoadComponentMetadata(componentName)
+	if err != nil {
+		// No component metadata available, return unchanged context
+		tm.logger.Debug("No component metadata found for embedded component",
+			zap.String("component", componentName),
+			zap.Error(err))
+		return ctx
+	}
+
+	tm.logger.Debug("Successfully loaded embedded component metadata",
+		zap.String("component", componentName))
+
+	// Load component translations into i18n context
+	ctx = tm.loadComponentTranslations(ctx, componentName)
+
+	// Merge component metadata with existing page context
+	return tm.mergeComponentMetadata(ctx, componentConfig)
+}
+
+// extractComponentNameFromTemplatePath extracts component name from template file path in a generic way
+// This method works with any project structure by looking for the last directory name before the template file
+// Examples:
+// - "components/footer/page.templ" -> "footer"
+// - "app/components/navbar.templ" -> "navbar"
+// - "templates/ui/header.templ" -> "header"
+// - "web/partials/sidebar.templ" -> "sidebar"
+func (tm *templateMiddleware) extractComponentNameFromTemplatePath(templatePath string) string {
+	// Remove file extension if present
+	basePath := templatePath
+	if strings.HasSuffix(basePath, ".templ") {
+		basePath = basePath[:len(basePath)-len(".templ")]
+	}
+
+	// Split by directory separators
+	parts := strings.Split(basePath, "/")
+	if len(parts) < 2 {
+		return ""
+	}
+
+	// For component templates, the component name is typically the filename
+	// For page templates, it might be the directory name
+	// We'll use the last part (filename) for component templates
+	// and the second-to-last part for page templates
+	var componentName string
+	lastPart := parts[len(parts)-1]
+
+	// If the last part is "page", use the directory name (second-to-last)
+	// Otherwise, use the filename itself
+	if lastPart == "page" && len(parts) >= 2 {
+		componentName = parts[len(parts)-2]
+	} else {
+		componentName = lastPart
+	}
+
+	// This works for structures like:
+	// - components/footer/page -> footer (uses directory)
+	// - components/footer -> footer (uses filename)
+	// - app/components/navbar -> navbar (uses filename)
+
+	// Clean up the component name
+	componentName = strings.TrimSpace(componentName)
+	if componentName == "" {
+		return ""
+	}
+
+	return componentName
+}
+
+// shouldSkipLayout determines if layout wrapping should be skipped for partial rendering
+func (tm *templateMiddleware) shouldSkipLayout(route interfaces.Route, r *http.Request) bool {
+	// Skip layout for component routes (e.g., /components/footer)
+	if tm.isComponentRoute(route.Path) {
+		tm.logger.Debug("Skipping layout for component route",
+			zap.String("route", route.Path))
+		return true
+	}
+
+	// Skip layout for HTMX requests (AJAX partial loading)
+	if tm.isHTMXRequest(r) {
+		tm.logger.Debug("Skipping layout for HTMX request",
+			zap.String("route", route.Path))
+		return true
+	}
+
+	return false
+}
+
+// isHTMXRequest detects if the request is an HTMX AJAX request
+func (tm *templateMiddleware) isHTMXRequest(r *http.Request) bool {
+	// HTMX sends this header for AJAX requests
+	return r.Header.Get("HX-Request") != ""
+}
+
+// isPageTemplate checks if a template file is a page template
+// Page templates are typically named page.templ
+func (tm *templateMiddleware) isPageTemplate(templateFile string) bool {
+	filename := filepath.Base(templateFile)
+	filename = strings.TrimSuffix(filename, ".templ")
+
+	// Check if this is a page template
+	isPage := filename == "page"
+
+	tm.logger.Debug("Template type check",
+		zap.String("template_file", templateFile),
+		zap.String("filename", filename),
+		zap.Bool("is_page", isPage))
+
+	return isPage
+}
+
+
+// addComponentMetadataForComponentRoute loads component metadata for component routes
+func (tm *templateMiddleware) addComponentMetadataForComponentRoute(ctx context.Context, templateFile string) context.Context {
+	// Extract component name from template file path using a generic approach
+	componentName := tm.extractComponentNameFromTemplatePath(templateFile)
+	if componentName == "" {
+		tm.logger.Debug("Could not extract component name from template path for component route",
+			zap.String("template_file", templateFile))
+		return ctx
+	}
+
+	// Load component metadata using the service
+	componentConfig, err := tm.componentMetadataService.LoadComponentMetadata(componentName)
+	if err != nil {
+		// No component metadata available, return unchanged context
+		tm.logger.Debug("No component metadata found for component route",
+			zap.String("component", componentName),
+			zap.String("template_file", templateFile),
+			zap.Error(err))
+		return ctx
+	}
+
+	tm.logger.Debug("Successfully loaded component metadata for component route",
+		zap.String("component", componentName),
+		zap.String("template_file", templateFile))
+
+	// Load component translations into i18n context
+	ctx = tm.loadComponentTranslations(ctx, componentName)
+
+	// Merge component metadata with existing context
+	return tm.mergeComponentMetadata(ctx, componentConfig)
+}
+
+// templateContainsComponents checks if a template file contains embedded components
+// Uses route mapping to check if any component routes exist in the system
+func (tm *templateMiddleware) templateContainsComponents(templateFile string) bool {
+	// Get the route mapping to check for component routes
+	routeMapping := tm.templateRegistry.GetRouteToTemplateMapping()
+
+	// If there are any routes that look like component routes,
+	// then the system has component templates that could be embedded
+	for route := range routeMapping {
+		// Check if this route is for a component (using existing logic)
+		if tm.isComponentRoute(route) {
+			tm.logger.Debug("Found component route in system",
+				zap.String("template_file", templateFile),
+				zap.String("component_route", route))
+			return true
+		}
+	}
+
+	// No component routes found
+	tm.logger.Debug("No component routes found in system",
+		zap.String("template_file", templateFile))
+	return false
+}
+
+// isComponentTemplate determines if a template is a component template
+// Generic approach: components are anything that's not page.templ, layout.templ, or error.templ
+func (tm *templateMiddleware) isComponentTemplate(templatePath string) bool {
+	filename := filepath.Base(templatePath)
+	filename = strings.TrimSuffix(filename, ".templ")
+
+	// These are the standard template types that are NOT components
+	standardTemplates := map[string]bool{
+		"page":    true,  // page.templ
+		"layout":  true,  // layout.templ
+		"error":   true,  // error.templ
+	}
+
+	// If it's not a standard template type, it's a component
+	isComponent := !standardTemplates[filename]
+
+	tm.logger.Debug("Template type classification",
+		zap.String("template_path", templatePath),
+		zap.String("filename", filename),
+		zap.Bool("is_component", isComponent))
+
+	return isComponent
+}
+
+// extractTemplatePathFromKey extracts template path from template registry key
+// Helper method to avoid duplication
+func (tm *templateMiddleware) extractTemplatePathFromKey(templateKey string) string {
+	// First try to split by # to separate the path from the template name
+	parts := strings.Split(templateKey, "#")
+	if len(parts) >= 2 && parts[0] != "" {
+		return parts[0]
+	}
+
+	// For hash keys, this would need reverse lookup, but for now return empty
+	// The component detection can work with just the presence of non-standard templates
+	return ""
+}
+
+// loadComponentTranslations loads component translations into the i18n context
+func (tm *templateMiddleware) loadComponentTranslations(ctx context.Context, componentName string) context.Context {
+	// Use I18nService to load component translations into context
+	if tm.i18nService == nil {
+		tm.logger.Debug("I18nService not available, skipping component translation loading",
+			zap.String("component", componentName))
+		return ctx
+	}
+
+	// Call the I18nService method to load component translations
+	newCtx := tm.i18nService.LoadComponentTranslationsIntoContext(ctx, componentName)
+
+	tm.logger.Debug("Loaded component translations using I18nService",
+		zap.String("component", componentName))
+
+	return newCtx
 }
 
 // REMOVED: extractParametersFromURL - replaced with pluggable ParameterExtractor interface

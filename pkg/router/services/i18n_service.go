@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"net/http"
-	"path/filepath"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/i18n"
@@ -16,12 +15,14 @@ import (
 func NewI18nService(i do.Injector) (interfaces.I18nService, error) {
 	configService := do.MustInvoke[interfaces.ConfigService](i)
 	translationStore := do.MustInvoke[TranslationStore](i)
+	componentMetadataService := do.MustInvoke[interfaces.ComponentMetadataService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &cleanI18nService{
-		configService:    configService,
-		translationStore: translationStore,
-		logger:           logger,
+		configService:           configService,
+		translationStore:        translationStore,
+		componentMetadataService: componentMetadataService,
+		logger:                  logger,
 	}, nil
 }
 
@@ -99,63 +100,76 @@ func (cis *cleanI18nService) CreateContext(ctx context.Context, templatePath str
 		Logger:          cis.logger,
 	}
 
-	// Load all translations for this template and locale into the context
-	if store, ok := cis.translationStore.(*simpleTranslationStore); ok {
-		store.mu.RLock()
+	// Load translations using the TranslationStore interface (separation of concerns)
+	// The TranslationStore handles its own internal state and caching
+	cis.logger.Debug("Loading translations via TranslationStore interface",
+		zap.String("template_path", templatePath),
+		zap.String("locale", locale))
 
-		// LIBRARY-AGNOSTIC: Load layout translations first (as base)
-		layoutPath := filepath.Join(cis.configService.GetLayoutRootDirectory(), cis.configService.GetLayoutFileName()+cis.configService.GetTemplateExtension())
-		if layoutTranslations, exists := store.translations[layoutPath]; exists {
-			if localeTranslations, exists := layoutTranslations[locale]; exists {
-				for key, value := range localeTranslations {
-					i18nData.Translations[key] = value
-				}
-				cis.logger.Debug("Loaded layout translations into context",
-					zap.String("locale", locale),
-					zap.String("layout_path", layoutPath),
-					zap.Int("keys", len(localeTranslations)))
-			} else if locale != "en" && layoutTranslations["en"] != nil {
-				// Fallback to English for layout
-				for key, value := range layoutTranslations["en"] {
-					i18nData.Translations[key] = value
-				}
-				cis.logger.Debug("Loaded English layout fallback translations into context",
-					zap.String("requested_locale", locale),
-					zap.String("layout_path", layoutPath),
-					zap.Int("keys", len(layoutTranslations["en"])))
-			}
-		}
-
-		// Load template-specific translations (override layout if same key)
-		if templateTranslations, exists := store.translations[templatePath]; exists {
-			if localeTranslations, exists := templateTranslations[locale]; exists {
-				for key, value := range localeTranslations {
-					i18nData.Translations[key] = value // Template-specific overrides layout
-				}
-				cis.logger.Debug("Loaded template translations into context",
-					zap.String("locale", locale),
-					zap.String("template_path", templatePath),
-					zap.Int("keys", len(localeTranslations)))
-			} else if locale != "en" && templateTranslations["en"] != nil {
-				// Fallback to English for template
-				for key, value := range templateTranslations["en"] {
-					if _, exists := i18nData.Translations[key]; !exists { // Don't override existing
-						i18nData.Translations[key] = value
-					}
-				}
-				cis.logger.Debug("Loaded English template fallback translations into context",
-					zap.String("requested_locale", locale),
-					zap.String("template_path", templatePath),
-					zap.Int("keys", len(templateTranslations["en"])))
-			}
-		}
-
-		store.mu.RUnlock()
+	// Use the interface method to load translations - this respects abstraction boundaries
+	if err := cis.translationStore.LoadTranslations(templatePath); err != nil {
+		cis.logger.Warn("Failed to load translations via TranslationStore",
+			zap.String("template_path", templatePath),
+			zap.String("locale", locale),
+			zap.Error(err))
 	}
+
+	// Note: Component translation loading is handled by template middleware
+	// when processing component routes. This keeps the I18N service focused.
 
 	// Set the context values that i18n.T() expects
 	ctx = context.WithValue(ctx, shared.I18nDataKey, i18nData)
 	ctx = context.WithValue(ctx, shared.I18nTemplateKey, templatePath)
+
+	return ctx
+}
+
+// LoadComponentTranslationsIntoContext loads translations for a specific component into the i18n context
+// This method can be called by the template middleware when processing component routes
+func (cis *cleanI18nService) LoadComponentTranslationsIntoContext(ctx context.Context, componentName string) context.Context {
+	// Get current locale from context
+	locale, ok := ctx.Value(shared.LocaleKey).(string)
+	if !ok {
+		cis.logger.Debug("No locale found in context, skipping component translation loading",
+			zap.String("component", componentName))
+		return ctx
+	}
+
+	// Get the i18n data from context
+	i18nData, ok := ctx.Value(shared.I18nDataKey).(*i18n.I18nData)
+	if !ok {
+		cis.logger.Debug("No i18n data found in context, skipping component translation loading",
+			zap.String("component", componentName),
+			zap.String("locale", locale))
+		return ctx
+	}
+	if cis.componentMetadataService == nil {
+		cis.logger.Debug("ComponentMetadataService not available, skipping component translation loading",
+			zap.String("component", componentName),
+			zap.String("locale", locale))
+		return ctx
+	}
+
+	// Load component translations using the ComponentMetadataService
+	componentTranslations, err := cis.componentMetadataService.LoadComponentTranslations(componentName, locale)
+	if err != nil {
+		cis.logger.Debug("Failed to load component translations",
+			zap.String("component", componentName),
+			zap.String("locale", locale),
+			zap.Error(err))
+		return ctx
+	}
+
+	// Merge component translations into i18n context
+	// Component translations take precedence over existing translations
+	for key, value := range componentTranslations {
+		i18nData.Translations[key] = value
+	}
+
+	cis.logger.Debug("Loaded component translations into context",
+		zap.String("component", componentName),
+		zap.String("locale", locale),
+		zap.Int("keys", len(componentTranslations)))
 
 	return ctx
 }

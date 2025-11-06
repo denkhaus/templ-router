@@ -19,6 +19,7 @@ type templateRegistryImpl struct {
 	templates    map[string]interface{}
 	routeMapping map[string]string
 	dataServices map[string]interfaces.DataServiceInfo
+	metadata     map[string]*interfaces.TemplateMetadata // Enhanced metadata storage
 }
 
 // NewRegistry creates a new template registry for DI
@@ -44,8 +45,23 @@ func NewRegistry(i do.Injector) (interfaces.TemplateRegistry, error) {
 {{- end}}
 {{- end}}
 		},
+		metadata: map[string]*interfaces.TemplateMetadata{
+{{- range .Templates}}
+			shared.GenerateTemplateKey("{{.TemplatePath}}#{{.FunctionName}}"): {
+				TemplatePath: "{{.TemplatePath}}",
+				Type: "{{.TemplateType}}",
+				ComponentName: "{{.ComponentName}}",
+				Route: "{{.RoutePattern}}",
+				YAMLFile: "{{.YAMLFile}}",
+				YAMLExists: {{.YAMLExists}},
+				HasI18n: {{.YAMLHasI18n}},
+				HasMetadata: {{.YAMLHasMetadata}},
+				HasAuth: {{.YAMLHasAuth}},
+			},
+{{- end}}
+		},
 	}
-	
+
 	return registry, nil
 }
 
@@ -134,4 +150,52 @@ func (r *templateRegistryImpl) RequiresDataService(key string) bool {
 func (r *templateRegistryImpl) GetDataServiceInfo(key string) (interfaces.DataServiceInfo, bool) {
 	info, exists := r.dataServices[key]
 	return info, exists
+}
+
+// GetTemplateMetadata retrieves metadata for a template by key
+func (r *templateRegistryImpl) GetTemplateMetadata(key string) (*interfaces.TemplateMetadata, error) {
+	if metadata, exists := r.metadata[key]; exists {
+		return metadata, nil
+	}
+	return nil, shared.NewTemplateError("template metadata not found").
+		WithDetails("No metadata found for the specified template key").
+		WithContext("template_key", key)
+}
+
+// GetTemplateMetadataByRoute retrieves metadata for a template by route
+func (r *templateRegistryImpl) GetTemplateMetadataByRoute(route string) (*interfaces.TemplateMetadata, error) {
+	if templateKey, exists := r.routeMapping[route]; exists {
+		return r.GetTemplateMetadata(templateKey)
+	}
+	return nil, shared.NewRouteError("no template metadata found for route").
+		WithDetails("Route pattern not mapped to any template metadata").
+		WithContext("route_pattern", route)
+}
+
+// GetAllTemplateMetadata returns all template metadata
+func (r *templateRegistryImpl) GetAllTemplateMetadata() map[string]*interfaces.TemplateMetadata {
+	return r.metadata
+}
+
+// FindComponentTemplates finds all component templates (non-layout, non-page, non-error)
+func (r *templateRegistryImpl) FindComponentTemplates() map[string]*interfaces.TemplateMetadata {
+	components := make(map[string]*interfaces.TemplateMetadata)
+	for _, metadata := range r.metadata {
+		if metadata.Type == interfaces.TemplateTypeComponent {
+			// Use component name as key for easy lookup
+			components[metadata.ComponentName] = metadata
+		}
+	}
+	return components
+}
+
+// GetTemplateKeyByComponentName finds template key by component name
+func (r *templateRegistryImpl) GetTemplateKeyByComponentName(componentName string) (string, bool) {
+	// Search through metadata to find component with matching name
+	for key, metadata := range r.metadata {
+		if metadata.Type == interfaces.TemplateTypeComponent && metadata.ComponentName == componentName {
+			return key, true
+		}
+	}
+	return "", false
 }

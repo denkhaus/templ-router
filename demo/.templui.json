@@ -1,5 +1,5 @@
 {
-  "componentsDir": "components",
+  "componentsDir": "ui",
   "utilsDir": "utils",
   "moduleName": "github.com/denkhaus/templ-router/demo",
   "jsDir": "assets/js",

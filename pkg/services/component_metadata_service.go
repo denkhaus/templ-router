@@ -15,19 +15,25 @@ import (
 // NewComponentMetadataService creates a new ComponentMetadataService for DI
 func NewComponentMetadataService(injector do.Injector) (interfaces.ComponentMetadataService, error) {
 	configService := do.MustInvoke[interfaces.ConfigService](injector)
+	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](injector)
+	fileSystemChecker := do.MustInvoke[interfaces.FileSystemChecker](injector)
 	logger := do.MustInvoke[*zap.Logger](injector)
 
 	return &componentMetadataService{
-		configService: configService,
-		logger:        logger,
-		metadataCache: make(map[string]*shared.ConfigFile),
-		translationCache: make(map[string]map[string]string),
+		configService:     configService,
+		templateRegistry:  templateRegistry,
+		fileSystemChecker: fileSystemChecker,
+		logger:            logger,
+		metadataCache:     make(map[string]*shared.ConfigFile),
+		translationCache:  make(map[string]map[string]string),
 	}, nil
 }
 
 // componentMetadataService implements ComponentMetadataService interface
 type componentMetadataService struct {
 	configService     interfaces.ConfigService
+	templateRegistry  interfaces.TemplateRegistry
+	fileSystemChecker interfaces.FileSystemChecker
 	logger            *zap.Logger
 	metadataCache     map[string]*shared.ConfigFile
 	translationCache  map[string]map[string]string
@@ -178,14 +184,33 @@ func (cms *componentMetadataService) LoadMultipleComponentMetadata(componentName
 // Helper methods
 
 func (cms *componentMetadataService) buildComponentYAMLPath(componentName string) string {
-	// Get the template output dir from config - this should be the app directory
-	basePath := cms.configService.GetTemplateOutputDir()
-	if basePath == "" {
-		basePath = "app"
+	// Use template registry to get component metadata directly
+	if templateKey, exists := cms.templateRegistry.GetTemplateKeyByComponentName(componentName); exists {
+		if metadata, err := cms.templateRegistry.GetTemplateMetadata(templateKey); err == nil {
+			if metadata.YAMLExists {
+				// Use config service to get the root directory for generic file access
+				layoutRoot := cms.configService.GetLayoutRootDirectory()
+				fullYamlPath := filepath.Join(layoutRoot, metadata.YAMLFile)
+
+				cms.logger.Debug("Found component YAML via registry metadata",
+					zap.String("component", componentName),
+					zap.String("yaml_file", metadata.YAMLFile),
+					zap.String("full_path", fullYamlPath),
+					zap.Bool("has_i18n", metadata.HasI18n),
+					zap.Bool("has_metadata", metadata.HasMetadata))
+
+				return fullYamlPath
+			} else {
+				cms.logger.Debug("Component has no YAML file according to registry",
+					zap.String("component", componentName))
+			}
+		}
 	}
 
-	return filepath.Join(basePath, "components", componentName+".templ.yaml")
+	cms.logger.Debug("Component not found in registry metadata", zap.String("component", componentName))
+	return ""
 }
+
 
 func (cms *componentMetadataService) buildTranslationCacheKey(componentName, locale string) string {
 	return fmt.Sprintf("%s:%s", componentName, locale)

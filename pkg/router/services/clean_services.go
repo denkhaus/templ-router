@@ -18,9 +18,10 @@ type CleanAuthService struct {
 
 // cleanI18nService provides internationalization without router dependencies
 type cleanI18nService struct {
-	configService    interfaces.ConfigService
-	translationStore TranslationStore
-	logger           *zap.Logger
+	configService           interfaces.ConfigService
+	translationStore        TranslationStore
+	componentMetadataService interfaces.ComponentMetadataService
+	logger                  *zap.Logger
 }
 
 // TranslationStore interface for translation management
