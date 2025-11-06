@@ -86,11 +86,11 @@ func NotATemplate() {
 
 	for filePath, content := range testFiles {
 		fullPath := filepath.Join(tempDir, filePath)
-		err := os.MkdirAll(filepath.Dir(fullPath), 0755)
+		err := os.MkdirAll(filepath.Dir(fullPath), 0o755)
 		if err != nil {
 			t.Fatalf("Failed to create directory: %v", err)
 		}
-		err = os.WriteFile(fullPath, []byte(content), 0644)
+		err = os.WriteFile(fullPath, []byte(content), 0o644)
 		if err != nil {
 			t.Fatalf("Failed to write test file: %v", err)
 		}
@@ -121,7 +121,7 @@ require (
 	github.com/a-h/templ v0.2.543
 )
 `
-	err = os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte(goModContent), 0644)
+	err = os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte(goModContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod file: %v", err)
 	}
@@ -197,7 +197,7 @@ func TestScanTemplateFilesNoTemplFiles(t *testing.T) {
 
 	// Create directory with non-template files
 	appDir := filepath.Join(tempDir, "app")
-	err := os.MkdirAll(appDir, 0755)
+	err := os.MkdirAll(appDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create directory: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestScanTemplateFilesNoTemplFiles(t *testing.T) {
 
 func RegularFunction() {
 	// Not a template
-}`), 0644)
+}`), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test file: %v", err)
 	}
@@ -218,8 +218,10 @@ func RegularFunction() {
 
 	// Change to temp directory first
 	originalDir, _ := os.Getwd()
-	defer os.Chdir(originalDir)
-	os.Chdir(tempDir)
+	defer func() {
+		_ = os.Chdir(originalDir)
+	}()
+	_ = os.Chdir(tempDir)
 
 	templates, _, err := ScanTemplatesWithPackages(config)
 	if err != nil {

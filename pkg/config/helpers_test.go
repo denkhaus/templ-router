@@ -44,7 +44,7 @@ func TestGetDatabaseDSN(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearTestEnv(t)
-			
+
 			for key, value := range tt.envVars {
 				if err := os.Setenv(key, value); err != nil {
 					t.Fatalf("Failed to set environment variable %s: %v", key, err)
@@ -52,7 +52,9 @@ func TestGetDatabaseDSN(t *testing.T) {
 			}
 
 			injector := do.New()
-			defer injector.Shutdown()
+			defer func() {
+				_ = injector.Shutdown()
+			}()
 
 			configFactory := NewConfigService("TR")
 			service, err := configFactory(injector)
@@ -61,7 +63,7 @@ func TestGetDatabaseDSN(t *testing.T) {
 			// Access the internal config to test the helper method
 			configSvc := service.(*configService)
 			dsn := configSvc.config.GetDatabaseDSN()
-			
+
 			assert.Equal(t, tt.expected, dsn)
 		})
 	}
@@ -99,7 +101,7 @@ func TestGetServerAddress(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearTestEnv(t)
-			
+
 			for key, value := range tt.envVars {
 				if err := os.Setenv(key, value); err != nil {
 					t.Fatalf("Failed to set environment variable %s: %v", key, err)
@@ -107,7 +109,9 @@ func TestGetServerAddress(t *testing.T) {
 			}
 
 			injector := do.New()
-			defer injector.Shutdown()
+			defer func() {
+				_ = injector.Shutdown()
+			}()
 
 			configFactory := NewConfigService("TR")
 			service, err := configFactory(injector)
@@ -116,7 +120,7 @@ func TestGetServerAddress(t *testing.T) {
 			// Access the internal config to test the helper method
 			configSvc := service.(*configService)
 			address := configSvc.config.GetServerAddress()
-			
+
 			assert.Equal(t, tt.expected, address)
 		})
 	}
@@ -136,8 +140,8 @@ func TestIsProduction(t *testing.T) {
 		{
 			name: "production by non-localhost base URL and custom CSRF secret",
 			envVars: map[string]string{
-				"TR_ENVIRONMENT_KIND":    "production",
-				"TR_SERVER_BASE_URL":     "https://myapp.com",
+				"TR_ENVIRONMENT_KIND":     "production",
+				"TR_SERVER_BASE_URL":      "https://myapp.com",
 				"TR_SECURITY_CSRF_SECRET": "production-secret-key",
 			},
 			isProduction: true,
@@ -145,8 +149,8 @@ func TestIsProduction(t *testing.T) {
 		{
 			name: "development by environment kind override",
 			envVars: map[string]string{
-				"TR_ENVIRONMENT_KIND":    "develop",
-				"TR_SERVER_BASE_URL":     "https://myapp.com",
+				"TR_ENVIRONMENT_KIND":     "develop",
+				"TR_SERVER_BASE_URL":      "https://myapp.com",
 				"TR_SECURITY_CSRF_SECRET": "production-secret-key",
 			},
 			isProduction: false,
@@ -154,7 +158,7 @@ func TestIsProduction(t *testing.T) {
 		{
 			name: "development with localhost base URL",
 			envVars: map[string]string{
-				"TR_SERVER_BASE_URL":     "http://localhost:8080",
+				"TR_SERVER_BASE_URL":      "http://localhost:8080",
 				"TR_SECURITY_CSRF_SECRET": "production-secret-key",
 			},
 			isProduction: false,
@@ -162,7 +166,7 @@ func TestIsProduction(t *testing.T) {
 		{
 			name: "development with default CSRF secret",
 			envVars: map[string]string{
-				"TR_SERVER_BASE_URL":     "https://myapp.com",
+				"TR_SERVER_BASE_URL":      "https://myapp.com",
 				"TR_SECURITY_CSRF_SECRET": "change-me-in-production",
 			},
 			isProduction: false,
@@ -170,8 +174,8 @@ func TestIsProduction(t *testing.T) {
 		{
 			name: "production with staging environment",
 			envVars: map[string]string{
-				"TR_ENVIRONMENT_KIND":    "staging",
-				"TR_SERVER_BASE_URL":     "https://staging.myapp.com",
+				"TR_ENVIRONMENT_KIND":     "staging",
+				"TR_SERVER_BASE_URL":      "https://staging.myapp.com",
 				"TR_SECURITY_CSRF_SECRET": "staging-secret-key",
 			},
 			isProduction: true,
@@ -181,7 +185,7 @@ func TestIsProduction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearTestEnv(t)
-			
+
 			for key, value := range tt.envVars {
 				if err := os.Setenv(key, value); err != nil {
 					t.Fatalf("Failed to set environment variable %s: %v", key, err)
@@ -189,7 +193,9 @@ func TestIsProduction(t *testing.T) {
 			}
 
 			injector := do.New()
-			defer injector.Shutdown()
+			defer func() {
+				_ = injector.Shutdown()
+			}()
 
 			configFactory := NewConfigService("TR")
 			service, err := configFactory(injector)
@@ -197,7 +203,7 @@ func TestIsProduction(t *testing.T) {
 
 			// Access the internal config to test the helper method
 			configSvc := service.(*configService)
-			
+
 			assert.Equal(t, tt.isProduction, configSvc.config.IsProduction())
 			assert.Equal(t, !tt.isProduction, configSvc.config.IsDevelopment())
 		})
@@ -218,8 +224,8 @@ func TestIsDevelopment(t *testing.T) {
 		{
 			name: "production environment",
 			envVars: map[string]string{
-				"TR_ENVIRONMENT_KIND":    "production",
-				"TR_SERVER_BASE_URL":     "https://myapp.com",
+				"TR_ENVIRONMENT_KIND":     "production",
+				"TR_SERVER_BASE_URL":      "https://myapp.com",
 				"TR_SECURITY_CSRF_SECRET": "production-secret-key",
 			},
 			isDevelopment: false,
@@ -236,7 +242,7 @@ func TestIsDevelopment(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearTestEnv(t)
-			
+
 			for key, value := range tt.envVars {
 				if err := os.Setenv(key, value); err != nil {
 					t.Fatalf("Failed to set environment variable %s: %v", key, err)
@@ -244,7 +250,9 @@ func TestIsDevelopment(t *testing.T) {
 			}
 
 			injector := do.New()
-			defer injector.Shutdown()
+			defer func() {
+				_ = injector.Shutdown()
+			}()
 
 			configFactory := NewConfigService("TR")
 			service, err := configFactory(injector)
@@ -252,7 +260,7 @@ func TestIsDevelopment(t *testing.T) {
 
 			// Access the internal config to test the helper method
 			configSvc := service.(*configService)
-			
+
 			assert.Equal(t, tt.isDevelopment, configSvc.config.IsDevelopment())
 		})
 	}

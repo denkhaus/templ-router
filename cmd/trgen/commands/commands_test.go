@@ -112,7 +112,7 @@ func TestRunGenerate(t *testing.T) {
 
 	// Create test template files
 	appDir := filepath.Join(tempDir, "app")
-	err := os.MkdirAll(appDir, 0755)
+	err := os.MkdirAll(appDir, 0o755)
 	if err != nil {
 		t.Fatalf("Failed to create test directory: %v", err)
 	}
@@ -126,7 +126,7 @@ templ Page() {
 	<div>Test page</div>
 }`
 
-	err = os.WriteFile(filepath.Join(appDir, "page_templ.go"), []byte(templateContent), 0644)
+	err = os.WriteFile(filepath.Join(appDir, "page_templ.go"), []byte(templateContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write test template file: %v", err)
 	}
@@ -138,7 +138,7 @@ go 1.21
 
 require github.com/a-h/templ v0.2.543
 `
-	err = os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte(goModContent), 0644)
+	err = os.WriteFile(filepath.Join(tempDir, "go.mod"), []byte(goModContent), 0o644)
 	if err != nil {
 		t.Fatalf("Failed to write go.mod file: %v", err)
 	}
@@ -157,7 +157,9 @@ require github.com/a-h/templ v0.2.543
 	if err != nil {
 		t.Fatalf("Failed to get current directory: %v", err)
 	}
-	defer os.Chdir(originalDir)
+	defer func() {
+		_ = os.Chdir(originalDir)
+	}()
 
 	err = os.Chdir(tempDir)
 	if err != nil {

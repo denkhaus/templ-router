@@ -127,30 +127,30 @@ func TestLogSummary(t *testing.T) {
 				"=============================",
 			},
 			expectMasked: []string{
-				"Password: po****es", // postgres password masked
+				"Password: po****es",                   // postgres password masked
 				"CSRF Secret: ch*******************on", // change-me-in-production masked
-				"Default Admin Password: ad****23", // admin123 masked
+				"Default Admin Password: ad****23",     // admin123 masked
 			},
 		},
 		{
 			name: "custom configuration with sensitive data",
 			envVars: map[string]string{
-				"TR_ENVIRONMENT_KIND":          "production",
-				"TR_SERVER_HOST":               "prod.example.com",
-				"TR_SERVER_PORT":               "443",
-				"TR_SERVER_BASE_URL":           "https://prod.example.com",
-				"TR_DATABASE_HOST":             "db.prod.com",
-				"TR_DATABASE_PASSWORD":         "supersecretdbpass",
-				"TR_AUTH_CREATE_DEFAULT_ADMIN": "true",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":  "admin@prod.com",
+				"TR_ENVIRONMENT_KIND":            "production",
+				"TR_SERVER_HOST":                 "prod.example.com",
+				"TR_SERVER_PORT":                 "443",
+				"TR_SERVER_BASE_URL":             "https://prod.example.com",
+				"TR_DATABASE_HOST":               "db.prod.com",
+				"TR_DATABASE_PASSWORD":           "supersecretdbpass",
+				"TR_AUTH_CREATE_DEFAULT_ADMIN":   "true",
+				"TR_AUTH_DEFAULT_ADMIN_EMAIL":    "admin@prod.com",
 				"TR_AUTH_DEFAULT_ADMIN_PASSWORD": "verysecureadminpass",
-				"TR_SECURITY_CSRF_SECRET":      "production-csrf-secret-key",
-				"TR_EMAIL_SMTP_HOST":           "smtp.prod.com",
-				"TR_EMAIL_SMTP_USERNAME":       "smtp@prod.com",
-				"TR_EMAIL_SMTP_PASSWORD":       "smtpsecretpass",
-				"TR_EMAIL_REPLY_TO_EMAIL":      "support@prod.com",
-				"TR_LOGGING_ENABLE_FILE":       "true",
-				"TR_LOGGING_FILE_PATH":         "/var/log/app.log",
+				"TR_SECURITY_CSRF_SECRET":        "production-csrf-secret-key",
+				"TR_EMAIL_SMTP_HOST":             "smtp.prod.com",
+				"TR_EMAIL_SMTP_USERNAME":         "smtp@prod.com",
+				"TR_EMAIL_SMTP_PASSWORD":         "smtpsecretpass",
+				"TR_EMAIL_REPLY_TO_EMAIL":        "support@prod.com",
+				"TR_LOGGING_ENABLE_FILE":         "true",
+				"TR_LOGGING_FILE_PATH":           "/var/log/app.log",
 			},
 			expectInLog: []string{
 				"Host: prod.example.com",
@@ -166,11 +166,11 @@ func TestLogSummary(t *testing.T) {
 				"Development Mode: false",
 			},
 			expectMasked: []string{
-				"Password: su*************ss", // supersecretdbpass masked
+				"Password: su*************ss",                 // supersecretdbpass masked
 				"Default Admin Password: ve***************ss", // verysecureadminpass masked
-				"CSRF Secret: pr**********************ey", // production-csrf-secret-key masked
-				"SMTP Username: sm*********om", // smtp@prod.com masked
-				"SMTP Password: sm**********ss", // smtpsecretpass masked
+				"CSRF Secret: pr**********************ey",     // production-csrf-secret-key masked
+				"SMTP Username: sm*********om",                // smtp@prod.com masked
+				"SMTP Password: sm**********ss",               // smtpsecretpass masked
 			},
 		},
 		{
@@ -195,9 +195,9 @@ func TestLogSummary(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearTestEnv(t)
-			
+
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 
 			injector := do.New()
@@ -221,7 +221,7 @@ func TestLogSummary(t *testing.T) {
 				t.Fatalf("Failed to close pipe writer: %v", err)
 			}
 			os.Stdout = oldStdout
-			
+
 			var buf bytes.Buffer
 			if _, err := buf.ReadFrom(r); err != nil {
 				t.Fatalf("Failed to read from pipe: %v", err)
@@ -247,9 +247,9 @@ func TestLogSummary(t *testing.T) {
 
 func TestLogSummaryWithPrintSummaryEnabled(t *testing.T) {
 	clearTestEnv(t)
-	
+
 	// Enable print summary
-	os.Setenv("TR_CONFIG_PRINT_SUMMARY", "true")
+	_ = os.Setenv("TR_CONFIG_PRINT_SUMMARY", "true")
 
 	// Capture stdout
 	oldStdout := os.Stdout
@@ -265,14 +265,14 @@ func TestLogSummaryWithPrintSummaryEnabled(t *testing.T) {
 	require.NotNil(t, service)
 
 	// Restore stdout and read captured output
-	
-		if err := w.Close(); err != nil {
-			t.Fatalf("Failed to close pipe writer: %v", err)
-		}
-		os.Stdout = oldStdout
-	
+
+	if err := w.Close(); err != nil {
+		t.Fatalf("Failed to close pipe writer: %v", err)
+	}
+	os.Stdout = oldStdout
+
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	output := buf.String()
 
 	// LogSummary should have been called automatically during service creation
@@ -283,9 +283,9 @@ func TestLogSummaryWithPrintSummaryEnabled(t *testing.T) {
 
 func TestLogSummaryWithPrintSummaryDisabled(t *testing.T) {
 	clearTestEnv(t)
-	
+
 	// Disable print summary (default is false, but being explicit)
-	os.Setenv("TR_CONFIG_PRINT_SUMMARY", "false")
+	_ = os.Setenv("TR_CONFIG_PRINT_SUMMARY", "false")
 
 	// Capture stdout
 	oldStdout := os.Stdout
@@ -301,11 +301,11 @@ func TestLogSummaryWithPrintSummaryDisabled(t *testing.T) {
 	require.NotNil(t, service)
 
 	// Restore stdout and read captured output
-	w.Close()
+	_ = w.Close()
 	os.Stdout = oldStdout
-	
+
 	var buf bytes.Buffer
-	buf.ReadFrom(r)
+	_, _ = buf.ReadFrom(r)
 	output := buf.String()
 
 	// LogSummary should NOT have been called automatically
@@ -375,9 +375,9 @@ func TestLogSummaryConditionalFields(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearTestEnv(t)
-			
+
 			for key, value := range tt.envVars {
-				os.Setenv(key, value)
+				_ = os.Setenv(key, value)
 			}
 
 			injector := do.New()
@@ -397,11 +397,11 @@ func TestLogSummaryConditionalFields(t *testing.T) {
 			configSvc.config.LogSummary()
 
 			// Restore stdout and read captured output
-			w.Close()
+			_ = w.Close()
 			os.Stdout = oldStdout
-			
+
 			var buf bytes.Buffer
-			buf.ReadFrom(r)
+			_, _ = buf.ReadFrom(r)
 			output := buf.String()
 
 			// Check expected content
