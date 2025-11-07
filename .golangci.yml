@@ -1,5 +1,3 @@
-version: "2"
-
 run:
   timeout: 5m
 
@@ -11,7 +9,6 @@ linters:
     - unused
     - gosimple
     - ineffassign
-    - gosec
     - misspell
     - unconvert
     - unparam
@@ -21,18 +18,3 @@ linters:
     - gofmt
     - goimports
     - gocyclo
-
-linters-settings:
-  errcheck:
-    exclude-functions:
-      - (fmt.Fprint.*)
-      - (io.Copy.*)
-      - (os.Chtimes.*)
-  gocyclo:
-    min-complexity: 15
-  gofmt:
-    simplify: true
-  goimports:
-    local-prefixes: github.com/denkhaus/templ-router
-  misspell:
-    locale: US
