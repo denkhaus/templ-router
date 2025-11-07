@@ -19,7 +19,8 @@
       "Skill(example-skills:skill-creator)",
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
-      "Bash(go build:*)"
+      "Bash(go build:*)",
+      "mcp__time__get_current_time"
     ],
     "deny": [],
     "ask": []

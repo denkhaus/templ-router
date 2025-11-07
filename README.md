@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/denkhaus/templ-router/ci.yml?branch=main)](https://github.com/denkhaus/templ-router/actions)
 
-**Production-ready Go library for file-based routing with [templ](https://templ.guide/) templates, dependency injection, and comprehensive middleware support.**
+**Go library for file-based routing with [templ](https://templ.guide/) templates, dependency injection, and comprehensive middleware support.**
 
 Templ Router provides automatic route generation from file structure, built-in authentication, internationalization, and data service integration.
 
@@ -38,6 +38,7 @@ metadata:
 ```
 
 **Benefits:**
+
 - **No duplication** - Define translations once, use everywhere
 - **True reusability** - Components work independently across pages
 - **Easy maintenance** - Update component config in one place
@@ -128,11 +129,13 @@ Visit `http://localhost:8080` to see your application!
 ## 📚 Documentation
 
 ### Getting Started
+
 - **[Getting Started Guide](docs/GETTING-STARTED.md)** - Complete setup tutorial
 - **[Configuration Reference](docs/CONFIGURATION.md)** - All configuration options
 - **[Architecture Overview](docs/ARCHITECTURE.md)** - System architecture and design
 
 ### Core Features
+
 - **[File-Based Routing](docs/FILE-BASED-ROUTING.md)** - Automatic routing from file structure
 - **[Template Generator](docs/TEMPLATE-GENERATOR.md)** - Using the trgen CLI tool
 - **[Authentication](docs/AUTHENTICATION.md)** - User authentication and role-based access
@@ -141,17 +144,19 @@ Visit `http://localhost:8080` to see your application!
 - **[Dependency Injection](docs/DEPENDENCY-INJECTION.md)** - DI container and service management
 
 ### Advanced Topics
+
 - **[Middleware System](docs/MIDDLEWARE.md)** - Custom middleware and pipeline
 - **[Template System](docs/TEMPLATES.md)** - Advanced template features
 - **[Production Deployment](docs/PRODUCTION-DEPLOYMENT.md)** - Deployment strategies
 
 ### Reference
+
 - **[API Reference](docs/REFERENCE.md)** - Quick API reference
 - **[Contributing Guide](docs/CONTRIBUTING.md)** - How to contribute
 
 ## 🏗️ Project Structure
 
-```
+```ini
 your-project/
 ├── app/                        # Your templates
 │   ├── layout.templ           # Root layout
