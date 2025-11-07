@@ -35,11 +35,14 @@ jobs:
     - name: Install Mage
       run: go install github.com/magefile/mage@latest
 
-    - name: Run tests
-      run: mage test
+    - name: Run unit tests
+      run: go test ./... -v -race -coverprofile=coverage.out
 
-    - name: Run tests with coverage
-      run: mage test:coverage
+    - name: Run generator tests
+      run: mage generator:test
+
+    - name: Build templ registry (for demo)
+      run: mage build:registryGenerate
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v5
@@ -49,7 +52,7 @@ jobs:
         name: codecov-umbrella
 
     - name: Build
-      run: mage build
+      run: mage build:all
 
   lint:
     runs-on: ubuntu-latest
@@ -87,3 +90,43 @@ jobs:
       run: |
         go install golang.org/x/vuln/cmd/govulncheck@latest
         govulncheck ./...
+
+  # Optional E2E tests for demo application
+  e2e:
+    runs-on: ubuntu-latest
+    needs: [test, lint, security]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'templ-router/templ-router'
+    continue-on-error: true  # Don't block CI if demo tests fail
+
+    steps:
+    - uses: actions/checkout@v5
+
+    - name: Set up Go
+      uses: actions/setup-go@v6
+      with:
+        go-version: 1.24
+
+    - name: Set up Docker
+      uses: docker/setup-buildx-action@v3
+
+    - name: Install dependencies
+      run: go mod download
+
+    - name: Install Mage
+      run: go install github.com/magefile/mage@latest
+
+    - name: Install E2E test dependencies
+      run: mage test:setupE2E
+
+    - name: Start Docker service for E2E tests
+      run: mage docker:up
+
+    - name: Wait for service to be ready
+      run: sleep 60
+
+    - name: Run E2E tests (demo application only)
+      run: mage test:e2E
+
+    - name: Cleanup Docker service
+      run: mage docker:down
+      if: always()

@@ -1,4 +1,39 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+    - gosec
+    - misspell
+    - unconvert
+    - unparam
+    - nakedret
+    - prealloc
+    - gocritic
+    - gofmt
+    - goimports
+    - gocyclo
+
 linters-settings:
   errcheck:
-    exclude-files:
-      - ".*_test.go"
+    exclude-functions:
+      - (fmt.Fprint.*)
+      - (io.Copy.*)
+      - (os.Chtimes.*)
+  gocyclo:
+    min-complexity: 15
+  gofmt:
+    simplify: true
+  goimports:
+    local-prefixes: github.com/denkhaus/templ-router
+  misspell:
+    locale: US
