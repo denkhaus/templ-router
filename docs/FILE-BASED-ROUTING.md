@@ -1,40 +1,35 @@
 # File-Based Routing System
 
-**Complete guide to Templ Router's automatic file-based routing system.**
+**Automatic route generation from file structure, similar to Next.js.**
 
 ## Overview
 
-Templ Router automatically generates HTTP routes based on your file structure, similar to Next.js app router. The `trgen` CLI tool scans your template files and creates a registry that maps URLs to templates automatically.
+Templ Router generates HTTP routes based on your file structure. The `trgen` CLI tool scans template files and creates a registry mapping URLs to templates automatically.
 
 **Core Features:**
 - Automatic route generation from file structure
-- Dynamic parameters with `_` suffix (e.g., `id_/`, `locale_/`)
+- Dynamic parameters with `_` suffix (`id_/`, `locale_/`)
 - Route precedence system for conflict resolution
 - Internationalized routes via `locale_/` directory structure
 - Template-to-route mapping with configurable patterns
 
-## Configuration Prefix Notice
+## Configuration
 
-**Important:** Some environment variables in this documentation use the default prefix `TR_`. This prefix is **configurable** when you set up your application:
+### Environment Prefix
+
+Router services use a configurable prefix (default: `TR`):
 
 ```go
-// Default configuration (uses TR_ prefix)
-container.RegisterRouterServices("TR")
+// Default prefix
+container.RegisterRouterServices("TR")  // Uses TR_* variables
 
-// Custom prefix configuration
-container.RegisterRouterServices("MYAPP")  // Environment variables will use MYAPP_ prefix
+// Custom prefix
+container.RegisterRouterServices("MYAPP")  // Uses MYAPP_* variables
 ```
-
-**Examples:**
-- Default: `TR_I18N_SUPPORTED_LOCALES=en,de,fr`
-- Custom: `MYAPP_I18N_SUPPORTED_LOCALES=en,de,fr`
-- Multiple apps: `APP1_I18N_SUPPORTED_LOCALES=en,de` and `APP2_I18N_SUPPORTED_LOCALES=fr,es`
-
-All environment variable examples below use the default `TR_` prefix, but you can replace `TR` with your custom prefix.
 
 ## Directory Structure
 
-Routes are generated based on the folder structure in your template directory (usually `app/`):
+Routes are generated from your template directory structure:
 
 ```
 app/
@@ -49,538 +44,481 @@ app/
 │   └── settings/
 │       └── page.templ        # /dashboard/settings
 ├── locale_/                  # Internationalized routes
-│   ├── page.templ            # /en, /de (based on config)
-│   ├── dashboard/
-│   │   └── page.templ        # /en/dashboard, /de/dashboard
+│   ├── page.templ            # /{locale}
 │   └── user/
-│       └── id_/              # Dynamic parameter
-│           └── page.templ    # /en/user/123, /de/user/123
+│       └── id_/
+│           └── page.templ    # /{locale}/user/{id}
 └── components/
-    ├── navbar.templ          # Reusable component
-    ├── footer.templ          # Reusable component
-    └── navbar.templ.yaml     # Component metadata
+    ├── header.templ          # Component (no route)
+    └── footer.templ          # Component (no route)
 ```
 
-## Route Generation Patterns
+## Route Generation Rules
 
-### Static Routes
-
-Static routes are generated directly from directory structure:
+### Basic Routes
 
 - `app/page.templ` → `/`
+- `app/about.templ` → `/about`
 - `app/login/page.templ` → `/login`
-- `app/dashboard/page.templ` → `/dashboard`
 - `app/dashboard/settings/page.templ` → `/dashboard/settings`
 
-### Dynamic Routes
+### Dynamic Parameters
 
-Dynamic parameters use the `_` suffix convention:
+Use `_` suffix for dynamic segments:
 
-- `app/user/id_/page.templ` → `/user/123`, `/user/456`
-- `app/product/slug_/page.templ` → `/product/my-product`
-- `app/locale_/page.templ` → `/en`, `/de` (special case for localization)
+- `app/user/id_/page.templ` → `/user/{id}`
+- `app/blog/category_/slug_/page.templ` → `/blog/{category}/{slug}`
+- `app/api/v1/users/user_id_/page.templ` → `/api/v1/users/{user_id}`
 
-### Internationalized Routes
+### Internationalization
 
-The `locale_/` directory automatically creates localized routes:
+The `locale_/` directory creates internationalized routes:
 
-- `app/locale_/page.templ` → `/en`, `/de`, `/fr` (based on supported locales)
-- `app/locale_/dashboard/page.templ` → `/en/dashboard`, `/de/dashboard`, `/fr/dashboard`
-- `app/locale_/user/id_/page.templ` → `/en/user/123`, `/de/user/123`
+- `app/locale_/page.templ` → `/{locale}` (e.g., `/en`, `/de`)
+- `app/locale_/dashboard/page.templ` → `/{locale}/dashboard`
+- `app/locale_/user/id_/page.templ` → `/{locale}/user/{id}`
 
-### Complex Route Examples
+### Supported Locales
 
+Configure supported locales:
+
+```bash
+# Environment variables
+TR_I18N_SUPPORTED_LOCALES=en,de,fr
+TR_I18N_DEFAULT_LOCALE=en
+TR_I18N_FALLBACK_LOCALE=en
 ```
-app/locale_/admin/user/id_/profile/page.templ
-```
-
-Generates routes like:
-- `/en/admin/user/123/profile`
-- `/de/admin/user/123/profile`
-- `/fr/admin/user/123/profile`
 
 ## Route Precedence
 
-Routes are resolved with the following precedence (highest to lowest):
+Routes are prioritized in this order:
 
-1. **Specific routes**: `/admin/user/profile` (static)
-2. **Dynamic routes**: `/admin/user/{id}` (one parameter)
-3. **Localized routes**: `/{locale}/admin/user/{id}` (with locale parameter)
-4. **Fallback routes**: `/` (root route)
+1. **Static routes** - `/about`, `/contact`
+2. **Dynamic routes** - `/user/{id}`, `/blog/{slug}`
+3. **Wildcard routes** - `/{fallback}`
+4. **Localized routes** - `/{locale}/page`
 
-### Example Precedence
+### Conflict Resolution
 
-Given these templates:
-- `app/admin/page.templ` → `/admin`
-- `app/admin/id_/page.templ` → `/admin/{id}`
-- `app/locale_/admin/page.templ` → `/{locale}/admin`
+```
+app/
+├── about.templ           → /about (higher priority)
+└── slug_/page.templ      → /{slug} (lower priority)
+```
 
-URL resolution:
-- `/admin` → `app/admin/page.templ`
-- `/admin/123` → `app/admin/id_/page.templ`
-- `/en/admin` → `app/locale_/admin/page.templ`
+The static route `/about` takes precedence over the dynamic `/{slug}`.
 
-## Template Registry Generation
+## Template Types
 
-The `trgen` tool generates route mappings by scanning your template files:
+### Page Templates
+
+```go
+// app/page.templ
+package main
+
+templ Page() {
+    <h1>Home Page</h1>
+}
+```
+
+**Generated Route:**
+```go
+"/": {
+    TemplateFunc: Page,
+    Parameters: []string{},
+    IsLocalized: false,
+}
+```
+
+### Layout Templates
+
+```go
+// app/layout.templ
+package main
+
+templ Layout(content templ.Component) {
+    <!DOCTYPE html>
+    <html>
+    <head>
+        { title := metadata.M(ctx, "title") }
+        if title != "" {
+            <title>{ title }</title>
+        } else {
+            <title>{ i18n.T(ctx, "site_title") }</title>
+        }
+    </head>
+    <body>{ content }</body>
+    </html>
+}
+```
+
+Layouts are used by pages but don't generate routes themselves.
+
+### Component Templates
+
+```go
+// app/components/header.templ
+package components
+
+templ Header(title string) {
+    <header><h1>{ title }</h1></header>
+}
+```
+
+Components are reusable and don't generate routes.
+
+## Route Metadata
+
+Templates can have associated `.templ.yaml` files:
+
+```yaml
+# app/login/page.templ.yaml
+metadata:
+  title: "Login Page"
+  description: "User authentication"
+
+auth:
+  type: "UserRequired"
+  redirect_url: "/login"
+
+i18n:
+  en:
+    page_title: "Login"
+    submit_button: "Sign In"
+  de:
+    page_title: "Anmelden"
+    submit_button: "Anmelden"
+```
+
+### Metadata Properties
+
+#### Authentication
+
+```yaml
+auth:
+  type: "Public"           # No authentication required
+  type: "UserRequired"     # Any authenticated user
+  type: "AdminRequired"    # Admin users only
+  redirect_url: "/login"   # Redirect URL for unauthenticated users
+  roles: ["admin", "moderator"]  # Specific roles required
+```
+
+#### Internationalization
+
+```yaml
+i18n:
+  en:
+    welcome: "Welcome"
+    button_text: "Get Started"
+  de:
+    welcome: "Willkommen"
+    button_text: "Loslegen"
+  fr:
+    welcome: "Bienvenue"
+    button_text: "Commencer"
+```
+
+#### Route Configuration
+
+```yaml
+metadata:
+  title: "Page Title"
+  description: "Page description"
+  keywords: ["keyword1", "keyword2"]
+  custom_data: "Custom metadata value"
+```
+
+## Dynamic Parameters
+
+### Parameter Types
+
+#### Single Parameters
+
+```
+app/user/id_/page.templ
+```
+
+**Generated Route:** `/user/{id}`
+
+**Access in Template:**
+```go
+func (s *service) GetData(routerCtx interfaces.RouterContext) (*UserData, error) {
+    userID := routerCtx.GetURLParam("id")
+    return s.getUserByID(userID)
+}
+```
+
+#### Multiple Parameters
+
+```
+app/blog/category_/slug_/page.templ
+```
+
+**Generated Route:** `/blog/{category}/{slug}`
+
+**Access in Template:**
+```go
+func (s *service) GetData(routerCtx interfaces.RouterContext) (*BlogPost, error) {
+    category := routerCtx.GetURLParam("category")
+    slug := routerCtx.GetURLParam("slug")
+    return s.getBlogPost(category, slug)
+}
+```
+
+#### Optional Parameters
+
+```
+app/search/query_/page.templ
+app/search/page.templ  # Fallback for no query
+```
+
+**Routes:** `/search/{query}` and `/search`
+
+### Parameter Validation
+
+```yaml
+# app/user/id_/page.templ.yaml
+parameters:
+  id:
+    type: "int"
+    required: true
+    min: 1
+    pattern: "^[0-9]+$"
+```
+
+## Internationalization
+
+### Locale Directory Structure
+
+```
+app/
+├── locale_/                    # Internationalized routes
+│   ├── page.templ            # /{locale}
+│   ├── about.templ           # /{locale}/about
+│   └── dashboard/
+│       └── page.templ        # /{locale}/dashboard
+└── page.templ                # / (non-localized fallback)
+```
+
+### Locale Detection
+
+1. **URL Path** - `/en/page`, `/de/page`
+2. **Query Parameter** - `?locale=en`
+3. **Accept-Language Header** - `Accept-Language: en-US,en;q=0.9`
+4. **Cookie** - `locale=en`
+5. **Default Locale** - Configured fallback
+
+### Translation Files
+
+```yaml
+# app/locale_/about/page.templ.yaml
+i18n:
+  en:
+    page_title: "About Us"
+    company_description: "We are a technology company..."
+  de:
+    page_title: "Über Uns"
+    company_description: "Wir sind ein Technologieunternehmen..."
+  fr:
+    page_title: "À Propos"
+    company_description: "Nous sommes une entreprise technologique..."
+```
+
+### Template Usage
+
+```go
+// In templates
+templ Page() {
+    <h1>{ i18n.T(ctx, "page_title") }</h1>
+    <p>{ i18n.T(ctx, "company_description") }</p>
+    <a href={ i18n.LocalizeSafeURL(ctx, "/contact") }>Contact</a>
+}
+```
+
+## Route Generation Process
+
+### trgen Execution
 
 ```bash
-# Navigate to your project directory
-cd your-project
-
-# Generate template registry
+# Generate routes from file structure
 trgen --scan-path=app --module-name=github.com/youruser/yourproject
 
 # Watch mode for development
 trgen --scan-path=app --module-name=github.com/youruser/yourproject --watch
 ```
 
-### Generated Registry Structure
+### Generated Registry
 
 The generated `registry.go` contains:
 
 ```go
-// Template registry with route mappings
-type Registry struct {
-    templates map[string]TemplateFunc
-    routes    map[string]RouteInfo
+// Route mappings
+var routeMappings = map[string]*RouteInfo{
+    "/": {
+        Path:         "/",
+        TemplateFunc: Page,
+        Parameters:   []string{},
+        IsLocalized:  false,
+        RequiresAuth: false,
+        DataServices: []string{},
+    },
+    "/login": {
+        Path:         "/login",
+        TemplateFunc: LoginPage,
+        Parameters:   []string{},
+        IsLocalized:  false,
+        RequiresAuth: false,
+        DataServices: []string{},
+    },
+    "/{locale}/user/{id}": {
+        Path:         "/{locale}/user/{id}",
+        TemplateFunc: UserProfilePage,
+        Parameters:   []string{"locale", "id"},
+        IsLocalized:  true,
+        RequiresAuth: true,
+        DataServices: []string{"UserDataService"},
+    },
 }
 
-// Route information for each template
-type RouteInfo struct {
-    Path       string
-    Template   string
-    Parameters []string
-    IsLocalized bool
-    RequiresAuth bool
+// Registry interface
+type Registry interface {
+    GetTemplate(path string, params map[string]string) (templ.Component, error)
+    GetAllRoutes() []string
+    GetRouteInfo(path string) (*RouteInfo, error)
 }
-```
-
-## Layout Inheritance
-
-Layouts are inherited hierarchically through the directory structure:
-
-### Layout Resolution Order
-
-1. **Current directory layout**: `app/dashboard/layout.templ`
-2. **Parent directory layout**: `app/layout.templ`
-3. **Root fallback layout**: `app/layout.templ`
-
-### Layout Inheritance Examples
-
-```
-app/
-├── layout.templ              # Root layout
-├── page.templ                # Uses root layout
-├── dashboard/
-│   ├── layout.templ          # Dashboard-specific layout
-│   └── page.templ            # Uses dashboard layout
-└── user/
-    └── id_/
-        └── page.templ        # Uses root layout
-```
-
-## Component Routes
-
-Components in the `components/` directory are automatically accessible via their own routes:
-
-```
-app/components/
-├── navbar.templ              # /components/navbar
-├── footer.templ              # /components/footer
-└── navbar.templ.yaml         # Component metadata
-```
-
-### Component Use Cases
-
-- **HTMX partials**: Load components without layout for AJAX requests
-- **Reusable components**: Self-contained metadata and i18n for true reusability
-- **API endpoints**: Direct component access for dynamic loading
-
-### Self-Contained Components
-
-Components can be **self-contained** with their own `.templ.yaml` files. This is a critical feature for building maintainable applications:
-
-#### Problem Solved
-**Without self-contained components**, you would duplicate configuration:
-```yaml
-# Repeating in EVERY page that uses navbar 😞
-# app/home/page.templ.yaml
-i18n: { nav_home: "Home", nav_dashboard: "Dashboard" }
-
-# app/profile/page.templ.yaml
-i18n: { nav_home: "Home", nav_dashboard: "Dashboard" }
-
-# app/settings/page.templ.yaml
-i18n: { nav_home: "Home", nav_dashboard: "Dashboard" }
-```
-
-**With self-contained components**, define once, reuse everywhere:
-```yaml
-# app/components/navbar.templ.yaml - Single source of truth ✅
-i18n:
-  en: { nav_home: "Home", nav_dashboard: "Dashboard" }
-  de: { nav_home: "Startseite", nav_dashboard: "Dashboard" }
-
-# Pages using navbar - NO configuration needed!
-```
-
-#### Benefits
-1. **No duplication** - Component config defined once
-2. **Easy maintenance** - Update in one place, affects all pages
-3. **True reusability** - Components work independently
-4. **Consistency** - Same behavior across all pages
-5. **Clean pages** - Page configs focus on page-specific content
-
-## Template Metadata System
-
-Each template can have an optional `.templ.yaml` metadata file for configuration:
-
-### Metadata File Structure
-
-```yaml
-# app/dashboard/page.templ.yaml
-metadata:
-  page_title: "Dashboard"
-  description: "Main dashboard page"
-  theme: "dark"
-
-i18n:
-  en:
-    page_title: "Dashboard"
-    welcome_message: "Welcome to your dashboard"
-  de:
-    page_title: "Dashboard"
-    welcome_message: "Willkommen in Ihrem Dashboard"
-
-auth:
-  type: "UserRequired"
-  redirect_url: "/login"
-  roles: ["user", "admin"]  # Optional: specific roles required
-
-data_services:
-  - "DashboardDataService"
-  - "UserStatsDataService"
-```
-
-### Accessing Metadata in Templates
-
-```go
-// app/dashboard/page.templ
-package main
-
-import (
-    "github.com/denkhaus/templ-router/pkg/router/metadata"
-    "github.com/denkhaus/templ-router/pkg/router/i18n"
-)
-
-templ DashboardPage() {
-    pageTitle := metadata.M(ctx, "page_title")
-    theme := metadata.M(ctx, "theme")
-
-    <div class="dashboard" data-theme={ theme }>
-        <h1>{ i18n.T(ctx, "welcome_message") }</h1>
-        <p>Current theme: { theme }</p>
-    </div>
-}
-```
-
-## Route Configuration
-
-### Custom Route Paths
-
-Override auto-generated routes with custom paths:
-
-```yaml
-# app/admin/panel/page.templ.yaml
-route:
-  path: "/admin-control-panel"
-  method: "GET"
-
-# Results in route: /admin-control-panel instead of /admin/panel
-```
-
-### HTTP Method Restrictions
-
-Restrict routes to specific HTTP methods:
-
-```yaml
-# app/api/users/page.templ.yaml
-route:
-  methods: ["GET", "POST"]
-
-# Route only responds to GET and POST requests
-```
-
-## Special Directories
-
-### `locale_/` Directory
-
-Special directory for internationalized content:
-
-- Automatically prepends locale codes to routes
-- Uses configured supported locales
-- Falls back to default locale for unsupported locales
-
-### `components/` Directory
-
-Special directory for reusable components:
-
-- Components accessible via `/components/*` routes
-- Can have their own metadata and i18n
-- Render without layout when accessed directly
-
-### Error Templates
-
-Error templates follow the hierarchy:
-
-- `app/error.templ` → Global error template
-- `app/admin/error.templ` → Admin section error template
-- Falls back to nearest parent error template
-
-## Route Examples
-
-### Basic Static Routes
-
-```
-app/
-├── page.templ          → /
-├── about.templ         → /about
-├── contact.templ       → /contact
-└── help/
-    └── page.templ      → /help
-```
-
-### Dynamic Parameters
-
-```
-app/
-├── user/
-│   └── id_/
-│       └── page.templ  → /user/123
-├── product/
-│   └── slug_/
-│       └── page.templ  → /product/my-product
-└── search/
-    └── query_/
-        └── page.templ  → /search/javascript
-```
-
-### Internationalized Routes
-
-```
-app/locale_/dashboard/page.templ
-```
-
-With supported locales `en,de,fr`:
-- `/en/dashboard`
-- `/de/dashboard`
-- `/fr/dashboard`
-
-### Complex Combinations
-
-```
-app/locale_/user/id_/settings/section_/page.templ
-```
-
-Results in:
-- `/en/user/123/settings/profile`
-- `/de/user/123/settings/profile`
-- `/fr/user/123/settings/profile`
-
-## Integration with HTTP Router
-
-### Chi Router Integration
-
-```go
-// main.go
-package main
-
-import (
-    "github.com/denkhaus/templ-router/pkg/di"
-    "github.com/go-chi/chi/v5"
-)
-
-func main() {
-    // Create DI container and router
-    container := di.NewContainer()
-    container.RegisterRouterServices("TR")
-
-    router := container.GetRouter()
-    router.Initialize()
-
-    // Create Chi router
-    mux := chi.NewRouter()
-
-    // Register file-based routes
-    if err := router.RegisterRoutes(mux); err != nil {
-        panic(err)
-    }
-
-    // Manual routes (take precedence)
-    mux.Get("/custom", customHandler)
-
-    http.ListenAndServe(":8080", mux)
-}
-```
-
-## Best Practices
-
-### Directory Organization
-
-1. **Group related pages**: Use directories to group related functionality
-2. **Consistent naming**: Use lowercase, hyphenated directory names
-3. **Logical hierarchy**: Place nested routes in appropriate subdirectories
-
-### Parameter Naming
-
-1. **Use `_` suffix**: Always use `_` for dynamic parameters
-2. **Descriptive names**: Use clear parameter names (`id_`, `slug_`, `uuid_`)
-3. **Consistent conventions**: Use the same parameter names across similar routes
-
-### Internationalization
-
-1. **Use `locale_/` directory**: For all internationalized content
-2. **Structure translations**: Organize translations by template structure
-3. **Fallback content**: Always provide fallback content for missing translations
-
-### Performance
-
-1. **Regenerate registry**: After adding/removing templates
-2. **Watch mode**: Use `--watch` flag during development
-3. **Cache templates**: Let the router handle template caching
-
-## Troubleshooting
-
-### Route Not Working
-
-**Symptoms**: 404 errors for expected routes
-
-**Solutions**:
-```bash
-# 1. Regenerate template registry
-trgen --scan-path=app --module-name=github.com/youruser/yourproject
-
-# 2. Check file structure
-ls -la app/your/directory/
-
-# 3. Verify template syntax
-templ generate
-
-# 4. Check for naming issues
-# Ensure dynamic parameters use _ suffix
-# Ensure locale_ is used for internationalization
-```
-
-### Layout Not Loading
-
-**Symptoms**: Template renders without expected layout
-
-**Solutions**:
-```bash
-# 1. Check layout inheritance
-# Does a layout exist in the current directory?
-# Does a layout exist in a parent directory?
-
-# 2. Verify layout template syntax
-templ generate
-
-# 3. Check layout template signature
-# Layout should accept (title string, content templ.Component)
-```
-
-### Dynamic Parameters Not Working
-
-**Symptoms**: Parameters not being passed to templates
-
-**Solutions**:
-```bash
-# 1. Check parameter naming
-# Use id_ not id
-# Use slug_ not slug
-
-# 2. Verify directory structure
-# app/user/id_/page.templ  ✓
-# app/user/id/page.templ   ✗
-
-# 3. Regenerate registry
-trgen --scan-path=app --module-name=github.com/youruser/yourproject
-```
-
-### Internationalization Issues
-
-**Symptoms**: Locale not being detected or applied
-
-**Solutions**:
-```bash
-# 1. Check locale configuration
-# Verify TR_I18N_SUPPORTED_LOCALES is set
-# Verify TR_I18N_DEFAULT_LOCALE is set
-
-# 2. Check directory structure
-# Use locale_ directory for internationalized routes
-# app/locale_/page.templ  ✓
-# app/en/page.templ       ✗
-
-# 3. Verify translation files
-# Check .templ.yaml files for i18n sections
 ```
 
 ## Advanced Features
 
 ### Route Groups
 
-Group related routes with shared configuration:
-
-```yaml
-# app/admin/page.templ.yaml
-metadata:
-  section: "admin"
-  theme: "admin"
-
-auth:
-  type: "AdminRequired"
-
-# This configuration applies to all routes in admin/
+```go
+// Group routes by middleware or functionality
+router.Route("/admin", func(r chi.Router) {
+    r.Use(AdminMiddleware)
+    r.Handle("/dashboard", DashboardPage)
+    r.Handle("/users", UsersPage)
+})
 ```
 
-### Conditional Routing
-
-Use metadata for conditional route behavior:
+### Custom Route Patterns
 
 ```yaml
-# app/feature-flag/page.templ.yaml
-metadata:
-  feature_flag: "new_dashboard"
-  experimental: true
-
-auth:
-  type: "UserRequired"
-  roles: ["beta_tester"]
+# Custom route configuration
+custom_routes:
+  - pattern: "/api/v1/users/{id}"
+    template: "api/users/user.templ"
+    methods: ["GET", "PUT"]
+    middleware: ["auth", "rate-limit"]
 ```
 
-### Component Metadata Precedence
-
-Components can override page metadata:
+### Route Aliases
 
 ```yaml
-# app/components/footer.templ.yaml
-metadata:
-  company_name: "My Company"
-  version: "2.0.0"
-
-# When included in pages, component metadata takes precedence
+# Create aliases for routes
+aliases:
+  "/home": "/"                # /home redirects to /
+  "/profile": "/user/profile" # /profile redirects to /user/profile
 ```
 
-## Next Steps
+## Performance Optimization
 
-- **[Getting Started](GETTING-STARTED.md)** - Set up your first project
-- **[Template Generator](TEMPLATE-GENERATOR.md)** - Learn about trgen CLI tool
-- **[Authentication](AUTHENTICATION.md)** - Add authentication to routes
-- **[Internationalization](INTERNATIONALIZATION.md)** - Comprehensive i18n guide
-- **[Configuration](CONFIGURATION.md)** - Configure routing behavior
+### Route Caching
 
-## Need Help?
+Routes are pre-computed at startup for fast matching:
 
-- **[Discussions](https://github.com/denkhaus/templ-router/discussions)** - Community discussions
-- **[Issues](https://github.com/denkhaus/templ-router/issues)** - Report bugs or request features
+```go
+// Pre-computed route tree for O(1) lookups
+type RouteTree struct {
+    static   map[string]*RouteNode
+    dynamic  []*RouteNode
+    wildcards []*RouteNode
+}
+```
+
+### Parameter Parsing
+
+Efficient parameter extraction:
+
+```go
+// Fast parameter parsing
+func parseParams(route string, path string) map[string]string {
+    // Optimized parameter extraction
+}
+```
+
+## Best Practices
+
+### File Organization
+
+1. **Use descriptive names** - `user-profile.templ` vs `page.templ`
+2. **Group related routes** - Use folders for logical grouping
+3. **Consistent naming** - Follow naming conventions
+4. **Separate concerns** - Pages, layouts, components in appropriate locations
+
+### Route Design
+
+1. **RESTful URLs** - Use standard URL patterns
+2. **Clear structure** - Make URLs predictable and intuitive
+3. **Avoid deep nesting** - Keep URLs reasonably shallow
+4. **Use meaningful parameters** - Clear parameter names
+
+### Internationalization
+
+1. **Plan for i18n** - Use `locale_/` structure from the start
+2. **Consistent translations** - Maintain translation quality
+3. **Fallback handling** - Provide good fallbacks
+4. **URL structure** - Design URLs with internationalization in mind
+
+### Performance
+
+1. **Minimize routes** - Avoid unnecessary route complexity
+2. **Use caching** - Leverage built-in caching
+3. **Optimize parameters** - Keep parameter validation simple
+4. **Monitor performance** - Track route matching performance
+
+## Troubleshooting
+
+### Common Issues
+
+**Route not found:**
+- Check file structure matches expected route
+- Verify `trgen` has been run
+- Check for naming conflicts
+
+**Parameter not working:**
+- Ensure `_` suffix is used for dynamic segments
+- Check parameter names match in template and metadata
+- Verify parameter validation rules
+
+**Internationalization issues:**
+- Check supported locales configuration
+- Verify translation file structure
+- Ensure locale detection is working
+
+### Debug Mode
+
+```bash
+# Enable verbose logging
+trgen --verbose --scan-path=app --module-name=github.com/youruser/yourproject
+
+# Check generated routes
+trgen --scan-path=app --module-name=github.com/youruser/yourproject --dry-run
+```
+
+### Route Inspection
+
+```go
+// Inspect generated routes
+registry := templates.NewRegistry(injector)
+routes := registry.GetAllRoutes()
+for _, route := range routes {
+    info := registry.GetRouteInfo(route)
+    fmt.Printf("Route: %s, Template: %s, Auth: %v\n",
+        route, info.TemplateFunc, info.RequiresAuth)
+}
+```
+
+---
+
+**Related Documentation**: [Template Generator](TEMPLATE-GENERATOR.md), [Internationalization](INTERNATIONALIZATION.md), [Authentication](AUTHENTICATION.md)

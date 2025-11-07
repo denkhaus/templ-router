@@ -69,13 +69,18 @@ package main
 
 import "github.com/a-h/templ"
 
-templ Layout(title string, content templ.Component) {
+templ Layout(content templ.Component) {
     <!DOCTYPE html>
     <html lang="en">
     <head>
         <meta charset="UTF-8"/>
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <title>{ title }</title>
+        { title := metadata.M(ctx, "title") }
+        if title != "" {
+            <title>{ title }</title>
+        } else {
+            <title>{ i18n.T(ctx, "site_title") }</title>
+        }
         <script src="https://cdn.tailwindcss.com"></script>
     </head>
     <body class="bg-gray-50">
@@ -319,7 +324,7 @@ mkdir -p app/locale_/user/id_
 // app/locale_/user/id_/page.templ
 package main
 
-templ UserProfilePage(user *UserData) {
+templ Page(user *UserData) {
     <div class="bg-white shadow rounded-lg p-6">
         <h1 class="text-2xl font-bold mb-4">{ i18n.T(ctx, "user_profile_title") }</h1>
         <p class="text-gray-600">{ i18n.T(ctx, "email_label") }: { user.Email }</p>

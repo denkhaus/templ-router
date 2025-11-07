@@ -1,10 +1,10 @@
 # Template System
 
-**Complete guide to the templ template system and advanced template features in Templ Router.**
+**Type-safe compiled templates with layout inheritance and metadata integration.**
 
 ## Overview
 
-Templ Router uses the [templ](https://templ.guide/) template engine for type-safe, compiled HTML templates. The system provides automatic template discovery, layout inheritance, metadata integration, and seamless data service injection.
+Templ Router uses the [templ](https://templ.guide/) template engine for type-safe, compiled HTML templates with automatic discovery and data service integration.
 
 **Key Features:**
 - Type-safe compiled templates
@@ -13,870 +13,371 @@ Templ Router uses the [templ](https://templ.guide/) template engine for type-saf
 - Metadata-driven configuration
 - Data service integration
 - Component-based architecture
-- Internationalization support
 
-## Configuration Prefix Notice
+## Template Types
 
-**Important:** Some environment variables in this documentation use the default prefix `TR_`. This prefix is **configurable** when you set up your application:
+### Page Templates
 
-```go
-// Default configuration (uses TR_ prefix)
-container.RegisterRouterServices("TR")
-
-// Custom prefix configuration
-container.RegisterRouterServices("MYAPP")  // Environment variables will use MYAPP_ prefix
-```
-
-**Examples:**
-- Default: `TR_TEMPLATE_CACHE_ENABLED=true`
-- Custom: `MYAPP_TEMPLATE_CACHE_ENABLED=true`
-- Multiple apps: `APP1_TEMPLATE_CACHE_ENABLED=true` and `APP2_TEMPLATE_CACHE_ENABLED=true`
-
-All environment variable examples below use the default `TR_` prefix, but you can replace `TR` with your custom prefix.
-
-## Template Basics
-
-### Template File Structure
-
-Templates are Go files with the `.templ` extension:
-
-```
-app/
-├── layout.templ              # Root layout template
-├── page.templ                # Home page template
-├── login/
-│   └── page.templ           # Login page template
-├── dashboard/
-│   └── page.templ           # Dashboard page template
-└── locale_/                  # Internationalized templates
-    └── page.templ           # Localized home page
-```
-
-### Basic Template Syntax
+Generate HTTP routes (must be named `Page`):
 
 ```go
 // app/page.templ
 package main
 
 templ Page() {
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <title>Welcome</title>
-    </head>
-    <body>
-        <h1>Welcome to Templ Router!</h1>
-        <p>This is a basic template example.</p>
-    </body>
-    </html>
+    <h1>Welcome</h1>
+    <p>This is the home page.</p>
 }
 ```
 
-### Template Naming Conventions
-
-**Important:** Template functions must follow specific naming conventions:
-
-```go
-// app/page.templ - MUST be named "Page"
-package main
-templ Page() { ... }
-
-// app/user/id_/page.templ - MUST be named "Page"
-package main
-templ Page(userID string) { ... }
-
-// app/layout.templ - MUST be named "Layout"
-package main
-templ Layout(content templ.Component) { ... }
-
-// app/error.templ - MUST be named "Error"
-package main
-templ Error(errCtx middleware.ErrorContext) { ... }
-```
-
-## Layout System
-
 ### Layout Templates
 
-Layout templates provide the base HTML structure:
+Used for page structure (must be named `Layout`):
 
 ```go
 // app/layout.templ
 package main
 
-import "github.com/a-h/templ"
-
-// Layout template accepts content as a component
-templ Layout(title string, content templ.Component) {
+templ Layout(content templ.Component) {
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
     <head>
-        <meta charset="UTF-8"/>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-        <title>{ title }</title>
-        <script src="https://cdn.tailwindcss.com"></script>
+        { title := metadata.M(ctx, "title") }
+        if title != "" {
+            <title>{ title }</title>
+        } else {
+            <title>{ i18n.T(ctx, "site_title") }</title>
+        }
     </head>
-    <body class="bg-gray-50">
-        <header class="bg-white shadow">
-            <nav class="container mx-auto px-4 py-3">
-                <div class="flex justify-between items-center">
-                    <h1 class="text-xl font-bold">My App</h1>
-                    <!-- Navigation content -->
-                </div>
-            </nav>
-        </header>
-
-        <main class="container mx-auto py-6">
-            { content }
-        </main>
-
-        <footer class="bg-gray-800 text-white py-4 mt-8">
-            <div class="container mx-auto text-center">
-                <p>&copy; 2024 My Company</p>
-            </div>
-        </footer>
+    <body>
+        { content }
     </body>
     </html>
 }
 ```
 
-### Page Templates with Layouts
+### Component Templates
 
-Page templates use layouts for consistent structure:
-
-```go
-// app/dashboard/page.templ
-package main
-
-import (
-    "github.com/denkhaus/templ-router/pkg/router/i18n"
-)
-
-templ Page() {
-    // Content component that will be wrapped by layout
-    DashboardContent()
-}
-
-templ DashboardContent() {
-    <div class="bg-white rounded-lg shadow p-6">
-        <h1 class="text-2xl font-bold mb-4">
-            { i18n.T(ctx, "dashboard_title") }
-        </h1>
-        <p class="text-gray-600">
-            { i18n.T(ctx, "dashboard_subtitle") }
-        </p>
-
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div class="bg-blue-50 p-4 rounded">
-                <h3 class="font-semibold text-blue-900">Users</h3>
-                <p class="text-2xl font-bold text-blue-600">1,234</p>
-            </div>
-            <div class="bg-green-50 p-4 rounded">
-                <h3 class="font-semibold text-green-900">Revenue</h3>
-                <p class="text-2xl font-bold text-green-600">$12,345</p>
-            </div>
-            <div class="bg-purple-50 p-4 rounded">
-                <h3 class="font-semibold text-purple-900">Orders</h3>
-                <p class="text-2xl font-bold text-purple-600">567</p>
-            </div>
-        </div>
-    </div>
-}
-```
-
-### Layout Inheritance
-
-Layouts follow hierarchical inheritance:
-
-```
-app/
-├── layout.templ           # Root layout (fallback)
-├── dashboard/
-│   ├── layout.templ       # Dashboard layout (overrides root)
-│   └── page.templ         # Uses dashboard layout
-└── user/
-    └── page.templ         # Uses root layout
-```
-
-## Template Metadata
-
-### YAML Metadata Files
-
-Each template can have a corresponding `.templ.yaml` metadata file:
-
-```yaml
-# app/dashboard/page.templ.yaml
-metadata:
-  page_title: "Dashboard"
-  description: "Main dashboard page"
-  theme: "dark"
-  section: "main"
-
-i18n:
-  en:
-    dashboard_title: "Dashboard"
-    dashboard_subtitle: "Overview of your application"
-    users: "Total Users"
-    revenue: "Revenue"
-    orders: "Orders"
-  de:
-    dashboard_title: "Dashboard"
-    dashboard_subtitle: "Übersicht Ihrer Anwendung"
-    users: "Benutzer gesamt"
-    revenue: "Umsatz"
-    orders: "Bestellungen"
-
-auth:
-  type: "UserRequired"
-  redirect_url: "/login"
-
-data_services:
-  - "DashboardDataService"
-```
-
-### Accessing Metadata in Templates
+Reusable components (custom names allowed):
 
 ```go
-package main
+// app/components/header.templ
+package components
 
-import (
-    "github.com/denkhaus/templ-router/pkg/router/metadata"
-    "github.com/denkhaus/templ-router/pkg/router/i18n"
-)
-
-templ Page() {
-    pageTitle := metadata.M(ctx, "page_title")
-    theme := metadata.M(ctx, "theme")
-
-    <div class="dashboard" data-theme={ theme }>
-        <h1>{ pageTitle }</h1>
-        <p>{ i18n.T(ctx, "dashboard_subtitle") }</p>
-
-        <div class="stats">
-            <div class="stat">
-                <span>{ i18n.T(ctx, "users") }:</span>
-                <span class="value">1,234</span>
-            </div>
-            <div class="stat">
-                <span>{ i18n.T(ctx, "revenue") }:</span>
-                <span class="value">$12,345</span>
-            </div>
-        </div>
-    </div>
-}
-```
-
-## Components
-
-### Reusable Components
-
-Create reusable components that can be used across multiple templates:
-
-```go
-// app/components/navbar.templ
-package main
-
-import "github.com/denkhaus/templ-router/pkg/router/i18n"
-
-templ Navbar() {
-    <nav class="bg-blue-600 text-white">
-        <div class="container mx-auto px-4">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center">
-                    <span class="font-bold text-xl">MyApp</span>
-                </div>
-
-                <div class="flex space-x-4">
-                    <a href="/" class="hover:bg-blue-700 px-3 py-2 rounded">
-                        { i18n.T(ctx, "nav_home") }
-                    </a>
-                    <a href="/dashboard" class="hover:bg-blue-700 px-3 py-2 rounded">
-                        { i18n.T(ctx, "nav_dashboard") }
-                    </a>
-                    <a href="/profile" class="hover:bg-blue-700 px-3 py-2 rounded">
-                        { i18n.T(ctx, "nav_profile") }
-                    </a>
-                </div>
-            </div>
-        </div>
-    </nav>
+templ Header(title string) {
+    <header class="bg-blue-600 text-white p-4">
+        <h1>{ title }</h1>
+    </header>
 }
 
 // app/components/footer.templ
-package main
-
-import "github.com/denkhaus/templ-router/pkg/router/metadata"
+package components
 
 templ Footer() {
-    companyName := metadata.M(ctx, "company_name")
-    currentYear := time.Now().Year()
-
-    <footer class="bg-gray-800 text-white py-6">
-        <div class="container mx-auto text-center">
-            <p>&copy; { currentYear } { companyName }. All rights reserved.</p>
-        </div>
+    <footer class="bg-gray-800 text-white p-4">
+        <p>© 2024 My Company</p>
     </footer>
 }
 ```
 
-### Component Metadata
+## Template Metadata
 
-#### Self-Contained Components
+### Metadata Files
 
-Components can be **self-contained** with their own metadata and internationalization. This is a powerful feature that makes components truly reusable:
-
-- **No duplication required** - Component translations and metadata are defined once
-- **Multiple usage** - Components can be used across different pages without repeating configuration
-- **Independence** - Components work standalone with their own complete configuration
-- **Consistency** - Same component behaves identically across all pages
+Templates can have associated `.templ.yaml` files:
 
 ```yaml
-# app/components/navbar.templ.yaml
+# app/page.templ.yaml
 metadata:
-  component_type: "navigation"
-  background_color: "blue"
-  show_search: true
-  brand_name: "MyApp"
+  title: "Home Page"
+  description: "Welcome to our application"
+
+auth:
+  type: "Public"
 
 i18n:
   en:
-    nav_home: "Home"
-    nav_dashboard: "Dashboard"
-    nav_profile: "Profile"
-    nav_search: "Search"
-    nav_logout: "Logout"
+    welcome: "Welcome"
+    page_description: "Welcome to our application"
   de:
-    nav_home: "Startseite"
-    nav_dashboard: "Dashboard"
-    nav_profile: "Profil"
-    nav_search: "Suche"
-    nav_logout: "Abmelden"
-  fr:
-    nav_home: "Accueil"
-    nav_dashboard: "Tableau de bord"
-    nav_profile: "Profil"
-    nav_search: "Rechercher"
-    nav_logout: "Déconnexion"
+    welcome: "Willkommen"
+    page_description: "Willkommen bei unserer Anwendung"
 ```
 
-**Benefits of Self-Contained Components:**
+### Component Metadata
 
-1. **True Reusability** - Use the same component across multiple pages
-2. **Single Source of Truth** - All translations and metadata in one place
-3. **Easy Maintenance** - Update component config once, affects all usages
-4. **No Duplication** - Avoid repeating translations in every page
-5. **Consistent Behavior** - Component works identically everywhere
-6. **Independent Testing** - Components can be tested in isolation
+Components can have their own metadata:
 
-**Usage Example:**
-```go
-// In any page template - no additional configuration needed
-<Navbar />
-// The Navbar component automatically uses its own translations and metadata
+```yaml
+# app/components/footer.templ.yaml
+metadata:
+  company_name: "My Company"
+  version: "1.0.0"
+
+i18n:
+  en: { copyright: "© 2024 My Company" }
+  de: { copyright: "© 2024 Meine Firma" }
 ```
 
-Without self-contained components, you would need to repeat all translations in every page's `.templ.yaml` file. With this feature, you define it once in the component and reuse it everywhere.
+## Template Inheritance
 
-### Component Routes
+### Layout Usage
 
-Components are accessible via their own routes:
-
-```go
-// Component accessible at /components/navbar
-// Renders without layout when accessed directly
-```
-
-## Data Services Integration
-
-### Templates with Data Services
-
-Templates can automatically receive data from data services:
+Layouts are automatically applied by the router:
 
 ```go
-// app/user/id_/page.templ
-package main
-
-import "github.com/denkhaus/templ-router/pkg/router/i18n"
-
-templ Page(user *UserData) {
-    <div class="user-profile">
-        <div class="bg-white rounded-lg shadow p-6">
-            <div class="flex items-center space-x-4">
-                <div class="w-16 h-16 bg-gray-300 rounded-full"></div>
-                <div>
-                    <h1 class="text-2xl font-bold">{ user.Name }</h1>
-                    <p class="text-gray-600">{ user.Email }</p>
-                </div>
-            </div>
-
-            <div class="mt-6 grid grid-cols-2 gap-4">
-                <div>
-                    <h3 class="font-semibold">User ID</h3>
-                    <p class="text-gray-600">{ user.ID }</p>
-                </div>
-                <div>
-                    <h3 class="font-semibold">Email</h3>
-                    <p class="text-gray-600">{ user.Email }</p>
-                </div>
-            </div>
-
-            <div class="mt-6">
-                <a href={ i18n.LocalizeSafeURL(ctx, "/user/" + user.ID + "/edit") }
-                   class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                    { i18n.T(ctx, "edit_profile") }
-                </a>
-            </div>
-        </div>
-    </div>
-}
-```
-
-### Composite Data Services
-
-For multiple data sources, create composite data services:
-
-```go
-// pkg/dataservices/dashboard_service.go
-package dataservices
-
-type DashboardData struct {
-    UserStats    *UserData    `json:"user_stats"`
-    SystemStats  *SystemData  `json:"system_stats"`
-}
-
-type DashboardDataService interface {
-    GetData(routerCtx interfaces.RouterContext) (*DashboardData, error)
-}
-
-func (s *dashboardDataService) GetData(routerCtx interfaces.RouterContext) (*DashboardData, error) {
-    // Get data from multiple services
-    userStats, _ := s.userService.GetData(routerCtx)
-    systemStats, _ := s.systemService.GetData(routerCtx)
-
-    return &DashboardData{
-        UserStats:   userStats,
-        SystemStats: systemStats,
-    }, nil
-}
-
-// Template uses composite data
-templ Page(data *DashboardData) {
-    <div class="dashboard">
-        <h1>{ data.UserStats.Name }</h1>
-        <p>Total users: { data.SystemStats.TotalUsers }</p>
-    </div>
-}
-```
-
-## Internationalization in Templates
-
-### Translation Functions
-
-Use i18n functions in templates:
-
-```go
-package main
-
-import "github.com/denkhaus/templ-router/pkg/router/i18n"
-
+// Page content - Layout is applied automatically
 templ Page() {
-    <div class="content">
-        <h1>{ i18n.T(ctx, "welcome_title") }</h1>
-        <p>{ i18n.T(ctx, "welcome_message") }</p>
-
-        <!-- Nested translations -->
-        <nav>
-            <a href="/">{ i18n.T(ctx, "nav.home") }</a>
-            <a href="/dashboard">{ i18n.T(ctx, "nav.dashboard") }</a>
-        </nav>
-
-        <!-- Conditional content based on locale -->
-        if i18n.GetCurrentLocale(ctx) == "de" {
-            <p>Dies ist eine deutsche Nachricht</p>
-        } else {
-            <p>This is an English message</p>
-        }
+    <div>
+        <h1>{ i18n.T(ctx, "welcome") }</h1>
+        <p>{ i18n.T(ctx, "page_description") }</p>
     </div>
 }
 ```
 
-### Localized URLs
+### Component Integration
 
-Generate URLs with locale prefixes:
+Components can be used in pages:
 
 ```go
-templ Navigation() {
-    <nav class="navigation">
-        <a href={ i18n.LocalizeSafeURL(ctx, "/dashboard") }>
-            { i18n.T(ctx, "dashboard") }
-        </a>
-        <a href={ i18n.LocalizeSafeURL(ctx, "/profile") }>
-            { i18n.T(ctx, "profile") }
-        </a>
-
-        <!-- Language switcher -->
-        <div class="language-switcher">
-            currentLocale := i18n.GetCurrentLocale(ctx)
-            currentRoute := i18n.GetCurrentRouteWithoutLocale(ctx)
-
-            if currentLocale == "en" {
-                <a href={ "/de" + currentRoute }>Deutsch</a>
-            } else {
-                <a href={ "/en" + currentRoute }>English</a>
-            }
-        </div>
-    </nav>
+templ Page() {
+    @components.Header("Welcome")
+    <main>
+        <h1>Main Content</h1>
+    </main>
+    @components.Footer()
 }
 ```
 
-## Advanced Template Features
+## Data Services
+
+### Service Integration
+
+Templates automatically access required data services:
+
+```go
+// UserDataService interface
+type UserDataService interface {
+    GetData(routerCtx interfaces.RouterContext) (*UserData, error)
+}
+
+// Template with data service
+templ Page() {
+    userData, _ := userService.GetData(routerCtx)
+    <h1>Welcome, { userData.Name }!</h1>
+}
+```
+
+### RouterContext Access
+
+Access URL parameters and query parameters:
+
+```go
+templ Page() {
+    // URL parameter: /user/{id}
+    userID := routerCtx.GetURLParam("id")
+
+    // Query parameter: ?page=5
+    page := routerCtx.GetQueryParam("page")
+
+    <h1>User { userID }, Page { page}</h1>
+}
+```
+
+## Advanced Features
 
 ### Conditional Rendering
 
 ```go
-templ UserProfile(user *UserData) {
-    <div class="profile">
-        <h1>{ user.Name }</h1>
-
-        <!-- Conditional content -->
-        if user.IsAdmin {
-            <div class="admin-panel">
-                <h2>Admin Panel</h2>
-                <button>Manage Users</button>
-            </div>
-        }
-
-        <!-- Show different content based on user status -->
-        if user.IsActive {
-            <div class="status active">
-                <span class="text-green-600">✓ Active</span>
-            </div>
-        } else {
-            <div class="status inactive">
-                <span class="text-red-600">✗ Inactive</span>
-            </div>
-        }
-
-        <!-- Show optional fields -->
-        if user.Department != "" {
-            <p>Department: { user.Department }</p>
-        }
-    </div>
+templ Page() {
+    @if user.IsAuthenticated {
+        <div>
+            <h1>Welcome back, { user.Name }!</h1>
+        @components.UserMenu()
+        </div>
+    } else {
+        <div>
+            <h1>Please sign in</h1>
+            @components.LoginForm()
+        </div>
+    }
 }
 ```
 
 ### Loops and Iteration
 
 ```go
-templ ProductList(products []Product) {
-    <div class="product-list">
-        <h1>Products ({ len(products) })</h1>
-
-        <div class="grid grid-cols-3 gap-4">
-            for _, product := range products {
-                <div class="product-card">
-                    <h3>{ product.Name }</h3>
-                    <p class="text-gray-600">{ product.Description }</p>
-                    <p class="font-bold">${ product.Price }</p>
-
-                    if product.InStock {
-                        <button class="bg-green-600 text-white px-4 py-2 rounded">
-                            { i18n.T(ctx, "add_to_cart") }
-                        </button>
-                    } else {
-                        <button class="bg-gray-400 text-gray-700 px-4 py-2 rounded" disabled>
-                            { i18n.T(ctx, "out_of_stock") }
-                        </button>
-                    }
-                </div>
-            }
+templ Page() {
+    <h1>Product List</h1>
+    @for _, product := range products {
+        <div class="product">
+            <h3>{ product.Name }</h3>
+            <p>{ product.Description }</p>
+            <span>${product.Price}</span>
         </div>
-    </div>
-}
-```
-
-### Template Composition
-
-```go
-// Base template
-templ BaseCard(title string, content templ.Component) {
-    <div class="card">
-        <div class="card-header">
-            <h2>{ title }</h2>
-        </div>
-        <div class="card-body">
-            { content }
-        </div>
-    </div>
-}
-
-// Using composed template
-templ UserCard(user *UserData) {
-    BaseCard(user.Name, UserCardDetails(user))
-}
-
-templ UserCardDetails(user *UserData) {
-    <div>
-        <p>Email: { user.Email }</p>
-        <p>Joined: { user.CreatedAt.Format("Jan 2, 2006") }</p>
-    </div>
-}
-```
-
-### Template Functions and Helpers
-
-```go
-// Helper functions in templates
-func formatDate(t time.Time) string {
-    return t.Format("January 2, 2006")
-}
-
-func formatPrice(price float64) string {
-    return fmt.Sprintf("$%.2f", price)
-}
-
-templ ProductDetail(product *Product) {
-    <div class="product-detail">
-        <h1>{ product.Name }</h1>
-        <p class="price">{ formatPrice(product.Price) }</p>
-        <p class="date">Added: { formatDate(product.CreatedAt) }</p>
-
-        <!-- Custom formatting -->
-        <div class="badge">
-            if product.IsFeatured {
-                <span class="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                    { i18n.T(ctx, "featured") }
-                </span>
-            }
-        </div>
-    </div>
-}
-```
-
-## Template Generation
-
-### Command Line Generation
-
-Generate templates from `.templ` files:
-
-```bash
-# Generate all templates
-templ generate
-
-# Generate specific file
-templ generate app/page.templ
-
-# Watch mode for development
-templ generate --watch
-```
-
-### Template Registry Generation
-
-Generate the template registry for route discovery:
-
-```bash
-# Generate template registry
-trgen --scan-path=app --module-name=github.com/youruser/yourproject
-
-# Watch mode for automatic updates
-trgen --scan-path=app --module-name=github.com/youruser/yourproject --watch
-```
-
-### Generated Registry Structure
-
-The generated registry includes:
-
-```go
-// generated/templates/registry.go
-package templates
-
-import (
-    "github.com/denkhaus/templ-router/pkg/interfaces"
-    "github.com/samber/do/v2"
-)
-
-type Registry struct {
-    injector *do.Injector
-    templates map[string]interfaces.TemplateFunc
-}
-
-func NewRegistry(injector *do.Injector) (*Registry, error) {
-    registry := &Registry{
-        injector: injector,
-        templates: make(map[string]interfaces.TemplateFunc),
     }
-
-    // Templates are auto-registered by trgen
-    return registry, nil
-}
-
-func (r *Registry) GetTemplate(name string) (interfaces.TemplateFunc, error) {
-    if fn, exists := r.templates[name]; exists {
-        return fn, nil
-    }
-    return nil, fmt.Errorf("template not found: %s", name)
 }
 ```
 
-## Error Handling in Templates
+### CSS Classes and Styling
+
+```go
+templ Page() {
+    <div class={ "container mx-auto p-4 " + conditionalClass }>
+        <h1 class="text-2xl font-bold mb-4">Title</h1>
+        <p class="text-gray-600">Content</p>
+    </div>
+}
+```
+
+### Attributes and Properties
+
+```go
+templ Page() {
+    <div id="main-content" class="content" data-testid="page">
+        <h1 title="Page Title">Title</h1>
+    </div>
+}
+```
+
+## Internationalization
+
+### Translation Integration
+
+```go
+templ Page() {
+    <h1>{ i18n.T(ctx, "page_title") }</h1>
+    <p>{ i18n.T(ctx, "welcome_message") }</p>
+    <a href={ i18n.LocalizeSafeURL(ctx, "/about") }>
+        { i18n.T(ctx, "about_link") }
+    </a>
+}
+```
+
+### Metadata-Based Translations
+
+```yaml
+# app/locale_/page.templ.yaml
+i18n:
+  en:
+    page_title: "Welcome"
+    welcome_message: "Welcome to our site"
+  de:
+    page_title: "Willkommen"
+    welcome_message: "Willkommen auf unserer Seite"
+```
+
+## Error Handling
 
 ### Error Templates
-
-Create custom error templates:
 
 ```go
 // app/error.templ
 package main
 
-import "github.com/denkhaus/templ-router/pkg/router/middleware"
-
-templ Error(errCtx middleware.ErrorContext) {
-    <div class="error-page">
-        <div class="error-container">
-            <h1 class="error-title">Error { errCtx.StatusCode }</h1>
-            <p class="error-message">{ errCtx.Message }</p>
-
-            if errCtx.Details != "" {
-                <details class="error-details">
-                    <summary>Details</summary>
-                    <pre>{ errCtx.Details }</pre>
-                </details>
-            }
-
-            <div class="error-actions">
-                <a href="/" class="btn btn-primary">
-                    Go Home
-                </a>
-                <button onclick="history.back()" class="btn btn-secondary">
-                    Go Back
-                </button>
-            </div>
-        </div>
+templ Error() {
+    <div class="error-container">
+        <h1>{ i18n.T(ctx, "error_title") }</h1>
+        <p>{ i18n.T(ctx, "error_message") }</p>
+        <a href="/">{ i18n.T(ctx, "go_home") }</a>
     </div>
 }
 ```
 
-### Graceful Degradation
+### Error Page Configuration
 
-Handle missing data gracefully:
+```yaml
+# app/error.templ.yaml
+metadata:
+  title: "Error Page"
 
-```go
-templ UserProfile(user *UserData) {
-    <div class="profile">
-        if user != nil {
-            <h1>{ user.Name }</h1>
-            <p>{ user.Email }</p>
-        } else {
-            <div class="error">
-                <h1>User Not Found</h1>
-                <p>The requested user could not be found.</p>
-            </div>
-        }
-    </div>
-}
-
-// Alternative using templ's error handling
-templ UserProfileWithError() {
-    if user, err := getUserData(ctx); err != nil {
-        <div class="error">
-            <h1>Error</h1>
-            <p>{ err.Error() }</p>
-        </div>
-    } else {
-        <div class="profile">
-            <h1>{ user.Name }</h1>
-            <p>{ user.Email }</p>
-        </div>
-    }
-}
-```
-
-## Performance Optimization
-
-### Template Caching
-
-Enable template caching in production:
-
-```bash
-# Enable template caching
-TR_TEMPLATE_CACHE_ENABLED=true
-TR_TEMPLATE_CACHE_SIZE=100
-TR_TEMPLATE_CACHE_TTL=1h
-```
-
-### Component Caching
-
-Cache expensive components:
-
-```go
-// Cache expensive computations
-templ ExpensiveComponent(data *ComplexData) {
-    {{
-        // Cache computation results
-        cachedResult := computeExpensiveValue(data)
-    }}
-
-    <div class="expensive">
-        <!-- Use cached result -->
-        <p>Result: { cachedResult }</p>
-    </div>
-}
-```
-
-### Minimize Re-renders
-
-Use conditional rendering to avoid unnecessary work:
-
-```go
-templ Dashboard(data *DashboardData) {
-    // Only render expensive sections if data is available
-    if data != nil {
-        <div class="dashboard-stats">
-            <h1>Dashboard Stats</h1>
-            <!-- Expensive rendering -->
-        </div>
-    }
-}
+i18n:
+  en:
+    error_title: "Error Occurred"
+    error_message: "Something went wrong"
+    go_home: "Go Home"
+  de:
+    error_title: "Fehler Aufgetreten"
+    error_message: "Etwas ist schief gelaufen"
+    go_home: "Zur Startseite"
 ```
 
 ## Best Practices
 
-### Template Organization
+### File Organization
 
-1. **Keep templates focused** on a single responsibility
-2. **Use layouts** for consistent structure
-3. **Create reusable components** for common UI elements
-4. **Separate concerns** between presentation and business logic
-5. **Use descriptive names** for templates and functions
+1. **Consistent Naming** - Use descriptive file and folder names
+2. **Logical Grouping** - Group related templates together
+3. **Component Reuse** - Create reusable components for common UI elements
+4. **Metadata Integration** - Use metadata for configuration and i18n
+
+### Template Design
+
+1. **Keep Templates Focused** - Single responsibility per template
+2. **Use Components** - Break down complex templates into smaller components
+3. **Data Service Integration** - Leverage automatic data injection
+4. **Consistent Styling** - Use consistent CSS patterns
 
 ### Performance
 
-1. **Enable template caching** in production
-2. **Minimize template complexity** for faster rendering
-3. **Use conditional rendering** to avoid unnecessary work
-4. **Profile templates** to identify bottlenecks
-5. **Optimize data structures** passed to templates
+1. **Compiled Templates** - Templates are compiled to Go for performance
+2. **Automatic Caching** - Template results are cached automatically
+3. **Minimal Overhead** - Avoid complex logic in templates
+4. **Efficient Rendering** - Use efficient HTML structure
 
-### Maintainability
+## Troubleshooting
 
-1. **Document complex templates** with comments
-2. **Use consistent formatting** and structure
-3. **Extract common patterns** into components
-4. **Test templates** with sample data
-5. **Keep templates small** and focused
+### Common Issues
 
-## Next Steps
+**Template not found:**
+- Check file path and `.templ` extension
+- Verify template compilation with `templ generate`
+- Ensure template is in scanned directory
 
-- **[Getting Started](GETTING-STARTED.md)** - Create your first template
-- **[File-Based Routing](FILE-BASED-ROUTING.md)** - Template-based routing
-- **[Data Services](DATA-SERVICES.md)** - Data integration with templates
-- **[Internationalization](INTERNATIONALIZATION.md)** - Multi-language templates
-- **[Middleware](MIDDLEWARE.md)** - Template rendering middleware
+**Layout not applied:**
+- Verify Layout template exists and is named `Layout`
+- Check that Layout is in the correct location
+- Ensure template registry is generated
 
-## Need Help?
+**Data service not working:**
+- Verify service is registered in DI container
+- Check service interface implementation
+- Ensure template requires the service
 
-- **[Discussions](https://github.com/denkhaus/templ-router/discussions)** - Community discussions
-- **[Issues](https://github.com/denkhaus/templ-router/issues)** - Report bugs or request features
-- **[Templ Documentation](https://templ.guide/)** - Official templ documentation
+**Metadata not loaded:**
+- Check `.templ.yaml` file exists and is properly formatted
+- Verify metadata syntax is correct
+- Ensure template registry is regenerated
+
+### Debug Mode
+
+```bash
+# Generate templates with verbose output
+templ generate --verbose
+
+# Generate template registry
+trgen --scan-path=app --module-name=github.com/youruser/yourproject
+
+# Check generated files
+ls generated/templates/
+```
+
+### Template Testing
+
+```go
+func TestPageTemplate(t *testing.T) {
+    // Test template compilation
+    page := Page()
+
+    // Test template rendering
+    var buf strings.Builder
+    page.Render(context.Background(), &buf)
+
+    output := buf.String()
+    assert.Contains(t, output, "<h1>")
+}
+```
+
+---
+
+**Related Documentation**: [File-Based Routing](FILE-BASED-ROUTING.md), [Template Generator](TEMPLATE-GENERATOR.md), [Data Services](DATA-SERVICES.md)

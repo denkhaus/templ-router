@@ -2,13 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project Overview
+##
+Project Overview
 
 **Templ Router** is a production-ready Go library for file-based routing with templ templates, dependency injection, and comprehensive middleware support. This is a **library**, not a standalone application - developers add it as a dependency to their own Go projects.
 
 **Current Status**: Early development (API may change, aiming for stability with v1.0.0)
 
-## Core Technologies
+##
+Core Technologies
 
 - **Go 1.24+** with modern Go features
 - **templ** template engine (https://templ.guide/)
@@ -19,23 +21,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Ginkgo/Gomega** for E2E testing
 - **Tailwind CSS** for styling (in demo)
 
-## Key Architecture Components
+##
+Key Architecture Components
 
-### 1. **File-Based Routing System**
+###
+1. **File-Based Routing System**
 - Routes automatically generated from file structure using `trgen` CLI tool
 - Dynamic parameters with `_` suffix (e.g., `id_/`, `locale_/`)
 - Route precedence system for conflict resolution
 - Template-to-route mapping with configurable patterns
 - Support for internationalized routes via `locale_/` directory structure
 
-### 2. **Clean Architecture with Dependency Injection**
+###
+2. **Clean Architecture with Dependency Injection**
 - **DI Container**: Built on samber/do/v2 with separate registration for:
   - Router services (configurable via prefix, default "TR")
   - Application services (options pattern)
 - **Service Management**: Named dependencies for data service resolution
 - **Clean Separation**: Infrastructure, application, and domain layers separated
 
-### 3. **Template System**
+###
+3. **Template System**
 - **Templ Files**: Go-based templates with type safety
 - **Metadata System**: `.templ.yaml` files for:
   - Authentication configuration
@@ -50,21 +56,24 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Layout Inheritance**: Automatic template composition
 - **Error Templates**: Fallback mechanisms with precedence resolution
 
-### 4. **Internationalization (i18n)**
+###
+4. **Internationalization (i18n)**
 - **Multi-language support** with YAML-based translations
 - **Context-based system** (no global `t()` function)
 - **Nested key structure** with dot notation support
 - **Multiple formats**: flat, nested, and multi-locale configurations
 - **Smart locale detection** and routing
 
-### 5. **Authentication & Authorization**
+###
+5. **Authentication & Authorization**
 - **Three auth types**: `Public`, `UserRequired`, `AdminRequired`
 - **Session-based authentication** with configurable expiry
 - **Built-in API endpoints**: `/api/auth/signin`, `/api/auth/signout`, `/api/auth/signup`
 - **Role-based access control** with user validation
 - **Configurable redirect routes** for authentication flows
 
-### 6. **Data Service Integration**
+###
+6. **Data Service Integration**
 - **Automatic injection** based on template requirements
 - **RouterContext interface** for unified parameter access:
   - URL parameters from route paths
@@ -73,7 +82,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Two method patterns**: `GetData()` fallback and specific `Get<DataStruct>()` methods
 - **Named dependency resolution** via DI container
 
-## Project Structure
+##
+Project Structure
 
 ```
 templ-router/
@@ -104,83 +114,105 @@ templ-router/
 └── Dockerfile.release         # Production Docker image
 ```
 
-## Build & Development Commands
+##
+Build & Development Commands
 
-### Essential Development Workflow
+###
+Essential Development Workflow
 ```bash
-# Start full development environment (watches templates, CSS, registry, and runs server)
+#
+Start full development environment (watches templates, CSS, registry, and runs server)
 mage dev
 
-# Generate templ templates from .templ files
+#
+Generate templ templates from .templ files
 mage build:templGenerate
 
-# Generate template registry from file structure (after adding/removing templates)
+#
+Generate template registry from file structure (after adding/removing templates)
 mage build:registryGenerate
 
-# Build Tailwind CSS
+#
+Build Tailwind CSS
 mage build:tailwindClean
 
-# Clean all build artifacts
+#
+Clean all build artifacts
 mage clean
 ```
 
-### Testing Commands
+###
+Testing Commands
 ```bash
-# Run all tests (unit + E2E)
+#
+Run all tests (unit + E2E)
 mage test:all
 
-# Run E2E tests against running service
+#
+Run E2E tests against running service
 mage test:e2e
 
-# Run E2E tests in watch mode
+#
+Run E2E tests in watch mode
 mage test:e2eWatch
 
-# Quick smoke tests
+#
+Quick smoke tests
 mage test:e2eSmoke
 
-# Specific test categories
+#
+Specific test categories
 mage test:e2eRouting     # Multi-language routing tests
 mage test:e2eI18n        # Internationalization tests
 mage test:e2eData        # Data service tests
 mage test:e2eAuth        # Authentication tests
 mage test:e2ePerf        # Performance tests
 
-# Setup complete testing environment
+#
+Setup complete testing environment
 mage test:devSetup
 ```
 
-### Generator Development
+###
+Generator Development
 ```bash
-# Install trgen tool from source
+#
+Install trgen tool from source
 mage generator:install
 
-# Run generator tests
+#
+Run generator tests
 mage generator:test
 
-# Build trgen binary
+#
+Build trgen binary
 mage generator:build
 
-# Build for all platforms
+#
+Build for all platforms
 mage build:all
 ```
 
-### Docker Operations
+###
+Docker Operations
 ```bash
-# Start demo service
+#
+Start demo service
 mage docker:up
 
-# Stop service
+#
+Stop service
 mage docker:down
 
-# View logs
+#
+View logs
 mage docker:logs
 ```
 
-## Template Generator (trgen)
+##
+Template Generator (trgen)
 
-**Purpose**: CLI tool that generates template registries from file structure
-
-**Installation**:
+**Purpose**: CLI tool that generates template registries from file structure **Installation**:
 ```bash
 go install github.com/denkhaus/templ-router/cmd/trgen@latest
 ```
@@ -189,19 +221,19 @@ go install github.com/denkhaus/templ-router/cmd/trgen@latest
 ```bash
 trgen --scan-path=app --module-name=github.com/youruser/yourproject
 trgen --scan-path=app --module-name=github.com/youruser/yourproject --watch
-```
-
-**Environment Variables**:
+``` **Environment Variables**:
 - `TRGEN_SCAN_PATH`: Directory containing `.templ` files
 - `TRGEN_MODULE_NAME`: Go module name from `go.mod`
 - `TRGEN_WATCH_MODE`: Enable watch mode
 - `TRGEN_WATCH_EXTENSIONS`: File extensions to watch
 
-## Configuration System
+##
+Configuration System
 
 **Environment Variables** with configurable prefix (default "TR"):
 
-### Server Configuration
+###
+Server Configuration
 ```bash
 TR_SERVER_HOST=localhost
 TR_SERVER_PORT=8084
@@ -212,7 +244,8 @@ TR_SERVER_IDLE_TIMEOUT=120s
 TR_SERVER_SHUTDOWN_TIMEOUT=30s
 ```
 
-### Authentication Configuration
+###
+Authentication Configuration
 ```bash
 TR_AUTH_SESSION_EXPIRY=24h
 TR_AUTH_SESSION_COOKIE_NAME=session_id
@@ -221,44 +254,54 @@ TR_AUTH_SIGNUP_SUCCESS_ROUTE=/welcome
 TR_AUTH_SIGNOUT_SUCCESS_ROUTE=/
 ```
 
-### Internationalization Configuration
+###
+Internationalization Configuration
 ```bash
 TR_I18N_SUPPORTED_LOCALES=en,de,fr
 TR_I18N_DEFAULT_LOCALE=en
 TR_I18N_FALLBACK_LOCALE=en
 ```
 
-### Router Configuration
+###
+Router Configuration
 ```bash
 TR_ROUTER_ENABLE_TRAILING_SLASH=true      # Redirect /path/ to /path
 TR_ROUTER_ENABLE_SLASH_REDIRECT=true       # Clean double slashes
 TR_ROUTER_ENABLE_METHOD_NOT_ALLOWED=true   # 405 handler
 ```
 
-### Middleware Configuration
+###
+Middleware Configuration
 All middleware is controlled via environment variables:
 ```bash
-# Router middleware (URL normalization)
+#
+Router middleware (URL normalization)
 TR_ROUTER_ENABLE_TRAILING_SLASH=true
 TR_ROUTER_ENABLE_SLASH_REDIRECT=true
 
-# Authentication middleware
+#
+Authentication middleware
 TR_AUTH_ENABLE_MIDDLEWARE=true             # Enable/disable auth middleware
 
-# Internationalization middleware
+#
+Internationalization middleware
 TR_I18N_ENABLE_MIDDLEWARE=true              # Enable/disable i18n middleware
 
-# Template middleware
+#
+Template middleware
 TR_TEMPLATE_ENABLE_MIDDLEWARE=true          # Enable/disable template middleware
 
-# Authentication routes
+#
+Authentication routes
 TR_ROUTER_ENABLE_AUTH_ROUTES=true           # Enable/disable authentication routes
 TR_ROUTER_AUTH_ROUTE_PREFIX=/api            # Authentication route prefix
 ```
 
-## Data Service Pattern
+##
+Data Service Pattern
 
-### Interface Definition
+###
+Interface Definition
 ```go
 type UserDataService interface {
     GetData(routerCtx interfaces.RouterContext) (*UserData, error)
@@ -266,33 +309,36 @@ type UserDataService interface {
 }
 ```
 
-### RouterContext Usage
+###
+RouterContext Usage
 ```go
 func (s *service) GetData(routerCtx interfaces.RouterContext) (*Data, error) {
     // URL parameters from routes like /{locale}/user/{id}
     locale := routerCtx.GetURLParam("locale")
     userID := routerCtx.GetURLParam("id")
 
-    // Query parameters from ?page=5&filter=active
+// Query parameters from ?page=5&filter=active
     page := routerCtx.GetQueryParam("page")
-    filter := routerCtx.GetQueryParam("filter")
-
-    return &Data{...}, nil
+    filter := routerCtx.GetQueryParam("filter") return &Data{...}, nil
 }
 ```
 
-### Service Registration
+###
+Service Registration
 ```go
 do.ProvideNamed(injector, "UserDataService", dataservices.NewUserDataService)
 ```
 
-## Component Metadata Pattern
+##
+Component Metadata Pattern
 
-### Component YAML Structure
+###
+Component YAML Structure
 Components can have their own metadata files for self-contained configuration:
 
 ```yaml
-# app/components/footer.templ.yaml
+#
+app/components/footer.templ.yaml
 i18n:
   en:
     footer_copyright: "© 2024 My Company. All rights reserved."
@@ -307,20 +353,17 @@ metadata:
   company_name: "My Company"
   company_email: "info@company.com"
   company_address: "123 Main Street, City"
-  version: "1.0.0"
-
-auth:
+  version: "1.0.0" auth:
   type: "Public"
 ```
 
-### Component Template Usage
+###
+Component Template Usage
 Components can access their own metadata using the same functions as pages:
 
 ```go
 // app/components/footer.templ
-package components
-
-import (
+package components import (
     "github.com/denkhaus/templ-router/pkg/router/i18n"
     "github.com/denkhaus/templ-router/pkg/router/metadata"
 )
@@ -329,7 +372,7 @@ templ Footer() {
     companyEmail := metadata.M(ctx, "company_email")
     companyName := metadata.M(ctx, "company_name")
 
-    <footer class="bg-gray-800 text-white p-4 mt-8">
+<footer class="bg-gray-800 text-white p-4 mt-8">
         <div class="container mx-auto text-center">
             <p>{ i18n.T(ctx, "footer_copyright") }</p>
             <div class="flex justify-center space-x-4 mt-2 text-sm">
@@ -344,30 +387,33 @@ templ Footer() {
 }
 ```
 
-### Metadata Precedence Chain
+###
+Metadata Precedence Chain
 The system follows a clear precedence order for metadata resolution:
 
 1. **Component metadata** (highest priority) - when accessing `/components/footer`
 2. **Page metadata** (middle priority) - when component is nested in a page
 3. **Layout metadata** (lowest priority) - fallback for inherited settings
 
-### Component Routes
+###
+Component Routes
 Components are automatically accessible via their own routes:
 
 - `/components/footer` - Renders the Footer component with its metadata
 - `/components/navbar` - Renders the Navbar component with its metadata
-- `/components/language-switcher` - Renders the LanguageSwitcher component
-
-This enables:
+- `/components/language-switcher` - Renders the LanguageSwitcher component This enables:
 - **HTMX partials** - Load components without layout for AJAX requests
 - **Reusable components** - Self-contained metadata and i18n
 - **API endpoints** - Direct component access for dynamic loading
 
-## Internationalization System
+##
+Internationalization System
 
-### Translation File Structure
+###
+Translation File Structure
 ```yaml
-# app/locale_/dashboard/page.templ.yaml
+#
+app/locale_/dashboard/page.templ.yaml
 i18n:
   en:
     page_title: "Dashboard"
@@ -385,7 +431,8 @@ auth:
   redirect_url: "/login"
 ```
 
-### Template Usage
+###
+Template Usage
 ```go
 // In templ files
 { i18n.T(ctx, "translation_key") }
@@ -394,30 +441,37 @@ auth:
 <a href={ i18n.LocalizeSafeURL(ctx, "/dashboard") }>Dashboard</a>
 ```
 
-## Authentication System
+##
+Authentication System
 
-### Auth Types
+###
+Auth Types
 - `Public`: No authentication required (default)
 - `UserRequired`: Any authenticated user can access
 - `AdminRequired`: Only admin users can access
 
-### Configuration
+###
+Configuration
 ```yaml
-# .templ.yaml file
+#
+.templ.yaml file
 auth:
   type: "AdminRequired"
   redirect_url: "/login"
   roles: ["admin", "super_admin"]  # Optional: specific roles required
 ```
 
-### Built-in API Routes
+###
+Built-in API Routes
 - `POST /api/auth/signin` - User sign in
 - `POST /api/auth/signout` - User sign out
 - `POST /api/auth/signup` - User registration
 
-## Critical Development Rules
+##
+Critical Development Rules
 
-### ⚠️ ABSOLUTELY CRITICAL - NEVER IGNORE
+###
+⚠️ ABSOLUTELY CRITICAL - NEVER IGNORE
 
 1. **NO Unicode/Emojis in Code**
    - NEVER use Unicode characters like 🔧 in Go code
@@ -428,38 +482,35 @@ auth:
    - NEVER edit `generated/templates/registry.go`
    - NEVER edit `*_templ.go` files
    - These are overwritten with every build
-   - CORRECT: Modify generator templates in `cmd/trgen/`
-
-3. **Template Generator Paths**
+   - CORRECT: Modify generator templates in `cmd/trgen/` 3. **Template Generator Paths**
    - Generator is in `cmd/trgen/`
    - Install: `go install github.com/denkhaus/templ-router/cmd/trgen@main`
    - Execution: `trgen --scan-path=app --module-name=github.com/youruser/yourproject`
 
 4. **NO Production Code Replacement**
    - This is a PRODUCTION PROJECT, not test example
-   - Adapt real implementations for DI, don't replace them
-
-5. **DI Container Rules**
+   - Adapt real implementations for DI, don't replace them 5. **DI Container Rules**
    - ONLY provider registrations in the container
    - NO logic in the container
 
 6. **Always View Code Before Editing**
    - NEVER find_and_replace without seeing current code
-   - ALWAYS use view/expand_code_chunks first
-
-7. **Use KNOT CLI for Work**
+   - ALWAYS use view/expand_code_chunks first 7. **Use KNOT CLI for Work**
    - Use `knot` to structure work and track tasks
    - Create issues for complex tasks
    - NEVER mechanically process tasks without doing actual work
 
-## Testing Strategy
+##
+Testing Strategy
 
-### Unit Tests
+###
+Unit Tests
 - Standard Go testing with testify
 - Mock dependencies for isolation
 - Test service interfaces, not implementations
 
-### E2E Tests
+###
+E2E Tests
 - Ginkgo/Gomega framework
 - Agouti for browser automation
 - Test against running Docker service
@@ -470,7 +521,8 @@ auth:
   - Data service integration
   - Performance validation
 
-## Performance Considerations
+##
+Performance Considerations
 
 - Template caching is handled automatically
 - Route discovery is optimized for startup
@@ -478,7 +530,8 @@ auth:
 - Use appropriate timeouts for external calls
 - Monitor memory usage with large template sets
 
-## Security Notes
+##
+Security Notes
 
 - CSRF protection configurable via environment
 - Rate limiting available for API endpoints
@@ -486,7 +539,8 @@ auth:
 - Input validation through parameter validators
 - Session-based authentication with secure defaults
 
-## Common Gotchas
+##
+Common Gotchas
 
 1. **Generated File Overwrites**: Never edit generated files directly
 2. **Unicode Characters**: Avoid all non-ASCII in Go source
@@ -496,7 +550,8 @@ auth:
 6. **Context Access**: Always pass context through template functions
 7. **Module Names**: trgen requires exact go.mod module name match
 
-## CI/CD Pipeline
+##
+CI/CD Pipeline
 
 **GitHub Actions Workflow** (.github/workflows/ci.yml):
 - Multi-version Go testing (1.24)
@@ -506,13 +561,21 @@ auth:
 - Code coverage reporting
 - Platform-agnostic building
 
-## Release Management
+##
+Release Management
 
 **GoReleaser Configuration** (.goreleaser.yml):
 - Multi-platform binary builds
 - Docker image publishing (GHCR)
 - Homebrew tap integration
 - Automated changelog generation
-- Structured release notes
+- Structured release notes This comprehensive architecture provides a solid foundation for building modern web applications with file-based routing, type-safe templating, and comprehensive middleware support. The library emphasizes clean architecture principles, dependency injection, and developer experience while maintaining production-ready standards.
 
-This comprehensive architecture provides a solid foundation for building modern web applications with file-based routing, type-safe templating, and comprehensive middleware support. The library emphasizes clean architecture principles, dependency injection, and developer experience while maintaining production-ready standards.
+##
+Active Technologies
+- Go 1.24+ + templ, samber/do/v2, chi/v5, Ginkgo/Gomega (001-documentation-review)
+- Files (Markdown, YAML), or N/A (001-documentation-review)
+
+##
+Recent Changes
+- 001-documentation-review: Added Go 1.24+ + templ, samber/do/v2, chi/v5, Ginkgo/Gomega
