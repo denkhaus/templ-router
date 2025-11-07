@@ -2,9 +2,8 @@ package interfaces
 
 import "time"
 
-// ConfigService provides access to application configuration
-type ConfigService interface {
-	// Server configuration
+// ServerConfigService provides access to server configuration
+type ServerConfigService interface {
 	GetServerHost() string
 	GetServerPort() int
 	GetServerBaseURL() string
@@ -12,13 +11,17 @@ type ConfigService interface {
 	GetServerWriteTimeout() time.Duration
 	GetServerIdleTimeout() time.Duration
 	GetServerShutdownTimeout() time.Duration
+}
 
-	// I18n configuration
+// I18nConfigService provides access to internationalization configuration
+type I18nConfigService interface {
 	GetSupportedLocales() []string
 	GetDefaultLocale() string
 	GetFallbackLocale() string
+}
 
-	// Layout configuration
+// LayoutConfigService provides access to layout and template configuration
+type LayoutConfigService interface {
 	GetLayoutRootDirectory() string
 	GetLayoutFileName() string
 	GetLayoutAssetsDirectory() string
@@ -26,20 +29,26 @@ type ConfigService interface {
 	GetTemplateExtension() string
 	GetMetadataExtension() string
 	IsLayoutInheritanceEnabled() bool
+}
 
-	// Template generator configuration
+// TemplateGeneratorConfigService provides access to template generator configuration
+type TemplateGeneratorConfigService interface {
 	GetTemplateOutputDir() string
 	GetTemplatePackageName() string
+}
 
-	// Database configuration
+// DatabaseConfigService provides access to database configuration
+type DatabaseConfigService interface {
 	GetDatabaseHost() string
 	GetDatabasePort() int
 	GetDatabaseUser() string
 	GetDatabasePassword() string
 	GetDatabaseName() string
 	GetDatabaseSSLMode() string
+}
 
-	// Auth configuration
+// AuthConfigService provides access to authentication configuration
+type AuthConfigService interface {
 	IsEmailVerificationRequired() bool
 	GetVerificationTokenExpiry() time.Duration
 	GetSessionCookieName() string
@@ -54,16 +63,18 @@ type ConfigService interface {
 	GetDefaultAdminPassword() string
 	GetDefaultAdminFirstName() string
 	GetDefaultAdminLastName() string
+}
 
-	// Auth routes
+// AuthRoutesConfigService provides access to authentication route configuration
+type AuthRoutesConfigService interface {
 	GetSignInRoute() string
-	
-	// Auth redirect routes (only for success cases)
 	GetSignInSuccessRoute() string
 	GetSignUpSuccessRoute() string
 	GetSignOutSuccessRoute() string
+}
 
-	// Security configuration
+// SecurityConfigService provides access to security configuration
+type SecurityConfigService interface {
 	GetCSRFSecret() string
 	IsCSRFSecure() bool
 	IsCSRFHttpOnly() bool
@@ -73,15 +84,19 @@ type ConfigService interface {
 	AreSecurityHeadersEnabled() bool
 	IsHSTSEnabled() bool
 	GetHSTSMaxAge() int
+}
 
-	// Logging configuration
+// LoggingConfigService provides access to logging configuration
+type LoggingConfigService interface {
 	GetLogLevel() string
 	GetLogFormat() string
 	GetLogOutput() string
 	IsFileLoggingEnabled() bool
 	GetLogFilePath() string
+}
 
-	// Email configuration
+// EmailConfigService provides access to email configuration
+type EmailConfigService interface {
 	GetSMTPHost() string
 	GetSMTPPort() int
 	GetSMTPUsername() string
@@ -91,15 +106,37 @@ type ConfigService interface {
 	GetFromName() string
 	GetReplyToEmail() string
 	IsEmailDummyModeEnabled() bool
+}
 
-	// Environment configuration
+// EnvironmentConfigService provides access to environment configuration
+type EnvironmentConfigService interface {
 	IsDevelopment() bool
 	IsProduction() bool
+}
 
-	// Router configuration
+// RouterConfigService provides access to router configuration
+type RouterConfigService interface {
 	GetRouterEnableTrailingSlash() bool
 	GetRouterEnableSlashRedirect() bool
 	GetRouterEnableMethodNotAllowed() bool
 	GetRouterEnableAuthRoutes() bool
 	GetRouterAuthRoutePrefix() string
+}
+
+// ConfigService combines all configuration interfaces for backward compatibility
+// Note: This interface is maintained for backward compatibility but should be gradually
+// replaced by using specific interfaces as needed
+type ConfigService interface {
+	ServerConfigService
+	I18nConfigService
+	LayoutConfigService
+	TemplateGeneratorConfigService
+	DatabaseConfigService
+	AuthConfigService
+	AuthRoutesConfigService
+	SecurityConfigService
+	LoggingConfigService
+	EmailConfigService
+	EnvironmentConfigService
+	RouterConfigService
 }

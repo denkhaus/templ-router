@@ -27,8 +27,8 @@ func GetBuildInfo() BuildInfo {
 		Version:   Version,
 		GitCommit: GitCommit,
 		BuildTime: BuildTime,
-		GoVersion: fmt.Sprintf("%s", getGoVersion()),
-		Platform:  fmt.Sprintf("%s/%s", getGOOS(), getGOARCH()),
+		GoVersion: getGoVersion(),
+		Platform:  getGOOS() + "/" + getGOARCH(),
 	}
 
 	// Try to get more info from build info if available

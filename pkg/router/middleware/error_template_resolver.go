@@ -111,8 +111,11 @@ func (etr *errorTemplateResolverImpl) generateComponentName(templatePath string)
 	}
 
 	// Capitalize first letter and add "Error" suffix
-	// TODO: strings.Title is deprecated
-	componentName := strings.Title(base) + "Error"
+	// Using proper Unicode case handling instead of deprecated strings.Title
+	if len(base) == 0 {
+		return "Error"
+	}
+	componentName := strings.ToUpper(base[:1]) + base[1:] + "Error"
 	return componentName
 }
 

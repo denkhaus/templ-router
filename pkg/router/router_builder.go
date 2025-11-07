@@ -46,11 +46,12 @@ type RouterOptions struct {
 }
 
 // middlewareConfig represents a middleware configuration with ordering
+// TODO: Use this for advanced middleware configuration in future versions
 type middlewareConfig struct {
 	name       string
 	middleware func(http.Handler) http.Handler
-	order      int
-	priority   int
+	order      int       // Future: Priority order for middleware execution
+	priority   int       // Future: Priority for middleware registration
 }
 
 // customRoute represents a custom route to register

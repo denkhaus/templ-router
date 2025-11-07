@@ -1,91 +1,82 @@
 package config
 
 import (
-	"fmt"
-	
 	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
-// Validate validates the configuration
+// Validate validates the configuration using centralized validators
 func (c *configImpl) Validate() error {
+	// Initialize reusable validators
+	portValidator := NewPortValidator("")
+	emailValidator := NewEmailValidator("")
+	passwordValidator := NewPasswordValidator("", 0, false)
+	positiveNumberValidator := NewPositiveNumberValidator("", 1)
+	requiredStringValidator := NewRequiredStringValidator("")
+
 	// Validate server configuration
-	if c.Server.Port < 1 || c.Server.Port > 65535 {
-		return shared.NewValidationError("Invalid server port").
-			WithDetails(fmt.Sprintf("Port %d is outside valid range 1-65535", c.Server.Port)).
-			WithContext("field", "server.port").
-			WithContext("value", c.Server.Port).
-			WithContext("valid_range", "1-65535")
+	portValidator.fieldName = "server.port"
+	if err := portValidator.ValidatePort(c.Server.Port); err != nil {
+		return err
 	}
 
 	// Validate database configuration
-	if c.Database.Port < 1 || c.Database.Port > 65535 {
-		return shared.NewValidationError("Invalid database port").
-			WithDetails(fmt.Sprintf("Port %d is outside valid range 1-65535", c.Database.Port)).
-			WithContext("field", "database.port").
-			WithContext("value", c.Database.Port).
-			WithContext("valid_range", "1-65535")
+	portValidator.fieldName = "database.port"
+	if err := portValidator.ValidatePort(c.Database.Port); err != nil {
+		return err
 	}
 
 	// Validate auth configuration
-	if c.Auth.MinPasswordLength < 1 {
-		return shared.NewValidationError("Invalid minimum password length").
-			WithDetails("Minimum password length must be at least 1 character").
-			WithContext("field", "auth.min_password_length").
-			WithContext("value", c.Auth.MinPasswordLength).
-			WithContext("minimum", 1)
+	positiveNumberValidator.fieldName = "auth.min_password_length"
+	if err := positiveNumberValidator.ValidatePositiveNumber(c.Auth.MinPasswordLength); err != nil {
+		return err
 	}
 
-	// Validate default admin configuration
+	// Validate default admin configuration (conditionally)
 	if c.Auth.CreateDefaultAdmin {
-		if c.Auth.DefaultAdminEmail == "" {
-			return shared.NewConfigurationError("Default admin email is required").
-				WithDetails("Email cannot be empty when CreateDefaultAdmin is enabled").
-				WithContext("field", "auth.default_admin_email").
-				WithContext("create_default_admin", true)
+		emailValidator.fieldName = "auth.default_admin_email"
+		if err := emailValidator.ValidateEmail(c.Auth.DefaultAdminEmail); err != nil {
+			if appErr, ok := err.(*shared.AppError); ok {
+				return appErr.WithContext("create_default_admin", true)
+			}
+			return err
 		}
-		if c.Auth.DefaultAdminPassword == "" {
-			return shared.NewConfigurationError("Default admin password is required").
-				WithDetails("Password cannot be empty when CreateDefaultAdmin is enabled").
-				WithContext("field", "auth.default_admin_password").
-				WithContext("create_default_admin", true)
+
+		passwordValidator.fieldName = "auth.default_admin_password"
+		passwordValidator.minLength = c.Auth.MinPasswordLength
+		if err := passwordValidator.ValidatePassword(c.Auth.DefaultAdminPassword); err != nil {
+			if appErr, ok := err.(*shared.AppError); ok {
+				return appErr.WithContext("create_default_admin", true)
+			}
+			return err
 		}
-		if len(c.Auth.DefaultAdminPassword) < c.Auth.MinPasswordLength {
-			return shared.NewValidationError("Default admin password too short").
-				WithDetails(fmt.Sprintf("Password must be at least %d characters", c.Auth.MinPasswordLength)).
-				WithContext("field", "auth.default_admin_password").
-				WithContext("current_length", len(c.Auth.DefaultAdminPassword)).
-				WithContext("required_length", c.Auth.MinPasswordLength)
+
+		requiredStringValidator.fieldName = "auth.default_admin_first_name"
+		if err := requiredStringValidator.ValidateRequiredString(c.Auth.DefaultAdminFirstName); err != nil {
+			if appErr, ok := err.(*shared.AppError); ok {
+				return appErr.WithContext("create_default_admin", true)
+			}
+			return err
 		}
-		if c.Auth.DefaultAdminFirstName == "" {
-			return shared.NewConfigurationError("Default admin first name is required").
-				WithDetails("First name cannot be empty when CreateDefaultAdmin is enabled").
-				WithContext("field", "auth.default_admin_first_name").
-				WithContext("create_default_admin", true)
-		}
-		if c.Auth.DefaultAdminLastName == "" {
-			return shared.NewConfigurationError("Default admin last name is required").
-				WithDetails("Last name cannot be empty when CreateDefaultAdmin is enabled").
-				WithContext("field", "auth.default_admin_last_name").
-				WithContext("create_default_admin", true)
+
+		requiredStringValidator.fieldName = "auth.default_admin_last_name"
+		if err := requiredStringValidator.ValidateRequiredString(c.Auth.DefaultAdminLastName); err != nil {
+			if appErr, ok := err.(*shared.AppError); ok {
+				return appErr.WithContext("create_default_admin", true)
+			}
+			return err
 		}
 	}
 
 	// Validate email configuration
-	if c.Email.SMTPPort < 1 || c.Email.SMTPPort > 65535 {
-		return shared.NewValidationError("Invalid SMTP port").
-			WithDetails(fmt.Sprintf("Port %d is outside valid range 1-65535", c.Email.SMTPPort)).
-			WithContext("field", "email.smtp_port").
-			WithContext("value", c.Email.SMTPPort).
-			WithContext("valid_range", "1-65535")
+	portValidator.fieldName = "email.smtp_port"
+	if err := portValidator.ValidatePort(c.Email.SMTPPort); err != nil {
+		return err
 	}
 
 	// Validate security configuration
-	if c.Security.RateLimitRequests < 1 {
-		return shared.NewValidationError("Invalid rate limit configuration").
-			WithDetails("Rate limit requests must be at least 1").
-			WithContext("field", "security.rate_limit_requests").
-			WithContext("value", c.Security.RateLimitRequests).
-			WithContext("minimum", 1)
+	positiveNumberValidator.fieldName = "security.rate_limit_requests"
+	if err := positiveNumberValidator.ValidatePositiveNumber(c.Security.RateLimitRequests); err != nil {
+		return err
 	}
 
 	return nil

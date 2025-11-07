@@ -9,7 +9,6 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -457,7 +456,7 @@ func TestOptimizedTemplateService_RenderComponent_RouteNotFound(t *testing.T) {
 	// Assert
 	assert.Error(t, err)
 	assert.Nil(t, result)
-	assert.Equal(t, middleware.ErrTemplateNotFound, err)
+	assert.Equal(t, shared.ErrTemplateNotFound, err)
 
 	mockRegistry.AssertExpectations(t)
 	mockCache.AssertExpectations(t)

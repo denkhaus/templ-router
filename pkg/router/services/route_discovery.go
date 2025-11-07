@@ -332,12 +332,21 @@ func (rd *routeDiscoveryImpl) generateHandlerName(routePattern string) string {
 		if strings.HasPrefix(part, "$") {
 			// Convert $id to Id
 			paramName := strings.TrimPrefix(part, "$")
-			handlerParts = append(handlerParts, strings.Title(paramName))
+			if len(paramName) > 0 {
+				handlerParts = append(handlerParts, strings.ToUpper(paramName[:1])+paramName[1:])
+			} else {
+				handlerParts = append(handlerParts, "Id")
+			}
 		} else if len(part) == 2 && (part == "en" || part == "de" || part == "fr" || part == "es") {
 			// Handle locale
 			handlerParts = append(handlerParts, "Locale")
 		} else {
-			handlerParts = append(handlerParts, strings.Title(part))
+			// Regular part - capitalize
+			if len(part) > 0 {
+				handlerParts = append(handlerParts, strings.ToUpper(part[:1])+part[1:])
+			} else {
+				handlerParts = append(handlerParts, "Index")
+			}
 		}
 	}
 

@@ -105,9 +105,7 @@ func extractComponentNameFromPath(templatePath string) string {
 	}
 
 	filename := parts[len(parts)-1]
-	if strings.HasSuffix(filename, ".templ") {
-		filename = filename[:len(filename)-6] // Remove ".templ"
-	}
+	filename = strings.TrimSuffix(filename, ".templ")
 
 	return filename
 }

@@ -18,7 +18,8 @@
       "mcp__ide__getDiagnostics",
       "Skill(example-skills:skill-creator)",
       "Bash(gh run list:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "Bash(go build:*)"
     ],
     "deny": [],
     "ask": []

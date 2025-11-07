@@ -51,10 +51,8 @@ func (kr *KeyResolver) CreateTemplateKeyFromPath(filePath, functionName string) 
 
 	for _, part := range parts {
 		if part != "" {
-			// Convert $locale pattern to locale
-			if strings.HasSuffix(part, "_") {
-				part = strings.TrimSuffix(part, "_")
-			}
+			// Convert $locale pattern to locale - remove trailing underscore
+			part = strings.TrimSuffix(part, "_")
 			cleanParts = append(cleanParts, part)
 		}
 	}

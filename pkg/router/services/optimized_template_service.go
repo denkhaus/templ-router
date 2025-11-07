@@ -9,7 +9,6 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -203,7 +202,7 @@ func (ots *OptimizedTemplateService) resolveTemplate(routePath string, routerCtx
 		zap.String("route", routePath),
 		zap.Strings("attempted_conversions", convertedRoutes))
 
-	return nil, middleware.ErrTemplateNotFound
+	return nil, shared.ErrTemplateNotFound
 }
 
 // executeTemplateFunction handles different template function signatures
@@ -259,7 +258,7 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 		zap.String("template_uuid", templateUUID),
 		zap.String("result_type", fmt.Sprintf("%T", result)))
 
-	return nil, middleware.ErrTemplateNotFound
+	return nil, shared.ErrTemplateNotFound
 }
 
 // isDataServiceTemplate checks if the result is a DataService template function
