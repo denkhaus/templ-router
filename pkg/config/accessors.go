@@ -1,6 +1,10 @@
 package config
 
-import "time"
+import (
+	"os"
+	"path/filepath"
+	"time"
+)
 
 // Server configuration methods
 func (cs *configService) GetServerHost() string {
@@ -46,7 +50,23 @@ func (cs *configService) GetFallbackLocale() string {
 
 // Layout configuration methods
 func (cs *configService) GetLayoutRootDirectory() string {
-	return cs.config.Layout.RootDirectory
+	rootDir := cs.config.Layout.RootDirectory
+
+	// Normalize the path - convert relative paths to absolute paths
+	if !filepath.IsAbs(rootDir) {
+		// Get current working directory
+		cwd, err := os.Getwd()
+		if err != nil {
+			// Fallback to relative path if we can't get working directory
+			return rootDir
+		}
+		// Convert relative to absolute path
+		absPath := filepath.Join(cwd, rootDir)
+		return filepath.Clean(absPath)
+	}
+
+	// Already absolute, just clean it
+	return filepath.Clean(rootDir)
 }
 
 func (cs *configService) GetLayoutAssetsDirectory() string {

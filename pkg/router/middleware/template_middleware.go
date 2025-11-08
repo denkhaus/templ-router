@@ -211,15 +211,22 @@ func (tm *templateMiddleware) initializeI18nContext(ctx context.Context, templat
 
 // buildCorrectYAMLPath builds the correct YAML file path from registry metadata
 func (tm *templateMiddleware) buildCorrectYAMLPath(registryYAMLPath string) string {
-	// The registry gives us paths that start with the layout root directory name
+	// The registry gives us paths like "app/components/footer.templ.yaml"
 	// layoutRoot = "demo/app" means layout root directory is "demo/app"
 	// working directory = project root = "/app"
-	// registry path = "app/components/footer.templ.yaml" (starts with layout root directory name)
+	// registry path = "app/components/footer.templ.yaml"
 	// actual file location = "demo/app/components/footer.templ.yaml"
-	// We need to extract the base directory from layoutRoot and add it
+	// We need to replace "app/" with the full layoutRoot path
 	layoutRoot := tm.configService.GetLayoutRootDirectory()
-	baseDir := strings.Split(layoutRoot, "/")[0] // "demo" from "demo/app"
-	return baseDir + "/" + registryYAMLPath
+	
+	// If registry path starts with "app/", replace it with the full layout root
+	if strings.HasPrefix(registryYAMLPath, "app/") {
+		// Replace "app/" with "demo/app/" (or whatever layoutRoot is)
+		return strings.Replace(registryYAMLPath, "app/", layoutRoot+"/", 1)
+	}
+	
+	// Fallback: prepend layout root if no "app/" prefix
+	return layoutRoot + "/" + registryYAMLPath
 }
 
 // loadHierarchicalMetadataAndI18n loads and merges metadata and i18n data in hierarchical order

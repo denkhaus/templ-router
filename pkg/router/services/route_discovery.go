@@ -1,6 +1,7 @@
 package services
 
 import (
+	"os"
 	"path/filepath"
 	"strings"
 
@@ -353,11 +354,24 @@ func (rd *routeDiscoveryImpl) DiscoverErrorTemplates(scanPath string) ([]interfa
 
 // createLayoutFromMetadata creates a layout template from registry metadata
 func (rd *routeDiscoveryImpl) createLayoutFromMetadata(metadata *interfaces.TemplateMetadata, scanPath string) (interfaces.LayoutTemplate, error) {
-	relativePath, err := filepath.Rel(scanPath, metadata.TemplatePath)
+	// Normalize template path - convert relative to absolute if needed
+	templatePath := metadata.TemplatePath
+	if !filepath.IsAbs(templatePath) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return interfaces.LayoutTemplate{}, shared.NewRouteError("Failed to get working directory for path normalization").
+				WithCause(err).
+				WithContext("template_path", metadata.TemplatePath).
+				WithContext("operation", "layout_template_creation_from_metadata")
+		}
+		templatePath = filepath.Clean(filepath.Join(cwd, templatePath))
+	}
+
+	relativePath, err := filepath.Rel(scanPath, templatePath)
 	if err != nil {
 		return interfaces.LayoutTemplate{}, shared.NewRouteError("Failed to get relative path for layout template").
 			WithCause(err).
-			WithContext("template_path", metadata.TemplatePath).
+			WithContext("template_path", templatePath).
 			WithContext("scan_path", scanPath).
 			WithContext("operation", "layout_template_creation_from_metadata")
 	}
@@ -376,11 +390,24 @@ func (rd *routeDiscoveryImpl) createLayoutFromMetadata(metadata *interfaces.Temp
 
 // createErrorTemplateFromMetadata creates an error template from registry metadata
 func (rd *routeDiscoveryImpl) createErrorTemplateFromMetadata(metadata *interfaces.TemplateMetadata, scanPath string) (interfaces.ErrorTemplate, error) {
-	relativePath, err := filepath.Rel(scanPath, metadata.TemplatePath)
+	// Normalize template path - convert relative to absolute if needed
+	templatePath := metadata.TemplatePath
+	if !filepath.IsAbs(templatePath) {
+		cwd, err := os.Getwd()
+		if err != nil {
+			return interfaces.ErrorTemplate{}, shared.NewRouteError("Failed to get working directory for path normalization").
+				WithCause(err).
+				WithContext("template_path", metadata.TemplatePath).
+				WithContext("operation", "error_template_creation_from_metadata")
+		}
+		templatePath = filepath.Clean(filepath.Join(cwd, templatePath))
+	}
+
+	relativePath, err := filepath.Rel(scanPath, templatePath)
 	if err != nil {
 		return interfaces.ErrorTemplate{}, shared.NewRouteError("Failed to get relative path for error template").
 			WithCause(err).
-			WithContext("template_path", metadata.TemplatePath).
+			WithContext("template_path", templatePath).
 			WithContext("scan_path", scanPath).
 			WithContext("operation", "error_template_creation_from_metadata")
 	}
