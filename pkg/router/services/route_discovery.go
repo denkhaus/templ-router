@@ -206,7 +206,7 @@ func (rd *routeDiscoveryImpl) extractTemplateFileFromRegistryKey(templateKey, ro
 
 		for _, templateName := range candidateTemplateNames {
 			// Generate candidate template path based on route pattern
-			candidatePath := rd.buildCandidatePathFromRoute(routePattern, templateName)
+			candidatePath := rd.buildCandidatePathFromRoute(routePattern)
 			if candidatePath != "" {
 				// Generate the key this path would create
 				candidateKey := shared.GenerateTemplateKey(candidatePath + "#" + templateName)
@@ -235,37 +235,46 @@ func (rd *routeDiscoveryImpl) extractTemplateFileFromRegistryKey(templateKey, ro
 	return ""
 }
 
-// buildCandidatePathFromRoute builds a candidate template path from route pattern and template name
-func (rd *routeDiscoveryImpl) buildCandidatePathFromRoute(routePattern, templateName string) string {
-	// Remove leading slash and split into parts
+// buildCandidatePathFromRoute builds a candidate template path from route pattern using registry metadata
+func (rd *routeDiscoveryImpl) buildCandidatePathFromRoute(routePattern string) string {
+	// Get route-to-template mapping from registry
+	routeMapping := rd.templateRegistry.GetRouteToTemplateMapping()
+
+	// Look for exact route match first
+	if templateKey, exists := routeMapping[routePattern]; exists {
+		// Get template metadata from registry
+		if metadata, err := rd.templateRegistry.GetTemplateMetadata(templateKey); err == nil {
+			if metadata.TemplatePath != "" {
+				rd.logger.Debug("Found template path from registry metadata",
+					zap.String("route_pattern", routePattern),
+					zap.String("template_key", templateKey),
+					zap.String("template_path", metadata.TemplatePath))
+				return metadata.TemplatePath
+			}
+		}
+	}
+
+	// If no exact match, try to find templates with matching component name
+	// Extract the last segment as potential component name (generic approach)
 	parts := strings.Split(strings.Trim(routePattern, "/"), "/")
+	if len(parts) >= 1 {
+		potentialComponentName := parts[len(parts)-1]
 
-	if len(parts) == 0 {
-		return ""
+		// Search all templates for matching component name (regardless of path structure)
+		allMetadata := rd.templateRegistry.GetAllTemplateMetadata()
+		for _, metadata := range allMetadata {
+			if metadata.Type == "component" && metadata.ComponentName == potentialComponentName {
+				rd.logger.Debug("Found component template by name",
+					zap.String("route_pattern", routePattern),
+					zap.String("component_name", potentialComponentName),
+					zap.String("template_path", metadata.TemplatePath))
+				return metadata.TemplatePath
+			}
+		}
 	}
 
-	// For component routes like "/components/footer"
-	if strings.HasPrefix(routePattern, "/components/") && len(parts) >= 2 {
-		// Component template path: "app/components/footer.templ"
-		return "app/components/" + parts[1] + ".templ"
-	}
-
-	// For other routes, try standard patterns
-	if len(parts) == 1 && parts[0] == "" {
-		// Root route: "app/page.templ"
-		return "app/page.templ"
-	}
-
-	if len(parts) == 1 {
-		// Single part route like "login": "app/login/page.templ"
-		return "app/" + parts[0] + "/page.templ"
-	}
-
-	if len(parts) >= 2 {
-		// Multi-part route like "locale/dashboard": "app/locale_/dashboard/page.templ"
-		return "app/" + strings.Join(parts[:len(parts)-1], "_") + "/" + parts[len(parts)-1] + "/page.templ"
-	}
-
+	rd.logger.Warn("Could not determine template path from registry",
+		zap.String("route_pattern", routePattern))
 	return ""
 }
 
