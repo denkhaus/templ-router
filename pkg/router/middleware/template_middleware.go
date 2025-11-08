@@ -237,14 +237,14 @@ func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Contex
 	// Step 4: Merge hierarchically: Layout + Current + Components
 	mergedConfig := tm.mergeConfigsHierarchically(layoutConfig, currentConfig, componentsConfigs)
 
-	// Step 5: Merge i18n translations hierarchically
-	mergedTranslations := tm.mergeTranslationsHierarchically(layoutConfig, currentConfig, componentsConfigs)
-
 	// Get current locale from context
 	locale, _ := ctx.Value(shared.LocaleKey).(string)
 	if locale == "" {
-		locale = "en" // Default fallback
+		locale = tm.configService.GetDefaultLocale() // Use configured default locale
 	}
+
+	// Step 5: Merge i18n translations hierarchically for current locale only
+	mergedTranslations := tm.mergeTranslationsHierarchically(layoutConfig, currentConfig, componentsConfigs, locale)
 
 	tm.logger.Debug("Hierarchical metadata merge completed",
 		zap.String("template_type", string(currentMetadata.Type)),
@@ -408,33 +408,30 @@ func (tm *templateMiddleware) mergeConfigsHierarchically(layoutConfig, currentCo
 
 // mergeTranslationsHierarchically merges i18n translations hierarchically: Layout + Current + Components
 // Only merges translations for the specified locale
-func (tm *templateMiddleware) mergeTranslationsHierarchically(layoutConfig, currentConfig *shared.ConfigFile, componentsConfigs map[string]*shared.ConfigFile) map[string]string {
+func (tm *templateMiddleware) mergeTranslationsHierarchically(layoutConfig, currentConfig *shared.ConfigFile, componentsConfigs map[string]*shared.ConfigFile, locale string) map[string]string {
 	merged := make(map[string]string)
 
-	// Step 1: Start with layout translations (lowest priority)
+	// Step 1: Start with layout translations for CURRENT LOCALE only (lowest priority)
 	layoutI18n := layoutConfig.GetMultiLocaleI18n()
-
-	for _, translations := range layoutI18n {
-		for key, value := range translations {
+	if layoutTranslations, exists := layoutI18n[locale]; exists {
+		for key, value := range layoutTranslations {
 			merged[key] = value // This will be overridden by higher priority items
 		}
 	}
 
-	// Step 2: Merge current template translations (overrides layout)
+	// Step 2: Merge current template translations for CURRENT LOCALE only (overrides layout)
 	currentI18n := currentConfig.GetMultiLocaleI18n()
-
-	for _, translations := range currentI18n {
-		for key, value := range translations {
+	if currentTranslations, exists := currentI18n[locale]; exists {
+		for key, value := range currentTranslations {
 			merged[key] = value // Overrides layout
 		}
 	}
 
-	// Step 3: Merge all components translations (highest priority)
+	// Step 3: Merge all components translations for CURRENT LOCALE only (highest priority)
 	for _, componentConfig := range componentsConfigs {
 		componentI18n := componentConfig.GetMultiLocaleI18n()
-
-		for _, translations := range componentI18n {
-			for key, value := range translations {
+		if componentTranslations, exists := componentI18n[locale]; exists {
+			for key, value := range componentTranslations {
 				merged[key] = value // Components have highest priority
 			}
 		}

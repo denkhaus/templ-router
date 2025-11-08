@@ -91,11 +91,14 @@ func (cis *cleanI18nService) CreateContext(ctx context.Context, templatePath str
 			zap.Error(err))
 	}
 
+	// Extract translations for current template and locale from TranslationStore
+	translations := cis.translationStore.GetTranslationsForTemplate(templatePath, locale)
+
 	// Create i18n data structure that i18n.T() expects
 	i18nData := &i18n.I18nData{
 		Locale:          locale,
 		CurrentTemplate: templatePath,
-		Translations:    make(map[string]string),
+		Translations:    translations, // Now populated with actual translations!
 		FallbackLocale:  cis.configService.GetDefaultLocale(),
 		Logger:          cis.logger,
 	}

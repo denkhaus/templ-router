@@ -261,3 +261,20 @@ func (s *simpleTranslationStore) LoadAllTranslations(templatePaths []string) err
 
 	return nil
 }
+
+// GetTranslationsForTemplate returns all translations for a specific template and locale
+func (s *simpleTranslationStore) GetTranslationsForTemplate(templatePath, locale string) map[string]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if templateTranslations, exists := s.translations[templatePath][locale]; exists {
+		// Return a copy to prevent concurrent modification
+		result := make(map[string]string, len(templateTranslations))
+		for key, value := range templateTranslations {
+			result[key] = value
+		}
+		return result
+	}
+
+	return make(map[string]string)
+}
