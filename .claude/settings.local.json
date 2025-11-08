@@ -20,7 +20,9 @@
       "Bash(gh run list:*)",
       "Bash(gh run view:*)",
       "Bash(go build:*)",
-      "mcp__time__get_current_time"
+      "mcp__time__get_current_time",
+      "Bash(gh issue view:*)",
+      "Bash(gh issue list:*)"
     ],
     "deny": [],
     "ask": []

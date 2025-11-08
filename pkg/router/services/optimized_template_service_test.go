@@ -148,14 +148,6 @@ func (m *mockOTSDataServiceResolver) ResolveDataService(interfaceType string) (i
 	return args.Get(0), args.Error(1)
 }
 
-func (m *mockOTSDataServiceResolver) ResolveGenericDataService(interfaceType string) (interfaces.GenericDataService, error) {
-	args := m.Called(interfaceType)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(interfaces.GenericDataService), args.Error(1)
-}
-
 func (m *mockOTSDataServiceResolver) HasDataService(interfaceType string) bool {
 	args := m.Called(interfaceType)
 	return args.Bool(0)
@@ -246,7 +238,7 @@ func (m *mockOTSRouterContext) ChiContext() *chi.Context {
 }
 
 // Test helper to create OptimizedTemplateService with mocks
-func createTestOTS(t *testing.T) (*OptimizedTemplateService, *mockOTSTemplateRegistry, *mockOTSCacheService, *mockOTSDataServiceResolver, *mockOTSRouteConverter) {
+func createTestOTS(t *testing.T) (*templateService, *mockOTSTemplateRegistry, *mockOTSCacheService, *mockOTSDataServiceResolver, *mockOTSRouteConverter) {
 	logger := zap.NewNop()
 
 	mockRegistry := &mockOTSTemplateRegistry{}
@@ -254,7 +246,7 @@ func createTestOTS(t *testing.T) (*OptimizedTemplateService, *mockOTSTemplateReg
 	mockDataResolver := &mockOTSDataServiceResolver{}
 	mockConverter := &mockOTSRouteConverter{}
 
-	service := &OptimizedTemplateService{
+	service := &templateService{
 		logger:           logger,
 		templateRegistry: mockRegistry,
 		cacheService:     mockCache,

@@ -14,9 +14,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// OptimizedTemplateService consolidates all template resolution systems
+// templateService consolidates all template resolution systems
 // into a single, performance-optimized service with caching
-type OptimizedTemplateService struct {
+type templateService struct {
 	logger *zap.Logger
 
 	// Template registry interface for decoupled access
@@ -45,7 +45,7 @@ func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, err
 		return nil, err
 	}
 
-	return &OptimizedTemplateService{
+	return &templateService{
 		logger:           logger,
 		templateRegistry: templateRegistry,
 		routeConverter:   routeConverter,
@@ -55,7 +55,7 @@ func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, err
 }
 
 // RenderComponent implements interfaces.TemplateService with optimized resolution
-func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, routerCtx interfaces.RouterContext, ctx context.Context) (templ.Component, error) {
+func (ots *templateService) RenderComponent(route interfaces.Route, routerCtx interfaces.RouterContext, ctx context.Context) (templ.Component, error) {
 	routePath := route.Path
 
 	// Extract parameters from RouterContext for backward compatibility
@@ -101,7 +101,7 @@ func (ots *OptimizedTemplateService) RenderComponent(route interfaces.Route, rou
 }
 
 // RenderLayoutComponent implements interfaces.TemplateService with layout optimization
-func (ots *OptimizedTemplateService) RenderLayoutComponent(layoutPath string, content templ.Component, ctx context.Context) (templ.Component, error) {
+func (ots *templateService) RenderLayoutComponent(layoutPath string, content templ.Component, ctx context.Context) (templ.Component, error) {
 	ots.logger.Debug("Optimized layout rendering",
 		zap.String("layout_path", layoutPath))
 
@@ -145,7 +145,7 @@ func (ots *OptimizedTemplateService) RenderLayoutComponent(layoutPath string, co
 }
 
 // resolveTemplate - UNIFIED resolution strategy combining all previous approaches
-func (ots *OptimizedTemplateService) resolveTemplate(routePath string, routerCtx interfaces.RouterContext) (templ.Component, error) {
+func (ots *templateService) resolveTemplate(routePath string, routerCtx interfaces.RouterContext) (templ.Component, error) {
 	// Extract combined parameters for caching
 	allParams := make(map[string]string)
 	for k, v := range routerCtx.GetAllURLParams() {
@@ -206,7 +206,7 @@ func (ots *OptimizedTemplateService) resolveTemplate(routePath string, routerCtx
 }
 
 // executeTemplateFunction handles different template function signatures
-func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func() interface{}, routerCtx interfaces.RouterContext, routePath, templateUUID string) (templ.Component, error) {
+func (ots *templateService) executeTemplateFunction(templateFunc func() interface{}, routerCtx interfaces.RouterContext, routePath, templateUUID string) (templ.Component, error) {
 	result := templateFunc()
 
 	// Handle parameterless template functions (most common case)
@@ -263,7 +263,7 @@ func (ots *OptimizedTemplateService) executeTemplateFunction(templateFunc func()
 
 // isDataServiceTemplate checks if the result is a DataService template function
 // DataService templates have signature: func(*SomeDataType) templ.Component
-func (ots *OptimizedTemplateService) isDataServiceTemplate(result interface{}) bool {
+func (ots *templateService) isDataServiceTemplate(result interface{}) bool {
 	resultType := reflect.TypeOf(result)
 
 	// Must be a function
@@ -296,7 +296,7 @@ func (ots *OptimizedTemplateService) isDataServiceTemplate(result interface{}) b
 }
 
 // convertLayoutPathToRoute converts layout path to route pattern (fail-fast)
-func (ots *OptimizedTemplateService) convertLayoutPathToRoute(layoutPath string) string {
+func (ots *templateService) convertLayoutPathToRoute(layoutPath string) string {
 	if layoutPath == "" {
 		err := shared.NewValidationError("layoutPath cannot be empty").
 			WithDetails("invalid template path provided")
@@ -329,7 +329,7 @@ func (ots *OptimizedTemplateService) convertLayoutPathToRoute(layoutPath string)
 }
 
 // executeDataServiceTemplate handles DataService template execution with optimized method calls
-func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc interface{}, routerCtx interfaces.RouterContext, routePath, templateUUID string) (templ.Component, error) {
+func (ots *templateService) executeDataServiceTemplate(templateFunc interface{}, routerCtx interfaces.RouterContext, routePath, templateUUID string) (templ.Component, error) {
 	// Get DataService info from template registry
 	dataServiceInfo, exists := ots.templateRegistry.GetDataServiceInfo(templateUUID)
 	if !exists {
@@ -343,22 +343,24 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 		zap.String("route", routePath),
 		zap.String("data_service_interface", dataServiceInfo.InterfaceType))
 
-	// OPTIMIZATION: Use GenericDataService interface (no reflection for DataService calls)
-	genericDataService, err := ots.dataResolver.ResolveGenericDataService(dataServiceInfo.InterfaceType)
+	// Use specific method resolution
+	dataServiceWrapper, err := ots.dataResolver.ResolveDataService(dataServiceInfo.InterfaceType)
 	if err != nil {
-		return nil, shared.NewDependencyInjectionError("failed to resolve generic data service").
-			WithDetails("DataService not found or cannot be wrapped as GenericDataService").
+		return nil, shared.NewDependencyInjectionError("failed to resolve data service").
+			WithDetails("DataService not found or does not implement Get<StructName>() method").
 			WithCause(err).
 			WithContext("interface_type", dataServiceInfo.InterfaceType).
 			WithContext("route", routePath).
 			WithContext("template_uuid", templateUUID)
 	}
 
-	ots.logger.Debug("Using GenericDataService interface (optimized, no reflection for service call)",
+	ots.logger.Debug("Using specific Get<StructName>() method pattern",
 		zap.String("interface_type", dataServiceInfo.InterfaceType))
 
-	// Call GetData directly on the generic interface (no reflection!)
-	data, err := genericDataService.GetData(routerCtx)
+	// Call GetData on the specific method wrapper
+	data, err := dataServiceWrapper.(interface {
+		GetData(routerCtx interfaces.RouterContext) (any, error)
+	}).GetData(routerCtx)
 	if err != nil {
 		return nil, err
 	}
@@ -371,7 +373,7 @@ func (ots *OptimizedTemplateService) executeDataServiceTemplate(templateFunc int
 }
 
 // executeTemplateWithReflection executes template function using reflection (fallback)
-func (ots *OptimizedTemplateService) executeTemplateWithReflection(templateFunc interface{}, data interface{}, routePath, templateUUID string) (templ.Component, error) {
+func (ots *templateService) executeTemplateWithReflection(templateFunc interface{}, data interface{}, routePath, templateUUID string) (templ.Component, error) {
 	// Call template function with data using reflection
 	funcValue := reflect.ValueOf(templateFunc)
 
@@ -418,7 +420,7 @@ func (ots *OptimizedTemplateService) executeTemplateWithReflection(templateFunc 
 // executeDataServiceTemplateWithReflection executes DataService template using reflection (fallback)
 
 // ClearCache clears the template cache (useful for development)
-func (ots *OptimizedTemplateService) ClearCache() {
+func (ots *templateService) ClearCache() {
 	ots.cacheService.ClearAll()
 	ots.logger.Info("Template cache cleared")
 }

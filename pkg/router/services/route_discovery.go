@@ -161,7 +161,7 @@ func (rd *routeDiscoveryImpl) generateTemplateFilePathFromPattern(routePattern s
 			// Convert $id to id_
 			paramName := strings.TrimPrefix(part, "$")
 			pathParts = append(pathParts, paramName+"_")
-		} else if part == "{locale}" || (len(part) == 2 && (part == "en" || part == "de" || part == "fr" || part == "es")) {
+		} else if part == "{locale}" || rd.isLocaleCode(part) {
 			// Handle locale parameters - both placeholder {locale} and actual locale codes
 			pathParts = append(pathParts, "locale_")
 		} else if strings.HasPrefix(part, "{") && strings.HasSuffix(part, "}") {
@@ -180,147 +180,24 @@ func (rd *routeDiscoveryImpl) generateTemplateFilePathFromPattern(routePattern s
 }
 
 // extractTemplateFileFromRegistryKey extracts the template file path from a template registry key
-// Uses the routeMapping to find the original template path by regenerating keys
-// Template key format: "app/components/footer.templ#Footer" or hash format
+// Uses the template metadata directly to get the correct template path
+// Template key format: MD5 hash (e.g., "7210696de26402b63095cea9005a4b7c")
 // Returns: "app/components/footer.templ"
 func (rd *routeDiscoveryImpl) extractTemplateFileFromRegistryKey(templateKey, routePattern string) string {
-	// First try to split by # to separate the path from the template name
-	parts := strings.Split(templateKey, "#")
-	if len(parts) >= 2 && parts[0] != "" {
-		templatePath := parts[0]
-		rd.logger.Debug("Extracted template file path from registry key",
-			zap.String("template_key", templateKey),
-			zap.String("template_file", templatePath))
-		return templatePath
-	}
-
-	// If it's a hash format, use the routeMapping to find the original template path
-	// We know the routePattern maps to this templateKey, so we can try to reconstruct
-	// the original template path by testing common patterns
-	routeMapping := rd.templateRegistry.GetRouteToTemplateMapping()
-
-	// Look for the current route in the mapping to confirm our templateKey
-	if mappedKey, exists := routeMapping[routePattern]; exists && mappedKey == templateKey {
-		// Try different template name patterns for this route
-		candidateTemplateNames := []string{"Page", "Footer", "Navbar", "Error", "Layout"}
-
-		for _, templateName := range candidateTemplateNames {
-			// Generate candidate template path based on route pattern
-			candidatePath := rd.buildCandidatePathFromRoute(routePattern)
-			if candidatePath != "" {
-				// Generate the key this path would create
-				candidateKey := shared.GenerateTemplateKey(candidatePath + "#" + templateName)
-
-				rd.logger.Debug("Testing candidate template path",
-					zap.String("route_pattern", routePattern),
-					zap.String("candidate_path", candidatePath),
-					zap.String("template_name", templateName),
-					zap.String("expected_key", candidateKey),
-					zap.String("target_key", templateKey))
-
-				if candidateKey == templateKey {
-					rd.logger.Debug("Found matching template path",
-						zap.String("template_key", templateKey),
-						zap.String("route_pattern", routePattern),
-						zap.String("matched_path", candidatePath))
-					return candidatePath
-				}
-			}
+	// Use the template metadata to get the correct template path
+	if metadata, err := rd.templateRegistry.GetTemplateMetadata(templateKey); err == nil {
+		if metadata.TemplatePath != "" {
+			rd.logger.Debug("Extracted template file path from registry metadata",
+				zap.String("template_key", templateKey),
+				zap.String("route_pattern", routePattern),
+				zap.String("template_file", metadata.TemplatePath))
+			return metadata.TemplatePath
 		}
 	}
 
 	rd.logger.Warn("Could not extract template file path from registry key",
 		zap.String("template_key", templateKey),
 		zap.String("route_pattern", routePattern))
-	return ""
-}
-
-// buildCandidatePathFromRoute builds a candidate template path from route pattern using registry metadata
-func (rd *routeDiscoveryImpl) buildCandidatePathFromRoute(routePattern string) string {
-	// Get route-to-template mapping from registry
-	routeMapping := rd.templateRegistry.GetRouteToTemplateMapping()
-
-	// Look for exact route match first
-	if templateKey, exists := routeMapping[routePattern]; exists {
-		// Get template metadata from registry
-		if metadata, err := rd.templateRegistry.GetTemplateMetadata(templateKey); err == nil {
-			if metadata.TemplatePath != "" {
-				rd.logger.Debug("Found template path from registry metadata",
-					zap.String("route_pattern", routePattern),
-					zap.String("template_key", templateKey),
-					zap.String("template_path", metadata.TemplatePath))
-				return metadata.TemplatePath
-			}
-		}
-	}
-
-	// If no exact match, try to find templates with matching component name
-	// Extract the last segment as potential component name (generic approach)
-	parts := strings.Split(strings.Trim(routePattern, "/"), "/")
-	if len(parts) >= 1 {
-		potentialComponentName := parts[len(parts)-1]
-
-		// Search all templates for matching component name (regardless of path structure)
-		allMetadata := rd.templateRegistry.GetAllTemplateMetadata()
-		for _, metadata := range allMetadata {
-			if metadata.Type == "component" && metadata.ComponentName == potentialComponentName {
-				rd.logger.Debug("Found component template by name",
-					zap.String("route_pattern", routePattern),
-					zap.String("component_name", potentialComponentName),
-					zap.String("template_path", metadata.TemplatePath))
-				return metadata.TemplatePath
-			}
-		}
-	}
-
-	rd.logger.Warn("Could not determine template path from registry",
-		zap.String("route_pattern", routePattern))
-	return ""
-}
-
-// generateCandidateTemplatePath generates a candidate template file path from a route pattern
-// This is a generic approach that learns from existing template registry patterns
-func (rd *routeDiscoveryImpl) generateCandidateTemplatePath(routePattern string) string {
-	// Analyze existing route mappings to understand the pattern
-	routeMapping := rd.templateRegistry.GetRouteToTemplateMapping()
-
-	// Find similar routes to learn the pattern
-	for existingRoute, templateKey := range routeMapping {
-		// Try to extract template path from non-hash keys
-		if parts := strings.Split(templateKey, "#"); len(parts) >= 2 && parts[0] != "" {
-			existingTemplatePath := parts[0]
-
-			// Extract the pattern by comparing routes
-			inferredPath := rd.inferTemplatePathFromExample(routePattern, existingRoute, existingTemplatePath)
-			if inferredPath != "" {
-				return inferredPath
-			}
-		}
-	}
-
-	// Fallback: use the existing generic path generation
-	return rd.generateTemplateFilePathFromPattern(routePattern)
-}
-
-// inferTemplatePathFromExample infers a template path by comparing two routes
-func (rd *routeDiscoveryImpl) inferTemplatePathFromExample(targetRoute, exampleRoute, exampleTemplatePath string) string {
-	// Split both routes into parts
-	targetParts := strings.Split(strings.Trim(targetRoute, "/"), "/")
-	exampleParts := strings.Split(strings.Trim(exampleRoute, "/"), "/")
-
-	// Split template path into parts
-	templateParts := strings.Split(exampleTemplatePath, "/")
-
-	// Find the mapping between route parts and template parts
-	// This is a simplified pattern matching - replace corresponding parts
-	if len(targetParts) == len(exampleParts) && len(templateParts) > 0 {
-		// Replace the last route part with the target's last part
-		if len(templateParts) >= 1 {
-			templateParts[len(templateParts)-1] = targetParts[len(targetParts)-1] + rd.config.GetTemplateExtension()
-			return strings.Join(templateParts, "/")
-		}
-	}
-
 	return ""
 }
 
@@ -346,8 +223,8 @@ func (rd *routeDiscoveryImpl) generateHandlerName(routePattern string) string {
 			} else {
 				handlerParts = append(handlerParts, "Id")
 			}
-		} else if len(part) == 2 && (part == "en" || part == "de" || part == "fr" || part == "es") {
-			// Handle locale
+		} else if rd.isLocaleCode(part) {
+			// Handle locale using supported locales from config service
 			handlerParts = append(handlerParts, "Locale")
 		} else {
 			// Regular part - capitalize
@@ -360,6 +237,17 @@ func (rd *routeDiscoveryImpl) generateHandlerName(routePattern string) string {
 	}
 
 	return strings.Join(handlerParts, "") + "Handler"
+}
+
+// isLocaleCode checks if a given part matches any of the supported locales from config service
+func (rd *routeDiscoveryImpl) isLocaleCode(part string) bool {
+	supportedLocales := rd.config.GetSupportedLocales()
+	for _, locale := range supportedLocales {
+		if part == locale {
+			return true
+		}
+	}
+	return false
 }
 
 // calculateRoutePrecedence calculates route precedence for ordering
@@ -385,45 +273,38 @@ func (rd *routeDiscoveryImpl) calculateRoutePrecedence(routePattern string) int 
 
 // DiscoverLayouts implements router.RouteDiscovery
 func (rd *routeDiscoveryImpl) DiscoverLayouts(scanPath string) ([]interfaces.LayoutTemplate, error) {
-	rd.logger.Debug("Discovering layouts", zap.String("scan_path", scanPath))
+	rd.logger.Debug("Discovering layouts using registry metadata", zap.String("scan_path", scanPath))
 
 	var layouts []interfaces.LayoutTemplate
 
-	err := rd.fileSystem.WalkDirectory(scanPath, func(path string, isDir bool, err error) error {
-		if err != nil {
-			return err
-		}
+	// Get all template metadata from registry
+	allMetadata := rd.templateRegistry.GetAllTemplateMetadata()
 
-		// Skip directories
-		if isDir {
-			return nil
-		}
-
+	for templateKey, metadata := range allMetadata {
 		// Only process layout templates
-		if !rd.isLayoutTemplate(path) {
-			return nil
+		if metadata.Type != "layout" {
+			continue
 		}
 
-		layout, err := rd.createLayoutFromTemplate(path, scanPath)
+		rd.logger.Debug("Found layout template from registry",
+			zap.String("template_key", templateKey),
+			zap.String("template_path", metadata.TemplatePath),
+			zap.String("component_name", metadata.ComponentName))
+
+		// Create layout from registry metadata
+		layout, err := rd.createLayoutFromMetadata(metadata, scanPath)
 		if err != nil {
-			rd.logger.Warn("Failed to create layout from template",
-				zap.String("template", path),
+			rd.logger.Warn("Failed to create layout from registry metadata",
+				zap.String("template_key", templateKey),
+				zap.String("template_path", metadata.TemplatePath),
 				zap.Error(err))
-			return nil // Continue processing other files
+			continue // Continue processing other templates
 		}
 
 		layouts = append(layouts, layout)
-		return nil
-	})
-
-	if err != nil {
-		return nil, shared.NewRouteError("Failed to walk directory during layout discovery").
-			WithCause(err).
-			WithContext("scan_path", scanPath).
-			WithContext("operation", "layout_discovery")
 	}
 
-	rd.logger.Info("Layout discovery completed",
+	rd.logger.Info("Layout discovery completed using registry",
 		zap.String("scan_path", scanPath),
 		zap.Int("layouts_found", len(layouts)))
 
@@ -432,101 +313,84 @@ func (rd *routeDiscoveryImpl) DiscoverLayouts(scanPath string) ([]interfaces.Lay
 
 // DiscoverErrorTemplates implements router.RouteDiscovery
 func (rd *routeDiscoveryImpl) DiscoverErrorTemplates(scanPath string) ([]interfaces.ErrorTemplate, error) {
-	rd.logger.Debug("Discovering error templates", zap.String("scan_path", scanPath))
+	rd.logger.Debug("Discovering error templates using registry metadata", zap.String("scan_path", scanPath))
 
 	var errorTemplates []interfaces.ErrorTemplate
 
-	err := rd.fileSystem.WalkDirectory(scanPath, func(path string, isDir bool, err error) error {
-		if err != nil {
-			return err
-		}
+	// Get all template metadata from registry
+	allMetadata := rd.templateRegistry.GetAllTemplateMetadata()
 
-		// Skip directories
-		if isDir {
-			return nil
-		}
-
+	for templateKey, metadata := range allMetadata {
 		// Only process error templates
-		if !rd.isErrorTemplate(path) {
-			return nil
+		if metadata.Type != interfaces.TemplateTypeError {
+			continue
 		}
 
-		errorTemplate, err := rd.createErrorTemplateFromTemplate(path, scanPath)
+		rd.logger.Debug("Found error template from registry",
+			zap.String("template_key", templateKey),
+			zap.String("template_path", metadata.TemplatePath),
+			zap.String("component_name", metadata.ComponentName))
+
+		// Create error template from registry metadata
+		errorTemplate, err := rd.createErrorTemplateFromMetadata(metadata, scanPath)
 		if err != nil {
-			rd.logger.Warn("Failed to create error template from template",
-				zap.String("template", path),
+			rd.logger.Warn("Failed to create error template from registry metadata",
+				zap.String("template_key", templateKey),
+				zap.String("template_path", metadata.TemplatePath),
 				zap.Error(err))
-			return nil // Continue processing other files
+			continue // Continue processing other templates
 		}
 
 		errorTemplates = append(errorTemplates, errorTemplate)
-		return nil
-	})
-
-	if err != nil {
-		return nil, shared.NewRouteError("Failed to walk directory during error template discovery").
-			WithCause(err).
-			WithContext("scan_path", scanPath).
-			WithContext("operation", "error_template_discovery")
 	}
 
-	rd.logger.Info("Error template discovery completed",
+	rd.logger.Info("Error template discovery completed using registry",
 		zap.String("scan_path", scanPath),
 		zap.Int("error_templates_found", len(errorTemplates)))
 
 	return errorTemplates, nil
 }
 
-// isLayoutTemplate checks if a template file is a layout template
-func (rd *routeDiscoveryImpl) isLayoutTemplate(path string) bool {
-	return strings.Contains(path, "layout.templ")
-}
-
-// isErrorTemplate checks if a template file is an error template
-func (rd *routeDiscoveryImpl) isErrorTemplate(path string) bool {
-	return strings.Contains(path, "error.templ")
-}
-
-// createLayoutFromTemplate creates a layout template from a template file
-func (rd *routeDiscoveryImpl) createLayoutFromTemplate(templatePath, scanPath string) (interfaces.LayoutTemplate, error) {
-	relativePath, err := filepath.Rel(scanPath, templatePath)
+// createLayoutFromMetadata creates a layout template from registry metadata
+func (rd *routeDiscoveryImpl) createLayoutFromMetadata(metadata *interfaces.TemplateMetadata, scanPath string) (interfaces.LayoutTemplate, error) {
+	relativePath, err := filepath.Rel(scanPath, metadata.TemplatePath)
 	if err != nil {
 		return interfaces.LayoutTemplate{}, shared.NewRouteError("Failed to get relative path for layout template").
 			WithCause(err).
-			WithContext("template_path", templatePath).
+			WithContext("template_path", metadata.TemplatePath).
 			WithContext("scan_path", scanPath).
-			WithContext("operation", "layout_template_creation")
+			WithContext("operation", "layout_template_creation_from_metadata")
 	}
 
 	// Calculate layout level based on directory depth
 	layoutLevel := strings.Count(relativePath, string(filepath.Separator))
 
 	layout := interfaces.LayoutTemplate{
-		FilePath:      templatePath,
-		DirectoryPath: filepath.Dir(templatePath),
+		FilePath:      metadata.TemplatePath,
+		DirectoryPath: filepath.Dir(metadata.TemplatePath),
 		LayoutLevel:   layoutLevel,
 	}
 
 	return layout, nil
 }
 
-// createErrorTemplateFromTemplate creates an error template from a template file
-func (rd *routeDiscoveryImpl) createErrorTemplateFromTemplate(templatePath, scanPath string) (interfaces.ErrorTemplate, error) {
-	relativePath, err := filepath.Rel(scanPath, templatePath)
+// createErrorTemplateFromMetadata creates an error template from registry metadata
+func (rd *routeDiscoveryImpl) createErrorTemplateFromMetadata(metadata *interfaces.TemplateMetadata, scanPath string) (interfaces.ErrorTemplate, error) {
+	relativePath, err := filepath.Rel(scanPath, metadata.TemplatePath)
 	if err != nil {
 		return interfaces.ErrorTemplate{}, shared.NewRouteError("Failed to get relative path for error template").
 			WithCause(err).
-			WithContext("template_path", templatePath).
+			WithContext("template_path", metadata.TemplatePath).
 			WithContext("scan_path", scanPath).
-			WithContext("operation", "error_template_creation")
+			WithContext("operation", "error_template_creation_from_metadata")
 	}
 
 	// Extract error type from path (e.g., 404, 500, etc.)
 	errorType := rd.extractErrorType(relativePath)
 
 	errorTemplate := interfaces.ErrorTemplate{
-		FilePath:        templatePath,
-		DirectoryPath:   filepath.Dir(templatePath),
+		FilePath:        metadata.TemplatePath,
+		DirectoryPath:   filepath.Dir(metadata.TemplatePath),
 		ErrorTypes:      []string{errorType},
 		PrecedenceLevel: strings.Count(relativePath, string(filepath.Separator)),
 		ErrorMessages:   make(map[int]string),

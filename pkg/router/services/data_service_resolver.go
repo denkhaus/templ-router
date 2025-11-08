@@ -1,42 +1,34 @@
 package services
 
 import (
+	"fmt"
+	"reflect"
+	"strings"
+
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 )
 
-// dataServiceResolver eliminates reflection through type-safe registration
+// dataServiceResolver resolves data services with specific method detection
 type dataServiceResolver struct {
 	injector         do.Injector
 	templateRegistry interfaces.TemplateRegistry
-	serviceRegistry  map[string]interfaces.GenericDataService
 }
 
-// NewDataServiceResolver creates a new reflection-free data service resolver
+// NewDataServiceResolver creates a new data service resolver for specific methods
 func NewDataServiceResolver(i do.Injector) (interfaces.DataServiceResolver, error) {
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 
 	return &dataServiceResolver{
 		injector:         i,
 		templateRegistry: templateRegistry,
-		serviceRegistry:  make(map[string]interfaces.GenericDataService),
 	}, nil
 }
 
-// RegisterDataService registers a data service without reflection
-func (r *dataServiceResolver) RegisterDataService(interfaceType string, service interfaces.GenericDataService) {
-	r.serviceRegistry[interfaceType] = service
-}
-
-// ResolveDataService resolves a data service by interface type without reflection
+// ResolveDataService resolves a data service by interface type with specific method detection
 func (r *dataServiceResolver) ResolveDataService(interfaceType string) (any, error) {
-	// First check the type-safe registry
-	if service, exists := r.serviceRegistry[interfaceType]; exists {
-		return service, nil
-	}
-
-	// Fall back to DI resolution for legacy services
+	// Get service info from template registry
 	dataServiceInfo := r.findDataServiceInfo(interfaceType)
 	if dataServiceInfo == nil {
 		return nil, shared.NewServiceError("data service not found").
@@ -45,66 +37,100 @@ func (r *dataServiceResolver) ResolveDataService(interfaceType string) (any, err
 	}
 
 	// Resolve the service from DI using the named dependency
-	return r.resolveNamedDataService(dataServiceInfo.InterfaceType)
-}
-
-// ResolveGenericDataService resolves a data service as generic interface without reflection
-func (r *dataServiceResolver) ResolveGenericDataService(interfaceType string) (interfaces.GenericDataService, error) {
-	// First check the type-safe registry
-	if service, exists := r.serviceRegistry[interfaceType]; exists {
-		return service, nil
-	}
-
-	// Fall back to creating a type-safe wrapper
-	service, err := r.ResolveDataService(interfaceType)
+	service, err := r.resolveNamedDataService(dataServiceInfo.InterfaceType)
 	if err != nil {
 		return nil, err
 	}
 
-	// Check if service already implements GenericDataService
-	if genericService, ok := service.(interfaces.GenericDataService); ok {
-		return genericService, nil
+	// Detect specific method - this must exist
+	specificMethodName := r.detectSpecificMethod(service)
+	if specificMethodName == "" {
+		return nil, shared.NewServiceError("data service does not implement a supported method").
+			WithDetails("Service must implement a specific Get<StructName>() method").
+			WithContext("interface_type", interfaceType).
+			WithContext("service_type", fmt.Sprintf("%T", service))
 	}
 
-	// Create a type-safe wrapper based on the service type
-	dataServiceInfo := r.findDataServiceInfo(interfaceType)
-	if dataServiceInfo == nil {
-		return nil, shared.NewServiceError("data service info not found").
-			WithContext("interface_type", interfaceType)
+	// Return service wrapped for specific method calling
+	return &specificMethodWrapper{service: service, methodName: specificMethodName}, nil
+}
+
+// HasDataService checks if a data service is registered in DI
+func (r *dataServiceResolver) HasDataService(interfaceType string) bool {
+	_, err := r.ResolveDataService(interfaceType)
+	return err == nil
+}
+
+// specificMethodWrapper wraps services that implement Get<StructName>() methods
+type specificMethodWrapper struct {
+	service    any
+	methodName string
+}
+
+// GetData calls the specific Get<StructName>() method
+func (w *specificMethodWrapper) GetData(routerCtx interfaces.RouterContext) (any, error) {
+	serviceValue := reflect.ValueOf(w.service)
+	method := serviceValue.MethodByName(w.methodName)
+	if !method.IsValid() {
+		return nil, shared.NewServiceError("specific method not found").
+			WithDetails("Method disappeared after detection").
+			WithContext("method_name", w.methodName)
 	}
 
-	// Create a reflection-free wrapper using type assertion
-	switch typedService := service.(type) {
-	case interfaces.DataService[any]:
-		return &typedDataServiceWrapper[any]{service: typedService}, nil
-	default:
-		// For services that don't implement the generic interface,
-		// we still need to use reflection minimally only during registration
-		return &legacyDataServiceWrapper{service: service}, nil
+	// Call the method with routerCtx as argument
+	results := method.Call([]reflect.Value{reflect.ValueOf(routerCtx)})
+	if len(results) != 2 {
+		return nil, shared.NewServiceError("method signature invalid").
+			WithDetails("Method must return (data, error)").
+			WithContext("method_name", w.methodName).
+			WithContext("return_count", len(results))
 	}
+
+	// Extract the data and error from the results
+	data := results[0].Interface()
+	err, _ := results[1].Interface().(error)
+
+	return data, err
 }
 
-// typedDataServiceWrapper is a type-safe wrapper for services implementing DataService[T]
-type typedDataServiceWrapper[T any] struct {
-	service interfaces.DataService[T]
-}
+// detectSpecificMethod detects Get<StructName>() methods in a service
+func (r *dataServiceResolver) detectSpecificMethod(service any) string {
+	serviceType := reflect.TypeOf(service)
 
-// GetData implements GenericDataService without reflection
-func (w *typedDataServiceWrapper[T]) GetData(routerCtx interfaces.RouterContext) (any, error) {
-	return w.service.GetData(routerCtx)
-}
+	// Look for methods that start with "Get" and return (*Struct, error)
+	for i := 0; i < serviceType.NumMethod(); i++ {
+		method := serviceType.Method(i)
 
-// legacyDataServiceWrapper provides a minimal reflection wrapper for legacy services
-type legacyDataServiceWrapper struct {
-	service any
-}
+		// Skip if method doesn't start with "Get"
+		if !strings.HasPrefix(method.Name, "Get") {
+			continue
+		}
 
-// GetData implements GenericDataService with minimal reflection (only during wrapper creation)
-func (w *legacyDataServiceWrapper) GetData(routerCtx interfaces.RouterContext) (any, error) {
-	// This should rarely be used in practice as services should be migrated to the new interface
-	return nil, shared.NewServiceError("legacy data service detected").
-		WithDetails("Service should be migrated to implement DataService[T] interface").
-		WithContext("service_type", "legacy")
+		// Check method signature: func (r) GetXxx(routerCtx RouterContext) (*Xxx, error)
+		if method.Type.NumIn() != 2 || method.Type.NumOut() != 2 {
+			continue
+		}
+
+		// Check first parameter is RouterContext
+		routerCtxType := method.Type.In(1)
+		if !routerCtxType.Implements(reflect.TypeOf((*interfaces.RouterContext)(nil)).Elem()) {
+			continue
+		}
+
+		// Check return values are (*Struct, error)
+		if !method.Type.Out(1).Implements(reflect.TypeOf((*error)(nil)).Elem()) {
+			continue
+		}
+
+		// Check first return is a pointer to a struct
+		returnType := method.Type.Out(0)
+		if returnType.Kind() == reflect.Ptr && returnType.Elem().Kind() == reflect.Struct {
+			// This is a valid Get<StructName>() method
+			return method.Name
+		}
+	}
+
+	return ""
 }
 
 // findDataServiceInfo searches the template registry for DataService info by interface type
@@ -135,10 +161,4 @@ func (r *dataServiceResolver) resolveNamedDataService(serviceName string) (any, 
 	}
 
 	return service, nil
-}
-
-// HasDataService checks if a data service is registered in DI
-func (r *dataServiceResolver) HasDataService(interfaceType string) bool {
-	_, err := r.ResolveDataService(interfaceType)
-	return err == nil
 }
