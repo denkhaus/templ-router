@@ -22,7 +22,8 @@
       "Bash(go build:*)",
       "mcp__time__get_current_time",
       "Bash(gh issue view:*)",
-      "Bash(gh issue list:*)"
+      "Bash(gh issue list:*)",
+      "mcp__chrome-devtools__navigate_page"
     ],
     "deny": [],
     "ask": []

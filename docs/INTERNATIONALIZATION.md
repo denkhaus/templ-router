@@ -252,6 +252,89 @@ templ Footer() {
 }
 ```
 
+## Locale-Aware Metadata
+
+Metadata can also be localized just like translations. This allows you to have different metadata values for different locales.
+
+### Locale-Specific Metadata Structure
+
+```yaml
+# app/components/footer.templ.yaml
+i18n:
+  en:
+    copyright: "© 2024 My Company"
+    privacy: "Privacy Policy"
+    terms: "Terms of Service"
+  de:
+    copyright: "© 2024 Meine Firma"
+    privacy: "Datenschutz"
+    terms: "Nutzungsbedingungen"
+
+metadata:
+  en:
+    company_name: "My Company"
+    company_email: "info@mycompany.com"
+    region: "North America"
+  de:
+    company_name: "Meine Firma"
+    company_email: "info@meinefirma.de"
+    region: "Europa"
+  # Global fallback values
+  version: "1.0.0"
+  author: "Development Team"
+```
+
+### Metadata Resolution Priority
+
+1. **Locale-specific metadata** (highest priority)
+2. **Global metadata** (fallback for all locales)
+3. **Default fallback** (if no locale match)
+
+### Usage in Templates
+
+```go
+// app/components/footer.templ
+package components
+
+templ Footer() {
+    <footer class="bg-gray-800 text-white p-4">
+        <p>{ i18n.T(ctx, "copyright") }</p>
+        <div class="flex space-x-4 text-sm">
+            <a href="/privacy">{ i18n.T(ctx, "privacy") }</a>
+            <a href="/terms">{ i18n.T(ctx, "terms") }</a>
+        </div>
+        <div class="text-xs mt-2">
+            <p>{ metadata.M(ctx, "company_name") }</p>
+            <p>{ metadata.M(ctx, "company_email") }</p>
+            <p>{ metadata.M(ctx, "region") }</p>
+            <p>Version: { metadata.M(ctx, "version") }</p>
+            <p>Author: { metadata.M(ctx, "author") }</p>
+        </div>
+    </footer>
+}
+```
+
+### How It Works
+
+- **English locale** (`/en/page`): Uses `metadata.en.company_name`, `metadata.en.company_email`, etc.
+- **German locale** (`/de/page`): Uses `metadata.de.company_name`, `metadata.de.company_email`, etc.
+- **Fallback values**: `metadata.version` and `metadata.author` are available for all locales
+- **Unknown locale**: Falls back to global metadata values
+
+### Backward Compatibility
+
+Existing flat metadata structures continue to work:
+
+```yaml
+# Existing structure (still supported)
+metadata:
+  company_name: "My Company"
+  version: "1.0.0"
+  author: "Development Team"
+```
+
+This ensures existing templates continue to work without changes while enabling new locale-aware functionality.
+
 ### Component Route Access
 
 Components are accessible via their own routes with i18n:

@@ -1,0 +1,14 @@
+i18n:
+  en:
+    page_title: "I18n Component Test Page"
+    page_description: "This page tests i18n behavior with nested components"
+  de:
+    page_title: "I18N-Komponenten-Testseite"
+    page_description: "Diese Seite testet i18n-Verhalten mit verschachtelten Komponenten"
+
+metadata:
+  page_data: "Test Page Data EN"
+  page_version: "2.0.0"
+
+auth:
+  type: "Public"

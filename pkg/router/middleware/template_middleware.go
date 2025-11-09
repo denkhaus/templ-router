@@ -183,10 +183,13 @@ func (tm *templateMiddleware) loadTemplateMetadataAndI18n(ctx context.Context, t
 
 	// Load hierarchical metadata and i18n: Layout -> Page -> Component
 	// Components have highest priority and override parent settings
-	mergedConfig, mergedTranslations := tm.loadHierarchicalMetadataAndI18n(ctx, metadata)
+	mergedConfig, mergedTranslations, componentsConfigs := tm.loadHierarchicalMetadataAndI18n(ctx, metadata)
 
 	// Add merged template config to context for metadata.M() access
 	ctx = context.WithValue(ctx, shared.TemplateConfigKey, mergedConfig)
+
+	// Add components metadata to context for component-specific metadata resolution
+	ctx = context.WithValue(ctx, shared.ComponentsMetadataKey, componentsConfigs)
 
 	// Update i18n context with merged translations
 	if i18nData, ok := ctx.Value(shared.I18nDataKey).(*i18n.I18nData); ok {
@@ -231,7 +234,7 @@ func (tm *templateMiddleware) buildCorrectYAMLPath(registryYAMLPath string) stri
 
 // loadHierarchicalMetadataAndI18n loads and merges metadata and i18n data in hierarchical order
 // Layout -> Page -> Component (higher priority overrides lower priority)
-func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Context, currentMetadata *interfaces.TemplateMetadata) (*shared.ConfigFile, map[string]string) {
+func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Context, currentMetadata *interfaces.TemplateMetadata) (*shared.ConfigFile, map[string]string, map[string]*shared.ConfigFile) {
 	// Step 1: Load layout metadata (lowest priority)
 	layoutConfig := tm.loadLayoutMetadata()
 
@@ -263,7 +266,7 @@ func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Contex
 		zap.Int("merged_metadata_count", len(tm.getRouteMetadata(mergedConfig))),
 		zap.Int("merged_translation_count", len(mergedTranslations)))
 
-	return mergedConfig, mergedTranslations
+	return mergedConfig, mergedTranslations, componentsConfigs
 }
 
 // loadLayoutMetadata loads layout metadata if available

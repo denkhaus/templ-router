@@ -111,13 +111,22 @@ Components can have their own metadata:
 ```yaml
 # app/components/footer.templ.yaml
 metadata:
-  company_name: "My Company"
+  en:
+    company_name: "My Company"
+    region: "North America"
+  de:
+    company_name: "Meine Firma"
+    region: "Europa"
+  # Global fallback values
   version: "1.0.0"
+  author: "Development Team"
 
 i18n:
   en: { copyright: "© 2024 My Company" }
   de: { copyright: "© 2024 Meine Firma" }
 ```
+
+> **Note**: Metadata can now be localized! See [Internationalization](INTERNATIONALIZATION.md) for complete locale-aware metadata documentation.
 
 ## Template Inheritance
 

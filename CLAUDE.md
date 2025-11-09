@@ -100,6 +100,7 @@ Key Architecture Components
 2. **Clean Architecture with Dependency Injection**
 
 - **DI Container**: Built on samber/do/v2 with separate registration for:
+
    - Router services (configurable via prefix, default "TR")
    - Application services (options pattern)
 
@@ -112,12 +113,14 @@ Key Architecture Components
 
 - **Templ Files**: Go-based templates with type safety
 - **Metadata System**: `.templ.yaml` files for:
+
    - Authentication configuration
    - Internationalization translations
    - Template metadata
    - Dynamic parameter validation
 
 - **Component Metadata**: Self-contained component configurations:
+
    - Components can have their own `.templ.yaml` files (e.g., `footer.templ.yaml`)
    - Component metadata overrides page metadata when accessed via `/components/*` routes
    - Support for component-specific i18n, auth settings, and metadata
@@ -152,6 +155,7 @@ Key Architecture Components
 
 - **Automatic injection** based on template requirements
 - **RouterContext interface** for unified parameter access:
+
    - URL parameters from route paths
    - Query parameters from URL strings
    - Request context access
@@ -460,7 +464,9 @@ metadata:
   company_name: "My Company"
   company_email: "info@company.com"
   company_address: "123 Main Street, City"
-  version: "1.0.0" auth:
+  version: "1.0.0"
+
+auth:
   type: "Public"
 ```
 
@@ -480,7 +486,7 @@ templ Footer() {
     companyEmail := metadata.M(ctx, "company_email")
     companyName := metadata.M(ctx, "company_name")
 
-<footer class="bg-gray-800 text-white p-4 mt-8">
+    <footer class="bg-gray-800 text-white p-4 mt-8">
         <div class="container mx-auto text-center">
             <p>{ i18n.T(ctx, "footer_copyright") }</p>
             <div class="flex justify-center space-x-4 mt-2 text-sm">
@@ -525,8 +531,7 @@ Internationalization System
 Translation File Structure
 
 ```yaml
-#
-app/locale_/dashboard/page.templ.yaml
+#app/locale_/dashboard/page.templ.yaml
 i18n:
   en:
     page_title: "Dashboard"
@@ -573,8 +578,7 @@ Auth Types
 Configuration
 
 ```yaml
-#
-.templ.yaml file
+# *.templ.yaml file
 auth:
   type: "AdminRequired"
   redirect_url: "/login"
@@ -616,9 +620,7 @@ Critical Development Rules
 3. **NO Production Code Replacement**
 
    - This is a PRODUCTION PROJECT, not test example
-   - Adapt real implementations for DI, don't replace them 5. **DI Container Rules**
-   - ONLY provider registrations in the container
-   - NO logic in the container
+   - Adapt real implementations for DI, don't replace them 
 
 4. **Always View Code Before Editing**
 
@@ -627,6 +629,10 @@ Critical Development Rules
    - Use `knot` to structure work and track tasks
    - Create issues for complex tasks
    - NEVER mechanically process tasks without doing actual work
+
+5. **DI Container Rules**
+   - ONLY provider registrations in the container
+   - NO logic in the container 
 
 ## 
 

@@ -34,7 +34,7 @@ type ConfigFile struct {
 	Dynamic *DynamicConfig `yaml:"dynamic,omitempty" json:"dynamic,omitempty"`
 }
 
-// MetadataConfig contains route metadata with nested structure support
+// MetadataConfig contains route metadata with nested structure and locale support
 type MetadataConfig struct {
 	// Standard metadata fields
 	Title       string   `yaml:"title,omitempty" json:"title,omitempty"`
@@ -43,7 +43,7 @@ type MetadataConfig struct {
 	Author      string   `yaml:"author,omitempty" json:"author,omitempty"`
 	Version     string   `yaml:"version,omitempty" json:"version,omitempty"`
 
-	// Custom metadata fields - allows for arbitrary nested structure
+	// Custom metadata fields - supports both flat and locale-specific structure
 	Custom map[string]interface{} `yaml:",inline" json:",inline"`
 }
 
@@ -128,6 +128,72 @@ type ValidationRule struct {
 	Settings map[string]interface{} `yaml:",inline" json:",inline"`
 }
 
+// processMetadataData processes raw metadata data and extracts standard fields while preserving custom fields
+func processMetadataData(rawMetadataData interface{}) *MetadataConfig {
+	metadataConfig := &MetadataConfig{
+		Custom: make(map[string]interface{}),
+	}
+
+	// Convert to map[string]interface{} for easier processing
+	var metadataMap map[string]interface{}
+	switch v := rawMetadataData.(type) {
+	case map[interface{}]interface{}:
+		converted := convertInterfaceMapToStringMap(v)
+		if convertedMap, ok := converted.(map[string]interface{}); ok {
+			metadataMap = convertedMap
+		}
+	case map[string]interface{}:
+		metadataMap = v
+	default:
+		return metadataConfig
+	}
+
+	// Extract standard fields (for backward compatibility)
+	if title, ok := metadataMap["title"].(string); ok {
+		metadataConfig.Title = title
+	}
+	if description, ok := metadataMap["description"].(string); ok {
+		metadataConfig.Description = description
+	}
+	if keywordsList, ok := metadataMap["keywords"].([]interface{}); ok {
+		keywords := make([]string, len(keywordsList))
+		for i, keyword := range keywordsList {
+			if keywordStr, ok := keyword.(string); ok {
+				keywords[i] = keywordStr
+			}
+		}
+		metadataConfig.Keywords = keywords
+	}
+	if author, ok := metadataMap["author"].(string); ok {
+		metadataConfig.Author = author
+	}
+	if version, ok := metadataMap["version"].(string); ok {
+		metadataConfig.Version = version
+	}
+
+	// Copy ALL remaining fields to custom (including locale-specific structure)
+	for key, value := range metadataMap {
+		if !isStandardMetadataField(key) {
+			metadataConfig.Custom[key] = value
+		}
+	}
+
+	return metadataConfig
+}
+
+// isStandardMetadataField checks if a key is a standard metadata field
+func isStandardMetadataField(key string) bool {
+	standardFields := []string{
+		"title", "description", "keywords", "author", "version",
+	}
+	for _, field := range standardFields {
+		if key == field {
+			return true
+		}
+	}
+	return false
+}
+
 // ParseYAMLMetadata parses YAML metadata files with validation
 func ParseYAMLMetadata(filePath string) (bool, *ConfigFile, error) {
 	if filePath == "" {
@@ -174,6 +240,16 @@ func ParseYAMLMetadata(filePath string) (bool, *ConfigFile, error) {
 		configFile.I18n = &I18nConfig{
 			FlatMappings: make(map[string]string),
 			Translations: make(map[string]*LocaleTranslations),
+		}
+	}
+
+	// Process metadata data to handle locale-aware format
+	if metadataData, ok := rawConfig["metadata"]; ok {
+		configFile.Metadata = processMetadataData(metadataData)
+	} else {
+		// Ensure Metadata is initialized
+		configFile.Metadata = &MetadataConfig{
+			Custom: make(map[string]interface{}),
 		}
 	}
 
@@ -481,6 +557,52 @@ func (cf *ConfigFile) GetRouteMetadata() interface{} {
 	// Add custom fields
 	for key, value := range cf.Metadata.Custom {
 		result[key] = value
+	}
+
+	return result
+}
+
+// GetRouteMetadataWithLocale returns metadata for a specific locale
+func (cf *ConfigFile) GetRouteMetadataWithLocale(locale string) map[string]interface{} {
+	if cf.Metadata == nil {
+		return make(map[string]interface{})
+	}
+
+	result := make(map[string]interface{})
+
+	// Add standard fields
+	if cf.Metadata.Title != "" {
+		result["title"] = cf.Metadata.Title
+	}
+	if cf.Metadata.Description != "" {
+		result["description"] = cf.Metadata.Description
+	}
+	if len(cf.Metadata.Keywords) > 0 {
+		result["keywords"] = cf.Metadata.Keywords
+	}
+	if cf.Metadata.Author != "" {
+		result["author"] = cf.Metadata.Author
+	}
+	if cf.Metadata.Version != "" {
+		result["version"] = cf.Metadata.Version
+	}
+
+	// Add global custom fields (fallback for all locales)
+	for key, value := range cf.Metadata.Custom {
+		if !IsValidLocaleCode(key) {
+			result[key] = value
+		}
+	}
+
+	// Override with locale-specific metadata if available
+	if locale != "" {
+		if localeData, exists := cf.Metadata.Custom[locale]; exists {
+			if localeMap, ok := localeData.(map[string]interface{}); ok {
+				for key, value := range localeMap {
+					result[key] = value
+				}
+			}
+		}
 	}
 
 	return result

@@ -1,0 +1,23 @@
+package components
+
+import "github.com/denkhaus/templ-router/pkg/router/i18n"
+import "github.com/denkhaus/templ-router/pkg/router/metadata"
+
+// TestNestedComponent demonstrates the issue when components are embedded in pages
+// This component has its own metadata and i18n translations
+templ TestNestedComponent() {
+	<div class="border-2 border-red-500 p-4 m-2">
+		<h3 class="text-lg font-bold text-red-700">Test Nested Component</h3>
+		<p class="text-sm">This component should show its own translations:</p>
+		<ul class="list-disc ml-6">
+			<li><strong>Component Title:</strong> { i18n.T(ctx, "nested_component_title") }</li>
+			<li><strong>Component Message:</strong> { i18n.T(ctx, "nested_component_message") }</li>
+			<li><strong>Component Data:</strong> { metadata.M(ctx, "nested_component_data") }</li>
+		</ul>
+		<div class="text-xs text-gray-600 mt-2">
+			<p>Debug info:</p>
+			<p>- Current Locale: { i18n.GetCurrentLocale(ctx) }</p>
+			<p>- Current Template: { i18n.GetCurrentTemplate(ctx) }</p>
+		</div>
+	</div>
+}

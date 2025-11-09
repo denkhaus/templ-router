@@ -16,7 +16,9 @@ i18n:
     switch_language: "Switch Language"
     view_in_german: "View in German"
     view_in_english: "View in English"
-    
+    navigation:
+      back_to_dashboard: "Back to Dashboard"
+
   de:
     error_title: "Dashboard-Fehler"
     error_404_message: "Die angeforderte Dashboard-Seite konnte nicht gefunden werden."
@@ -34,6 +36,8 @@ i18n:
     switch_language: "Sprache wechseln"
     view_in_german: "Auf Deutsch anzeigen"
     view_in_english: "Auf Englisch anzeigen"
+    navigation:
+      back_to_dashboard: "Zurück zum Dashboard"
 
 auth:
   type: "UserRequired"
