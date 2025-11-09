@@ -64,13 +64,11 @@ func (c *Container) RegisterRouterServices(ctx context.Context, configPraefix st
 	do.Provide(c.injector, cache.NewCacheService)
 
 	do.Provide(c.injector, auth.NewAuthHandlers)
-	do.Provide(c.injector, services.NewAuthService)
+	do.Provide(c.injector, auth.NewAuthService)
 	do.Provide(c.injector, services.NewI18nService)
 	do.Provide(c.injector, appservices.NewComponentMetadataService)
 
-	// UNIFIED TEMPLATE ARCHITECTURE - Performance Optimized
-	// Note: This will use the externally registered TemplateRegistry
-	do.Provide(c.injector, services.NewOptimizedTemplateService)
+	do.Provide(c.injector, services.NewTemplateService)
 
 	// Data Service Resolution
 	do.Provide(c.injector, services.NewDataServiceResolver)
@@ -79,7 +77,7 @@ func (c *Container) RegisterRouterServices(ctx context.Context, configPraefix st
 	do.Provide(c.injector, services.NewValidationOrchestrator)
 
 	// Register middleware services - constructors already return interfaces!
-	do.Provide(c.injector, middleware.NewProductiveFileSystemChecker)
+	do.Provide(c.injector, middleware.NewFileSystemChecker)
 	do.Provide(c.injector, middleware.NewLayoutService)
 	do.Provide(c.injector, middleware.NewDedicatedErrorTemplateService)
 	do.Provide(c.injector, middleware.NewErrorServiceCore)
@@ -101,7 +99,6 @@ func (c *Container) RegisterRouterServices(ctx context.Context, configPraefix st
 	do.Provide(c.injector, router.NewRouterBootstrap)
 
 	return c.injector
-
 }
 
 // GetRouter returns the clean router from the container

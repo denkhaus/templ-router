@@ -258,7 +258,7 @@ func TestDynamicSettings_Validation(t *testing.T) {
 		{
 			name: "Valid dynamic settings",
 			settings: &shared.DynamicConfig{
-				Rules: map[string]*DynamicParameterConfig{
+				Rules: map[string]*shared.ValidationRule{
 					"id": {
 						Name:    "id",
 						Type:    "numeric",
@@ -276,7 +276,7 @@ func TestDynamicSettings_Validation(t *testing.T) {
 		{
 			name: "Empty parameters",
 			settings: &shared.DynamicConfig{
-				Rules: map[string]*DynamicParameterConfig{},
+				Rules: map[string]*shared.ValidationRule{},
 			},
 			valid: true,
 		},
@@ -317,12 +317,12 @@ func TestDynamicSettings_Validation(t *testing.T) {
 func TestDynamicParameterConfig_Validation(t *testing.T) {
 	tests := []struct {
 		name   string
-		config DynamicParameterConfig
+		config shared.ValidationRule
 		valid  bool
 	}{
 		{
 			name: "Valid parameter config",
-			config: DynamicParameterConfig{
+			config: shared.ValidationRule{
 				Name:    "id",
 				Type:    "numeric",
 				Pattern: "^[0-9]+$",
@@ -331,7 +331,7 @@ func TestDynamicParameterConfig_Validation(t *testing.T) {
 		},
 		{
 			name: "Config without type",
-			config: DynamicParameterConfig{
+			config: shared.ValidationRule{
 				Name:    "id",
 				Type:    "",
 				Pattern: "^[0-9]+$",
@@ -340,7 +340,7 @@ func TestDynamicParameterConfig_Validation(t *testing.T) {
 		},
 		{
 			name: "Config without name",
-			config: DynamicParameterConfig{
+			config: shared.ValidationRule{
 				Name:    "",
 				Type:    "numeric",
 				Pattern: "^[0-9]+$",
@@ -349,7 +349,7 @@ func TestDynamicParameterConfig_Validation(t *testing.T) {
 		},
 		{
 			name: "Minimal valid config",
-			config: DynamicParameterConfig{
+			config: shared.ValidationRule{
 				Name: "slug",
 				Type: "alphanumeric",
 			},

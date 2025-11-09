@@ -110,8 +110,6 @@ type Session struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-// Template represents a *.templ file containing UI components
-// CONSOLIDATES: router/models.go:30 and related template definitions
 type Template struct {
 	// File information
 	FilePath      string `json:"file_path"`
@@ -124,9 +122,6 @@ type Template struct {
 	Content       string                 `json:"content,omitempty"`
 	Params        map[string]interface{} `json:"params,omitempty"`
 }
-
-// DynamicParameterConfig is an alias to the shared.ValidationRule for backward compatibility
-type DynamicParameterConfig = shared.ValidationRule
 
 // InternationalizationIdentifier represents a structured key for translations
 type InternationalizationIdentifier struct {

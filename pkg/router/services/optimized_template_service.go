@@ -32,8 +32,8 @@ type templateService struct {
 	dataResolver interfaces.DataServiceResolver
 }
 
-// NewOptimizedTemplateService creates the unified template service
-func NewOptimizedTemplateService(i do.Injector) (interfaces.TemplateService, error) {
+// NewTemplateService creates the unified template service
+func NewTemplateService(i do.Injector) (interfaces.TemplateService, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 	dataResolver := do.MustInvoke[interfaces.DataServiceResolver](i)

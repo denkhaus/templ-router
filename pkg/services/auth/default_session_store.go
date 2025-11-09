@@ -106,6 +106,54 @@ func (s *inMemmorySessionStoreImpl) DeleteSession(sessionID string) error {
 	return nil
 }
 
+// GetSessionByID retrieves a session by its ID (direct access)
+func (s *inMemmorySessionStoreImpl) GetSessionByID(sessionID string) (*interfaces.Session, error) {
+	s.mutex.RLock()
+	session, exists := s.sessions[sessionID]
+	s.mutex.RUnlock()
+
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	// Check if session is expired
+	if time.Now().After(session.ExpiresAt) {
+		s.DeleteSession(session.ID)
+		return nil, fmt.Errorf("session expired")
+	}
+
+	return session, nil
+}
+
+// ExtendSession extends the expiry time of an existing session
+func (s *inMemmorySessionStoreImpl) ExtendSession(sessionID string, duration time.Duration) error {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+
+	session, exists := s.sessions[sessionID]
+	if !exists {
+		return fmt.Errorf("session not found")
+	}
+
+	// Check if session is already expired
+	if time.Now().After(session.ExpiresAt) {
+		delete(s.sessions, sessionID)
+		return fmt.Errorf("session expired and cannot be extended")
+	}
+
+	// Extend the session expiry
+	session.ExpiresAt = time.Now().Add(duration)
+	s.sessions[sessionID] = session
+
+	s.logger.Info("Session extended",
+		zap.String(s.cookieName, sessionID),
+		zap.String("user_id", session.UserID),
+		zap.Duration("duration", duration),
+		zap.Time("new_expiry", session.ExpiresAt))
+
+	return nil
+}
+
 // generateSessionID generates a cryptographically secure session ID
 func (s *inMemmorySessionStoreImpl) generateSessionID() (string, error) {
 	bytes := make([]byte, 32) // 256 bits

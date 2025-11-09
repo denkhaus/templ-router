@@ -15,8 +15,8 @@ type ProductiveFileSystemChecker struct {
 	logger *zap.Logger
 }
 
-// NewProductiveFileSystemChecker creates a new filesystem checker for DI
-func NewProductiveFileSystemChecker(i do.Injector) (interfaces.FileSystemChecker, error) {
+// NewFileSystemChecker creates a new filesystem checker for DI
+func NewFileSystemChecker(i do.Injector) (interfaces.FileSystemChecker, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 	return &ProductiveFileSystemChecker{
 		logger: logger,

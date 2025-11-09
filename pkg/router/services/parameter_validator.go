@@ -87,7 +87,6 @@ func (pv *ParameterValidator) ValidateSingleParameter(
 	pv.logger.Debug("Parameter validation completed",
 		zap.String("parameter", paramName),
 		zap.String("route", route.Path))
-
 }
 
 // ValidateMissingParameters checks for parameters in route path that lack configuration
@@ -242,8 +241,8 @@ func (pv *ParameterValidator) validateParameterCompatibility(
 	route *interfaces.Route,
 	parentPath string,
 	paramName string,
-	childConfig *interfaces.DynamicParameterConfig,
-	parentConfig *interfaces.DynamicParameterConfig,
+	childConfig *shared.ValidationRule,
+	parentConfig *shared.ValidationRule,
 	result *ValidationResult,
 ) {
 	// Check validation regex compatibility

@@ -17,31 +17,24 @@ func WithTemplateRegistry(registry interfaces.TemplateRegistry) ApplicationOptio
 	}
 }
 
-// WithAssetsService sets the assets service
-func WithAssetsService(assetsService interfaces.AssetsService) ApplicationOption {
+// WithAssetsServiceFactory sets the assets service using a factory function
+func WithAssetsServiceFactory(factory func(do.Injector) (interfaces.AssetsService, error)) ApplicationOption {
 	return func(c *Container) {
-		do.OverrideValue(c.injector, assetsService)
+		do.Override(c.injector, factory)
 	}
 }
 
-// WithUserStore sets a custom user store implementation
-func WithUserStore(userStore interfaces.UserStore) ApplicationOption {
+// WithUserStoreFactory sets a custom user store implementation using a factory function
+func WithUserStoreFactory(factory func(do.Injector) (interfaces.UserStore, error)) ApplicationOption {
 	return func(c *Container) {
-		do.OverrideValue(c.injector, userStore)
+		do.Override(c.injector, factory)
 	}
 }
 
-// WithAuthHandlers sets custom authentication handlers
-func WithAuthHandlers(authHandlers interfaces.AuthHandlers) ApplicationOption {
+// WithAuthHandlersFactory sets custom authentication handlers using a factory function
+func WithAuthHandlersFactory(factory func(do.Injector) (interfaces.AuthHandlers, error)) ApplicationOption {
 	return func(c *Container) {
-		do.OverrideValue(c.injector, authHandlers)
-	}
-}
-
-// WithSessionStore sets a custom session store implementation
-func WithSessionStore(sessionStore interfaces.SessionStore) ApplicationOption {
-	return func(c *Container) {
-		do.OverrideValue(c.injector, sessionStore)
+		do.Override(c.injector, factory)
 	}
 }
 
@@ -91,7 +84,6 @@ func WithHealthCheck(enabled bool, path ...string) ApplicationOption {
 	}
 }
 
-
 // WithCustomRoute adds a custom route to the router
 func WithCustomRoute(method, path string, handler http.HandlerFunc) ApplicationOption {
 	return func(c *Container) {
@@ -103,7 +95,6 @@ func WithCustomRoute(method, path string, handler http.HandlerFunc) ApplicationO
 		do.ProvideNamedValue(c.injector, "CustomRoute", route)
 	}
 }
-
 
 // WithErrorHandling configures custom error handlers
 func WithErrorHandling(notFoundHandler http.Handler, methodNotAllowedHandler http.Handler) ApplicationOption {

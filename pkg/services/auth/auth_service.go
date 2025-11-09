@@ -4,34 +4,42 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
 
-// DefaultAuthService provides a default authentication service implementation
+// AuthService provides a default authentication service implementation
 // Users can replace this with their own implementation (OAuth, LDAP, etc.)
-type DefaultAuthService struct {
-	userStore    interfaces.UserStore
-	sessionStore interfaces.SessionStore
-	logger       *zap.Logger
+type AuthService struct {
+	userStore     interfaces.UserStore
+	sessionStore  interfaces.SessionStore
+	configService interfaces.ConfigService
+	signInRoute   string
+	logger        *zap.Logger
 }
 
-// NewDefaultAuthService creates a new default auth service for DI
-func NewDefaultAuthService(i do.Injector) (interfaces.AuthService, error) {
+// NewAuthService creates a new auth service for DI
+func NewAuthService(i do.Injector) (interfaces.AuthService, error) {
 	userStore := do.MustInvoke[interfaces.UserStore](i)
 	sessionStore := do.MustInvoke[interfaces.SessionStore](i)
+	configService := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
-	return &DefaultAuthService{
-		userStore:    userStore,
-		sessionStore: sessionStore,
-		logger:       logger,
+	signInRoute := configService.GetSignInRoute()
+
+	return &AuthService{
+		signInRoute:   signInRoute,
+		userStore:     userStore,
+		sessionStore:  sessionStore,
+		configService: configService,
+		logger:        logger,
 	}, nil
 }
 
 // Authenticate implements the AuthService interface
-func (s *DefaultAuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
+func (s *AuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
 	// Check authentication type
 	switch requirements.Type {
 	case "Public":
@@ -51,7 +59,7 @@ func (s *DefaultAuthService) Authenticate(req *http.Request, requirements *share
 }
 
 // authenticateUser handles user authentication via session
-func (s *DefaultAuthService) authenticateUser(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
+func (s *AuthService) authenticateUser(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
 	// Get session from request
 	session, err := s.sessionStore.GetSession(req)
 	if err != nil || !session.Valid {
@@ -73,10 +81,12 @@ func (s *DefaultAuthService) authenticateUser(req *http.Request, requirements *s
 
 	// Check role requirements
 	if !s.hasRequiredRoles(user, requirements.Roles) {
+		signInRoute := i18n.LocalizeRouteIfRequired(req.Context(), s.signInRoute)
+
 		return &interfaces.AuthResult{
 			IsAuthenticated: true,
 			User:            user,
-			RedirectURL:     "/unauthorized",
+			RedirectURL:     signInRoute,
 			ErrorMessage:    "Insufficient permissions",
 		}, nil
 	}
@@ -88,7 +98,7 @@ func (s *DefaultAuthService) authenticateUser(req *http.Request, requirements *s
 }
 
 // HasRequiredPermissions checks if the user has the required permissions
-func (s *DefaultAuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
+func (s *AuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
 	result, err := s.Authenticate(req, settings)
 	if err != nil || !result.IsAuthenticated {
 		return false
@@ -98,7 +108,7 @@ func (s *DefaultAuthService) HasRequiredPermissions(req *http.Request, settings 
 }
 
 // hasRequiredRoles checks if user has any of the required roles
-func (s *DefaultAuthService) hasRequiredRoles(user interfaces.UserEntity, requiredRoles []string) bool {
+func (s *AuthService) hasRequiredRoles(user interfaces.UserEntity, requiredRoles []string) bool {
 	if len(requiredRoles) == 0 {
 		return true // No specific roles required
 	}
@@ -112,36 +122,4 @@ func (s *DefaultAuthService) hasRequiredRoles(user interfaces.UserEntity, requir
 		}
 	}
 	return false
-}
-
-// Login provides a convenience method for user login
-func (s *DefaultAuthService) Login(email, password string) (interfaces.UserEntity, string, error) {
-	user, err := s.userStore.ValidateCredentials(email, password)
-	if err != nil {
-		return nil, "", err
-	}
-
-	// Create session
-	session, err := s.sessionStore.CreateSession(user.GetID())
-	if err != nil {
-		return nil, "", err
-	}
-
-	s.logger.Info("User logged in successfully",
-		zap.String("user_id", user.GetID()),
-		zap.String("session_id", session.ID))
-
-	return user, session.ID, nil
-}
-
-// Logout provides a convenience method for user logout
-func (s *DefaultAuthService) Logout(sessionID string) error {
-	err := s.sessionStore.DeleteSession(sessionID)
-	if err != nil {
-		s.logger.Error("Failed to delete session", zap.Error(err))
-		return err
-	}
-
-	s.logger.Info("User logged out successfully", zap.String("session_id", sessionID))
-	return nil
 }

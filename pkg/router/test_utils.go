@@ -187,12 +187,31 @@ func (m *MockHandlerPipeline) BuildHandler(config pipeline.PipelineConfig) http.
 // Service mocks
 type MockAuthService struct{}
 
+type MockUser struct {
+	ID    string
+	Email string
+	Roles []string
+}
+
+func (u *MockUser) GetID() string    { return u.ID }
+func (u *MockUser) GetEmail() string { return u.Email }
+func (u *MockUser) GetRoles() []string { return u.Roles }
+
 func (m *MockAuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
 	return &interfaces.AuthResult{IsAuthenticated: true}, nil
 }
 
 func (m *MockAuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
 	return true
+}
+
+func (m *MockAuthService) Login(email, password string) (interfaces.UserEntity, string, error) {
+	user := &MockUser{ID: "test-user", Email: email, Roles: []string{"user"}}
+	return user, "test-session", nil
+}
+
+func (m *MockAuthService) Logout(sessionID string) error {
+	return nil
 }
 
 type MockI18nService struct{}

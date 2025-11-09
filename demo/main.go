@@ -56,26 +56,23 @@ func startupStreamlined(ctx context.Context) error {
 			WithContext("component", "template_registry")
 	}
 
-	assetsService, err := assets.NewService(injector)
-	if err != nil {
-		return shared.NewServiceError("Failed to create assets service").
-			WithCause(err).
-			WithContext("component", "assets_service")
-	}
-
-	userStore, err := services.NewDefaultUserStore(injector)
-	if err != nil {
-		return shared.NewServiceError("Failed to create user store").
-			WithCause(err).
-			WithContext("component", "user_store")
-	}
-
 	// 4. Register ALL application services using the streamlined options pattern
 	// This replaces ALL the complex setup from the old version!
 	container.RegisterApplicationServices(
 		di.WithTemplateRegistry(templateRegistry),
-		di.WithAssetsService(assetsService),
-		di.WithUserStore(userStore),
+
+		// Assets Service Factory - demonstrates pluggable asset management
+		// This creates the assets service using the DI injector for dependencies
+		di.WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
+			return assets.NewService(i)
+		}),
+
+		// Custom User Store Factory - demonstrates pluggable user management
+		// By default, templ-router provides its own user store implementation
+		// Here we use our custom user store with in-memory storage for demo purposes
+		di.WithUserStoreFactory(func(i do.Injector) (interfaces.UserStore, error) {
+			return services.NewDefaultUserStore(i)
+		}),
 
 		// NEW: Health check configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
 		di.WithHealthCheck(true, "/api/health"),

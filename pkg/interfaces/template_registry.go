@@ -8,9 +8,9 @@ import (
 type TemplateType string
 
 const (
-	TemplateTypeLayout   TemplateType = "layout"   // layout.templ
-	TemplateTypePage     TemplateType = "page"     // page.templ
-	TemplateTypeError    TemplateType = "error"    // error.templ
+	TemplateTypeLayout    TemplateType = "layout"    // layout.templ
+	TemplateTypePage      TemplateType = "page"      // page.templ
+	TemplateTypeError     TemplateType = "error"     // error.templ
 	TemplateTypeComponent TemplateType = "component" // any other .templ file
 )
 
@@ -29,11 +29,11 @@ type TemplateMetadata struct {
 	Route string `json:"route"`
 
 	// YAML metadata file existence and path
-	YAMLFile      string `json:"yaml_file,omitempty"`      // Full path to YAML file if it exists
-	YAMLExists    bool   `json:"yaml_exists"`               // Whether YAML file exists
-	HasI18n       bool   `json:"has_i18n"`                  // Whether YAML contains i18n data
-	HasMetadata   bool   `json:"has_metadata"`              // Whether YAML contains metadata
-	HasAuth       bool   `json:"has_auth"`                  // Whether YAML contains auth settings
+	YAMLFile    string `json:"yaml_file,omitempty"` // Full path to YAML file if it exists
+	YAMLExists  bool   `json:"yaml_exists"`         // Whether YAML file exists
+	HasI18n     bool   `json:"has_i18n"`            // Whether YAML contains i18n data
+	HasMetadata bool   `json:"has_metadata"`        // Whether YAML contains metadata
+	HasAuth     bool   `json:"has_auth"`            // Whether YAML contains auth settings
 }
 
 // TemplateRegistry provides access to application templates

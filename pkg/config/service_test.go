@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -281,7 +282,8 @@ func TestConfigServiceAccessors(t *testing.T) {
 	assert.Equal(t, "en", service.GetFallbackLocale())
 
 	// Test Layout accessors
-	assert.Equal(t, "testapp", service.GetLayoutRootDirectory())
+	// GetLayoutRootDirectory returns absolute path, so check base name
+	assert.True(t, strings.HasSuffix(service.GetLayoutRootDirectory(), "testapp"))
 	assert.Equal(t, "testassets", service.GetLayoutAssetsDirectory())
 	assert.Equal(t, "static", service.GetLayoutAssetsRouteName())
 	assert.Equal(t, "testlayout", service.GetLayoutFileName())
@@ -356,7 +358,8 @@ func TestDefaultValues(t *testing.T) {
 	assert.Equal(t, "en", service.GetDefaultLocale())
 	assert.Equal(t, "en", service.GetFallbackLocale())
 
-	assert.Equal(t, "app", service.GetLayoutRootDirectory())
+	// GetLayoutRootDirectory returns absolute path, so check base name
+	assert.True(t, strings.HasSuffix(service.GetLayoutRootDirectory(), "app"))
 	assert.Equal(t, "assets", service.GetLayoutAssetsDirectory())
 	assert.Equal(t, "assets", service.GetLayoutAssetsRouteName())
 	assert.Equal(t, "layout", service.GetLayoutFileName())
