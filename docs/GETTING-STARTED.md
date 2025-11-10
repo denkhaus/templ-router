@@ -261,8 +261,7 @@ type UserData struct {
     Email string
 }
 
-type UserDataService interface {
-    GetData(routerCtx interfaces.RouterContext) (*UserData, error)
+type UserDataService interface {    
     GetUserData(routerCtx interfaces.RouterContext) (*UserData, error)
 }
 
@@ -282,9 +281,6 @@ func (s *userDataServiceImpl) GetUserData(routerCtx interfaces.RouterContext) (*
     }, nil
 }
 
-func (s *userDataServiceImpl) GetData(routerCtx interfaces.RouterContext) (*UserData, error) {
-    return s.GetUserData(routerCtx)
-}
 ```
 
 ### Update Template to Use Data
