@@ -22,27 +22,6 @@ Templ Router provides automatic route generation from file structure, built-in a
 - **🔧 Configuration** - Environment-based configuration
 - **🛡️ Security** - CSRF protection, rate limiting, and security headers
 
-### Self-Contained Components
-
-Components can have their own metadata and i18n files, making them **truly reusable**:
-
-```yaml
-# app/components/footer.templ.yaml
-i18n:
-  en: { footer_copyright: "© 2024 My Company" }
-  de: { footer_copyright: "© 2024 Meine Firma" }
-
-metadata:
-  company_name: "My Company"
-  company_email: "info@company.com"
-```
-
-**Benefits:**
-
-- **No duplication** - Define translations once, use everywhere
-- **True reusability** - Components work independently across pages
-- **Easy maintenance** - Update component config in one place
-
 ## 🚀 Quick Start
 
 ### 1. Install Dependencies

@@ -65,119 +65,75 @@ Request → Authentication → I18n → Template Rendering → Response
 
 ## Built-in Middleware
 
-### Authentication Middleware
+Templ Router automatically configures middleware based on your template metadata and authentication requirements. The built-in middleware includes:
 
-Handles user authentication and authorization:
+**Authentication Middleware** (configured automatically):
+- Session validation and route-based access control
+- User context injection and redirect handling
+- Activated when templates specify `auth` requirements in `.templ.yaml` files
 
-```go
-// Enable authentication middleware
-authMiddleware, err := middleware.NewAuthContextMiddleware(injector)
-if err != nil {
-    return err
-}
-mux.Use(authMiddleware.Middleware)
-```
-
-**Features:**
-- Session validation
-- Route-based access control
-- User context injection
-- Redirect handling for unauthenticated users
-
-### Internationalization Middleware
-
-Manages locale detection and translation loading:
-
-```go
-// Enable i18n middleware
-i18nMiddleware, err := middleware.NewI18nMiddleware(injector)
-if err != nil {
-    return err
-}
-mux.Use(i18nMiddleware.Middleware)
-```
-
-**Features:**
+**Internationalization Middleware** (configured automatically):
 - Automatic locale detection from URL/headers/cookies
-- Translation file loading
-- Locale context injection
-- Fallback locale handling
+- Translation file loading and locale context injection
+- Fallback locale handling and smart routing
 
-### Template Middleware
-
-Handles template rendering and metadata management:
-
-```go
-// Enable template middleware
-templateMiddleware, err := middleware.NewTemplateMiddleware(injector)
-if err != nil {
-    return err
-}
-mux.Use(templateMiddleware.Middleware)
-```
-
-**Features:**
-- Template metadata loading
-- Hierarchical configuration merging
-- Data service resolution
-- Template rendering with context
+**Template Middleware** (configured automatically):
+- Template metadata loading and hierarchical configuration merging
+- Data service resolution and template rendering with context
+- Layout inheritance and error template handling
 
 ## Custom Middleware
 
 ### Creating Custom Middleware
 
+Add your own middleware using the `di.WithCustomMiddleware()` pattern:
+
 ```go
-package middleware
+// Custom middleware registration
+container.RegisterRouterServicesWithOptions("TR", []di.RouterOption{
+    // Custom middleware - added to the chain in definition order!
+    di.WithCustomMiddleware("request-id", func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("X-Request-ID", "custom-request-id")
+            next.ServeHTTP(w, r)
+        })
+    }),
 
-import (
-    "context"
-    "net/http"
-)
+    // More custom middleware - will execute AFTER request-id middleware
+    di.WithCustomMiddleware("timing", func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            start := time.Now()
+            next.ServeHTTP(w, r)
+            duration := time.Since(start)
+            w.Header().Set("X-Response-Time", duration.String())
+        })
+    }),
 
-// CustomMiddleware adds custom functionality
-type CustomMiddleware struct {
-    config *CustomConfig
-    logger Logger
-}
+    // Logging middleware example
+    di.WithCustomMiddleware("logging", func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            startTime := time.Now()
 
-func NewCustomMiddleware(config *CustomConfig, logger Logger) *CustomMiddleware {
-    return &CustomMiddleware{
-        config: config,
-        logger: logger,
-    }
-}
+            // Log request start
+            fmt.Printf("[%s] %s %s\n", time.Now().Format(time.RFC3339), r.Method, r.URL.Path)
 
-func (m *CustomMiddleware) Middleware(next http.Handler) http.Handler {
-    return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-        // Pre-processing logic
-        startTime := time.Now()
+            // Capture response status
+            rw := &responseWriter{ResponseWriter: w}
 
-        // Add custom headers
-        w.Header().Set("X-Custom-Header", "value")
+            next.ServeHTTP(rw, r)
 
-        // Log request
-        m.logger.Info("Processing request",
-            zap.String("method", r.Method),
-            zap.String("path", r.URL.Path),
-            zap.String("remote", r.RemoteAddr),
-        )
-
-        // Call next middleware in chain
-        next.ServeHTTP(w, r)
-
-        // Post-processing logic
-        duration := time.Since(startTime)
-        m.logger.Info("Request completed",
-            zap.Duration("duration", duration),
-            zap.Int("status", w.(*responseWriter).Status()),
-        )
-    })
-}
+            // Log request completion
+            duration := time.Since(startTime)
+            fmt.Printf("[%s] %s %s - %d (%v)\n",
+                time.Now().Format(time.RFC3339), r.Method, r.URL.Path, rw.status, duration)
+        })
+    }),
+})
 ```
 
-### Request/Response Wrapper
+### Response Writer Helper
 
-For capturing response details:
+For capturing response details in custom middleware:
 
 ```go
 type responseWriter struct {
@@ -185,33 +141,9 @@ type responseWriter struct {
     status int
 }
 
-func NewResponseWriter(w http.ResponseWriter) *responseWriter {
-    return &responseWriter{ResponseWriter: w}
-}
-
 func (rw *responseWriter) WriteHeader(code int) {
     rw.status = code
     rw.ResponseWriter.WriteHeader(code)
-}
-```
-
-### Custom Middleware Registration
-
-```go
-func main() {
-    // Create custom middleware
-    customMiddleware := middleware.NewCustomMiddleware(config, logger)
-
-    // Register middleware with router
-    mux := chi.NewRouter()
-    mux.Use(customMiddleware.Middleware)
-
-    // Register other middleware
-    authMiddleware, _ := middleware.NewAuthContextMiddleware(injector)
-    mux.Use(authMiddleware.Middleware)
-
-    // Register routes
-    router.RegisterRoutes(mux)
 }
 ```
 
@@ -239,76 +171,47 @@ TR_SECURITY_ENABLE_MIDDLEWARE=true
 TR_SECURITY_ENABLE_CSRF=true
 ```
 
-### Conditional Middleware
+### Middleware Ordering
 
-Enable/disable middleware based on configuration:
+Middleware is executed in the order they are defined in `RegisterRouterServicesWithOptions`. The built-in middleware (auth, i18n, template) are automatically positioned appropriately, while your custom middleware executes in the order specified:
 
 ```go
-func setupMiddleware(mux *chi.Mux, injector *do.Injector) error {
-    config := do.MustInvoke[*ConfigService](injector)
+container.RegisterRouterServicesWithOptions("TR", []di.RouterOption{
+    // 1. Custom middleware (executed first)
+    di.WithCustomMiddleware("security-headers", func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("X-Content-Type-Options", "nosniff")
+            w.Header().Set("X-Frame-Options", "DENY")
+            next.ServeHTTP(w, r)
+        })
+    }),
 
-    // Authentication middleware
-    if config.Auth.Enabled {
-        authMiddleware, err := middleware.NewAuthContextMiddleware(injector)
-        if err != nil {
-            return err
-        }
-        mux.Use(authMiddleware.Middleware)
-    }
+    // 2. More custom middleware
+    di.WithCustomMiddleware("logging", func(next http.Handler) http.Handler {
+        // Logging implementation
+    }),
 
-    // I18n middleware
-    if config.I18n.Enabled {
-        i18nMiddleware, err := middleware.NewI18nMiddleware(injector)
-        if err != nil {
-            return err
-        }
-        mux.Use(i18nMiddleware.Middleware)
-    }
-
-    // Security middleware
-    if config.Security.Enabled {
-        securityMiddleware, err := middleware.NewSecurityMiddleware(injector)
-        if err != nil {
-            return err
-        }
-        mux.Use(securityMiddleware.Middleware)
-    }
-
-    return nil
-}
+    // Built-in middleware (auth, i18n, template) are automatically configured
+    // and execute after your custom middleware
+})
 ```
 
-## Middleware Ordering
+### Environment-Based Configuration
 
-The order of middleware registration is important:
+Configure middleware behavior through environment variables:
 
-```go
-func main() {
-    mux := chi.NewRouter()
+```bash
+# Authentication middleware behavior
+TR_AUTH_ENABLE_MIDDLEWARE=true
+TR_AUTH_SKIP_PATTERNS=/health,/metrics
 
-    // 1. Security middleware (first)
-    securityMiddleware, _ := middleware.NewSecurityMiddleware(injector)
-    mux.Use(securityMiddleware.Middleware)
+# Internationalization middleware behavior
+TR_I18N_ENABLE_MIDDLEWARE=true
+TR_I18N_SKIP_PATTERNS=/api,/static
 
-    // 2. Logging middleware
-    loggingMiddleware, _ := middleware.NewLoggingMiddleware(injector)
-    mux.Use(loggingMiddleware.Middleware)
-
-    // 3. Authentication middleware
-    authMiddleware, _ := middleware.NewAuthContextMiddleware(injector)
-    mux.Use(authMiddleware.Middleware)
-
-    // 4. Internationalization middleware
-    i18nMiddleware, _ := middleware.NewI18nMiddleware(injector)
-    mux.Use(i18nMiddleware.Middleware)
-
-    // 5. Template middleware (last)
-    templateMiddleware, _ := middleware.NewTemplateMiddleware(injector)
-    mux.Use(templateMiddleware.Middleware)
-
-    // Register routes after all middleware
-    router.RegisterRoutes(mux)
-}
+# Template middleware behavior
+TR_TEMPLATE_ENABLE_MIDDLEWARE=true
+TR_TEMPLATE_CACHE_ENABLED=true
 ```
 
 ## Advanced Middleware Patterns
@@ -559,35 +462,37 @@ func TestCustomMiddleware(t *testing.T) {
 }
 ```
 
-### Integration Testing Middleware
+### Integration Testing Custom Middleware
 
 ```go
-func TestMiddlewareChain(t *testing.T) {
-    // Create middleware chain
-    mux := chi.NewRouter()
-    mux.Use(loggingMiddleware.Middleware)
-    mux.Use(authMiddleware.Middleware)
-    mux.Use(templateMiddleware.Middleware)
-
-    // Register test route
-    mux.Get("/test", func(w http.ResponseWriter, r *http.Request) {
+func TestCustomMiddleware(t *testing.T) {
+    // Create test handler
+    testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
         w.WriteHeader(http.StatusOK)
-        w.Write([]byte("Test OK"))
+        w.Write([]byte("OK"))
     })
 
-    // Create test server
-    server := httptest.NewServer(mux)
-    defer server.Close()
+    // Apply custom middleware
+    middleware := func(next http.Handler) http.Handler {
+        return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+            w.Header().Set("X-Test-Header", "test-value")
+            next.ServeHTTP(w, r)
+        })
+    }
 
-    // Test authenticated request
-    req := httptest.NewRequest("GET", server.URL+"/test", nil)
-    req.Header.Set("Authorization", "Bearer valid-token")
+    handler := middleware(testHandler)
 
-    resp, err := http.DefaultClient.Do(req)
-    require.NoError(t, err)
-    defer resp.Body.Close()
+    // Create test request
+    req := httptest.NewRequest("GET", "/test", nil)
+    rr := httptest.NewRecorder()
 
-    assert.Equal(t, http.StatusOK, resp.StatusCode)
+    // Execute middleware
+    handler.ServeHTTP(rr, req)
+
+    // Assertions
+    assert.Equal(t, http.StatusOK, rr.Code)
+    assert.Equal(t, "OK", rr.Body.String())
+    assert.Equal(t, "test-value", rr.Header().Get("X-Test-Header"))
 }
 ```
 

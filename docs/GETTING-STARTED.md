@@ -139,9 +139,7 @@ import (
     "net/http"
 
     "github.com/denkhaus/templ-router/pkg/di"
-    "github.com/denkhaus/templ-router/pkg/router/middleware"
     "github.com/go-chi/chi/v5"
-    "github.com/samber/do/v2"
 
     // Import your generated template registry
     "github.com/youruser/yourproject/generated/templates"
@@ -152,29 +150,25 @@ func main() {
     container := di.NewContainer()
     defer container.Shutdown()
 
-    // Register router services with config prefix
-    container.RegisterRouterServices("TR")
-
     // Create your template registry
     templateRegistry, err := templates.NewRegistry(container.GetInjector())
     if err != nil {
         panic(err)
     }
 
-    // Register application services using options pattern
-    container.RegisterApplicationServices(
+    // Register router services with custom middleware and templates
+    container.RegisterRouterServicesWithOptions("TR", []di.RouterOption{
+        // Add custom middleware if needed (executes before built-in middleware)
+        di.WithCustomMiddleware("request-id", func(next http.Handler) http.Handler {
+            return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                w.Header().Set("X-Request-ID", "custom-request-id")
+                next.ServeHTTP(w, r)
+            })
+        }),
+
+        // Register your template registry
         di.WithTemplateRegistry(templateRegistry),
-    )
-
-    // Create Chi router
-    mux := chi.NewRouter()
-
-    // Add auth context middleware
-    authMiddleware, err := middleware.NewAuthContextMiddleware(container.GetInjector())
-    if err != nil {
-        panic(err)
-    }
-    mux.Use(authMiddleware.Middleware)
+    })
 
     // Get clean router and initialize
     cleanRouter := container.GetRouter()
@@ -182,7 +176,10 @@ func main() {
         panic(err)
     }
 
-    // Register file-based routes
+    // Create Chi router
+    mux := chi.NewRouter()
+
+    // Register file-based routes (middleware is automatically configured)
     if err := cleanRouter.RegisterRoutes(mux); err != nil {
         panic(err)
     }
