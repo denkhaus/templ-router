@@ -75,6 +75,22 @@ func startupStreamlined(ctx context.Context) error {
 			w.Write([]byte(`{"status": "operational", "version": "2.0"}`))
 		}),
 
+		// Additional custom routes to test multiple routes support
+		di.WithCustomRoute("GET", "/api/health/detailed", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"status": "healthy", "checks": ["database", "cache", "external_api"]}`))
+		}),
+
+		di.WithCustomRoute("POST", "/api/webhook", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"message": "webhook received"}`))
+		}),
+
+		di.WithCustomRoute("GET", "/api/metrics", func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			w.Write([]byte(`{"requests": 1234, "errors": 0, "uptime": "99.9%"}`))
+		}),
+
 		// NEW: Custom middleware - added to the chain in definition order!
 		di.WithCustomMiddleware("request-id", func(next http.Handler) http.Handler {
 			return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

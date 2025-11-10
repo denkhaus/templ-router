@@ -246,24 +246,50 @@ func (rb *RouterBuilder) setupTemplateMiddleware() error {
 
 // registerCustomRoutes registers all custom routes
 func (rb *RouterBuilder) registerCustomRoutes(mux *chi.Mux) error {
-	for _, route := range rb.customRoutes {
-		switch route.method {
+	// Try to load custom routes from DI container
+	customRoutes, err := do.Invoke[[]interfaces.CustomRouteDefinition](rb.injector)
+	if err != nil {
+		// No custom routes found, use the legacy approach for backward compatibility
+		customRoutes = make([]interfaces.CustomRouteDefinition, len(rb.customRoutes))
+		for i, route := range rb.customRoutes {
+			customRoutes[i] = interfaces.CustomRouteDefinition{
+				Method:  route.method,
+				Path:    route.path,
+				Handler: route.handler,
+				Order:   i,
+			}
+		}
+	}
+
+	if len(customRoutes) == 0 {
+		return nil
+	}
+
+	// Sort routes by definition order to ensure consistent registration
+	sort.Slice(customRoutes, func(i, j int) bool {
+		return customRoutes[i].Order < customRoutes[j].Order
+	})
+
+	// Register routes in definition order
+	for _, route := range customRoutes {
+		switch route.Method {
 		case "GET":
-			mux.Get(route.path, route.handler)
+			mux.Get(route.Path, route.Handler)
 		case "POST":
-			mux.Post(route.path, route.handler)
+			mux.Post(route.Path, route.Handler)
 		case "PUT":
-			mux.Put(route.path, route.handler)
+			mux.Put(route.Path, route.Handler)
 		case "DELETE":
-			mux.Delete(route.path, route.handler)
+			mux.Delete(route.Path, route.Handler)
 		case "PATCH":
-			mux.Patch(route.path, route.handler)
+			mux.Patch(route.Path, route.Handler)
 		default:
-			return fmt.Errorf("unsupported HTTP method: %s", route.method)
+			return fmt.Errorf("unsupported HTTP method: %s", route.Method)
 		}
 		rb.logger.Info("Registered custom route",
-			zap.String("method", route.method),
-			zap.String("path", route.path))
+			zap.String("method", route.Method),
+			zap.String("path", route.Path),
+			zap.Int("order", route.Order))
 	}
 	return nil
 }

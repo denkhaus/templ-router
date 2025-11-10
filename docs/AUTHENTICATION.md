@@ -50,9 +50,9 @@ type AuthValidator interface {
 ```go
 // Your custom authentication validator
 type MyAuthValidator struct {
-    userStore    MyUserStore
-    sessionStore MySessionStore
+    // Your authentication dependencies (JWT service, database, etc.)
     jwtService   MyJWTService
+    userRepository MyUserRepository
 }
 
 func (av *MyAuthValidator) IsAuthenticated(req *http.Request) bool {
@@ -68,7 +68,7 @@ func (av *MyAuthValidator) GetCurrentUser(req *http.Request) (UserEntity, error)
     if err != nil {
         return nil, err
     }
-    return av.userStore.GetUserByID(userID)
+    return av.userRepository.FindByID(userID)
 }
 
 func (av *MyAuthValidator) HasRole(user UserEntity, requiredRoles []string) bool {
@@ -177,15 +177,42 @@ TR_AUTH_SIGNIN_SUCCESS_ROUTE=/{locale}/dashboard
 # → /en/dashboard or /de/dashboard
 ```
 
-## Built-in API Endpoints
+## Authentication API Endpoints
 
-### Available Endpoints
+Templ Router protects routes based on authentication requirements, but you need to implement the actual authentication endpoints yourself using the `AuthValidator` interface.
+
+### Common Authentication Endpoints
 
 ```bash
 POST /api/auth/signin      # User sign in
 POST /api/auth/signout     # User sign out
 POST /api/auth/signup      # User registration
 GET  /api/auth/me          # Get current user info
+```
+
+### Implementation Pattern
+
+```go
+// Your authentication handlers
+type AuthHandlers struct {
+    authValidator interfaces.AuthValidator
+    // Your other dependencies (user repository, session store, etc.)
+}
+
+func (h *AuthHandlers) HandleSignIn(w http.ResponseWriter, r *http.Request) {
+    // Extract credentials from request
+    email := r.FormValue("email")
+    password := r.FormValue("password")
+
+    // Validate credentials using your system
+    // Create session/token
+    // Return success response
+}
+
+// Register routes with the router after bootstrap
+authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
+    // Your route registration logic
+})
 ```
 
 ### Sign In
@@ -386,26 +413,22 @@ func main() {
 
     // Register your custom authentication components
     container.RegisterApplicationServices(
-        // Your custom AuthValidator implementation
+        // Your custom AuthValidator implementation - REQUIRED
         di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
             return NewMyAuthValidator(i) // Your implementation
         }),
-
-        // Your custom AuthHandlers for API endpoints
-        di.WithAuthHandlersFactory(func(i do.Injector) (interfaces.AuthHandlers, error) {
-            return NewMyAuthHandlers(i) // Your implementation
-        }),
-
-        // Your custom SessionStore
-        di.WithSessionStoreFactory(func(i do.Injector) (interfaces.SessionStore, error) {
-            return NewMySessionStore(i) // Your implementation
-        }),
-
-        // Your custom UserStore
-        di.WithUserStoreFactory(func(i do.Injector) (interfaces.UserStore, error) {
-            return NewMyUserStore(i) // Your implementation
-        }),
     )
+
+    // Register your client-side authentication services (optional, depends on your needs)
+    // These are NOT part of the router core, but client-side dependencies
+    do.Provide(injector, services.NewUserStore)        // Your user management
+    do.Provide(injector, services.NewSessionStore)     // Your session management
+
+    // Create and register auth handlers manually (client-side)
+    authHandlers, err := services.NewAuthHandlers(injector)
+    if err != nil {
+        panic(err)
+    }
 
     // Bootstrap router - auth middleware automatically uses your AuthValidator
     routerBootstrap := container.GetRouterBootstrap()
@@ -413,6 +436,17 @@ func main() {
     if err != nil {
         panic(err)
     }
+
+    // Register your auth routes manually (client-side responsibility)
+    authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
+        switch method {
+        case "GET":
+            mux.Get(path, handler)
+        case "POST":
+            mux.Post(path, handler)
+        // Add other HTTP methods as needed
+        }
+    })
 
     http.ListenAndServe(":8080", mux)
 }
@@ -423,19 +457,19 @@ func main() {
 ```go
 // auth_validator.go
 type MyAuthValidator struct {
-    userStore    MyUserStore
-    sessionStore MySessionStore
-    jwtSecret    string
+    // Your custom dependencies - these are client-side services
+    userRepository MyUserRepository  // Your user data access
+    jwtService     MyJWTService      // Your JWT validation service
 }
 
 func NewMyAuthValidator(i do.Injector) (interfaces.AuthValidator, error) {
-    userStore := do.MustInvoke[interfaces.UserStore](i)
-    sessionStore := do.MustInvoke[interfaces.SessionStore](i)
+    // Inject your client-side dependencies
+    userRepository := do.MustInvoke[MyUserRepository](i)
+    jwtService := do.MustInvoke[MyJWTService](i)
 
     return &MyAuthValidator{
-        userStore:    userStore.(MyUserStore),
-        sessionStore: sessionStore.(MySessionStore),
-        jwtSecret:    os.Getenv("JWT_SECRET"),
+        userRepository: userRepository,
+        jwtService:     jwtService,
     }, nil
 }
 
@@ -446,15 +480,8 @@ func (av *MyAuthValidator) IsAuthenticated(req *http.Request) bool {
         return false
     }
 
-    // Validate JWT token
-    claims, err := av.validateJWT(token)
-    if err != nil {
-        return false
-    }
-
-    // Check if user still exists and is active
-    _, err = av.userStore.GetUserByID(claims.UserID)
-    return err == nil
+    // Validate JWT token using your service
+    return av.jwtService.ValidateToken(token)
 }
 
 func (av *MyAuthValidator) GetCurrentUser(req *http.Request) (interfaces.UserEntity, error) {
@@ -463,12 +490,14 @@ func (av *MyAuthValidator) GetCurrentUser(req *http.Request) (interfaces.UserEnt
         return nil, fmt.Errorf("no authentication token found")
     }
 
-    claims, err := av.validateJWT(token)
+    // Get user ID from JWT using your service
+    userID, err := av.jwtService.GetUserIDFromToken(token)
     if err != nil {
         return nil, err
     }
 
-    return av.userStore.GetUserByID(claims.UserID)
+    // Fetch user using your repository
+    return av.userRepository.FindByID(userID)
 }
 
 func (av *MyAuthValidator) HasRole(user interfaces.UserEntity, requiredRoles []string) bool {
@@ -481,6 +510,23 @@ func (av *MyAuthValidator) HasRole(user interfaces.UserEntity, requiredRoles []s
         }
     }
     return false
+}
+
+// Helper method - implement based on your token storage method
+func (av *MyAuthValidator) extractJWTFromRequest(req *http.Request) string {
+    // Check Authorization header
+    authHeader := req.Header.Get("Authorization")
+    if strings.HasPrefix(authHeader, "Bearer ") {
+        return strings.TrimPrefix(authHeader, "Bearer ")
+    }
+
+    // Check cookies
+    cookie, err := req.Cookie("auth_token")
+    if err == nil {
+        return cookie.Value
+    }
+
+    return ""
 }
 ```
 

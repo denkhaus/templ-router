@@ -73,12 +73,25 @@ func WithHealthCheck(enabled bool, path ...string) ApplicationOption {
 // WithCustomRoute adds a custom route to the router
 func WithCustomRoute(method, path string, handler http.HandlerFunc) ApplicationOption {
 	return func(c *Container) {
-		route := map[string]interface{}{
-			"method":  method,
-			"path":    path,
-			"handler": handler,
+		// Get existing custom routes or create new slice
+		var customRoutes []interfaces.CustomRouteDefinition
+		if existing, err := do.Invoke[[]interfaces.CustomRouteDefinition](c.injector); err == nil {
+			customRoutes = existing
 		}
-		do.ProvideNamedValue(c.injector, "CustomRoute", route)
+
+		// Calculate next order (append to end)
+		nextOrder := len(customRoutes)
+
+		// Add new route with definition order
+		customRoutes = append(customRoutes, interfaces.CustomRouteDefinition{
+			Method:  method,
+			Path:    path,
+			Handler: handler,
+			Order:   nextOrder,
+		})
+
+		// Override the custom routes slice
+		do.OverrideValue(c.injector, customRoutes)
 	}
 }
 

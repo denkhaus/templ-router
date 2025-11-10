@@ -29,7 +29,7 @@ type BootstrapConfig struct {
 	// Route configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
 	enableHealthCheck bool
 	healthCheckPath   string
-	customRoutes      []map[string]interface{}
+	customRoutes      []interfaces.CustomRouteDefinition
 
 	// Error handling
 	errorHandlers map[string]interface{}
@@ -165,33 +165,49 @@ func (rb *RouterBootstrap) setupRouterMiddleware(mux *chi.Mux) error {
 
 // registerCustomRoutes registers all custom routes
 func (rb *RouterBootstrap) registerCustomRoutes(mux *chi.Mux) error {
-	for _, route := range rb.options.customRoutes {
-		method, _ := route["method"].(string)
-		path, _ := route["path"].(string)
-		handler, _ := route["handler"].(http.HandlerFunc)
+	// Try to load custom routes from DI container
+	customRoutes, err := do.Invoke[[]interfaces.CustomRouteDefinition](rb.injector)
+	if err != nil {
+		// No custom routes found in DI container, use bootstrap config
+		customRoutes = rb.options.customRoutes
+	}
 
-		if handler == nil {
-			rb.logger.Warn("Invalid custom route handler", zap.String("method", method), zap.String("path", path))
+	if len(customRoutes) == 0 {
+		return nil
+	}
+
+	// Sort routes by definition order to ensure consistent registration
+	sort.Slice(customRoutes, func(i, j int) bool {
+		return customRoutes[i].Order < customRoutes[j].Order
+	})
+
+	// Register routes in definition order
+	for _, route := range customRoutes {
+		if route.Handler == nil {
+			rb.logger.Warn("Invalid custom route handler",
+				zap.String("method", route.Method),
+				zap.String("path", route.Path))
 			continue
 		}
 
-		switch method {
+		switch route.Method {
 		case "GET":
-			mux.Get(path, handler)
+			mux.Get(route.Path, route.Handler)
 		case "POST":
-			mux.Post(path, handler)
+			mux.Post(route.Path, route.Handler)
 		case "PUT":
-			mux.Put(path, handler)
+			mux.Put(route.Path, route.Handler)
 		case "DELETE":
-			mux.Delete(path, handler)
+			mux.Delete(route.Path, route.Handler)
 		case "PATCH":
-			mux.Patch(path, handler)
+			mux.Patch(route.Path, route.Handler)
 		default:
-			return fmt.Errorf("unsupported HTTP method: %s", method)
+			return fmt.Errorf("unsupported HTTP method: %s", route.Method)
 		}
 		rb.logger.Info("Registered custom route",
-			zap.String("method", method),
-			zap.String("path", path))
+			zap.String("method", route.Method),
+			zap.String("path", route.Path),
+			zap.Int("order", route.Order))
 	}
 	return nil
 }

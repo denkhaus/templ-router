@@ -47,18 +47,20 @@ func (u *MyCustomUser) GetRoles() []string {
 }
 ```
 
-### 2. Implement the UserStore
+### 2. Implement User Repository or Store
+
+You can implement user data access using any pattern that fits your architecture:
 
 ```go
-// MyUserStore implements UserStore for MyCustomUser
-type MyUserStore struct {
+// MyUserRepository implements user data access for MyCustomUser
+type MyUserRepository struct {
     // Your database connection, etc.
     db Database
 }
 
-func (s *MyUserStore) GetUserByID(userID string) (*MyCustomUser, error) {
+func (r *MyUserRepository) FindByID(userID string) (*MyCustomUser, error) {
     // Your implementation
-    user, err := s.db.FindUserByID(userID)
+    user, err := r.db.FindUserByID(userID)
     if err != nil {
         return nil, err
     }
@@ -73,48 +75,70 @@ func (s *MyUserStore) GetUserByID(userID string) (*MyCustomUser, error) {
     }, nil
 }
 
-func (s *MyUserStore) GetUserByEmail(email string) (*MyCustomUser, error) {
-    // Your implementation
+func (r *MyUserRepository) FindByEmail(email string) (*MyCustomUser, error) {
+    // Your implementation for finding users by email
     // ...
 }
 
-func (s *MyUserStore) ValidateCredentials(email, password string) (*MyCustomUser, error) {
-    // Your implementation
+func (r *MyUserRepository) ValidateCredentials(email, password string) (*MyCustomUser, error) {
+    // Your implementation for credential validation
     // ...
 }
 
-func (s *MyUserStore) CreateUser(username, email, password string) (*MyCustomUser, error) {
-    // Your implementation
-    // ...
-}
-
-func (s *MyUserStore) UserExists(username, email string) (bool, error) {
-    // Your implementation
-    // ...
-}
+// Add other methods as needed for your authentication system
 ```
 
-### 3. Use Your Implementation
+### 3. Use Your Implementation in AuthValidator
 
 ```go
-package main
+package myapp
 
 import (
     "github.com/denkhaus/templ-router/pkg/interfaces"
-    "myapp"
 )
 
-func main() {
-    // Create your user store implementation
-    userStore := &myapp.MyUserStore{
-        db: myapp.NewDatabase(),
+// MyAuthValidator uses your custom user implementation
+type MyAuthValidator struct {
+    userRepository *MyUserRepository
+    // Add other dependencies like JWT service, etc.
+}
+
+func NewMyAuthValidator(injector *do.Injector) (interfaces.AuthValidator, error) {
+    // Register your user repository
+    userRepo := &MyUserRepository{
+        db: NewDatabase(),
     }
 
-    // Use the generic AuthService
-    var authService interfaces.AuthService[*myapp.MyCustomUser]
+    return &MyAuthValidator{
+        userRepository: userRepo,
+    }, nil
+}
 
-    // Configure your router with the custom user implementation
-    // ...
+func (av *MyAuthValidator) IsAuthenticated(req *http.Request) bool {
+    // Your authentication logic using MyCustomUser
+    // For example, validate JWT token or check session
+    return true
+}
+
+func (av *MyAuthValidator) GetCurrentUser(req *http.Request) (interfaces.UserEntity, error) {
+    // Get user ID from token/session
+    userID := "extract-user-id-from-request"
+
+    // Use your user repository to get MyCustomUser
+    return av.userRepository.FindByID(userID)
+}
+
+func (av *MyAuthValidator) HasRole(user interfaces.UserEntity, requiredRoles []string) bool {
+    // Check if user has required roles
+    userRoles := user.GetRoles()
+    for _, required := range requiredRoles {
+        for _, userRole := range userRoles {
+            if userRole == required {
+                return true
+            }
+        }
+    }
+    return false
 }
 ```
 
@@ -125,14 +149,27 @@ func main() {
 3. **No Conversions**: Work directly with your user objects
 4. **Extensibility**: Add any fields and methods to your user structure
 
-## Migration from Default User Implementation
+## Integration with Templ Router
 
-If you're already using the default `User` structure, you don't need to change anything. The default implementation already implements the `UserEntity` interface and continues to work:
+To use your custom user implementation with Templ Router:
 
 ```go
-// Default implementation continues to work
-var userStore interfaces.UserStore[*interfaces.User]
-var authService interfaces.AuthService[*interfaces.User]
+func main() {
+    container := di.NewContainer()
+    container.RegisterRouterServices("TR")
+
+    // Register your AuthValidator that uses your custom user
+    container.RegisterApplicationServices(
+        di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
+            return myapp.NewMyAuthValidator(i)
+        }),
+    )
+
+    // Register your user repository as a dependency
+    do.Provide(i, myapp.NewUserRepository)
+
+    // Continue with bootstrap...
+}
 ```
 
 ## Example: Enterprise User with Additional Fields

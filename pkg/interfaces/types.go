@@ -255,6 +255,14 @@ type CustomMiddlewareDefinition struct {
 	Order int // Definition order
 }
 
+// CustomRouteDefinition holds a custom route with its definition order
+type CustomRouteDefinition struct {
+	Method  string
+	Path    string
+	Handler http.HandlerFunc
+	Order   int // Definition order
+}
+
 // HandlerBuilder defines the contract for handler building
 type HandlerBuilder interface {
 	BuildHandler(route Route) http.Handler
