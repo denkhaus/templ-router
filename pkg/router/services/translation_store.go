@@ -215,7 +215,7 @@ func (s *simpleTranslationStore) GetSupportedLocales() []string {
 }
 
 func (s *simpleTranslationStore) LoadTranslations(templatePath string) error {
-	s.logger.Debug("Loading translations for template with component support", zap.String("template_path", templatePath))
+	s.logger.Debug("Loading translations for template", zap.String("template_path", templatePath))
 
 	// Check if already loaded to avoid duplicate work
 	s.mu.RLock()
@@ -227,7 +227,7 @@ func (s *simpleTranslationStore) LoadTranslations(templatePath string) error {
 		return nil
 	}
 
-	// 1. LIBRARY-AGNOSTIC: Load layout translations first (if not already loaded)
+	// LIBRARY-AGNOSTIC: Load layout translations first (if not already loaded)
 	if templatePath != s.layoutPath {
 		s.mu.RLock()
 		layoutLoaded := s.loadedPaths[s.layoutPath]
@@ -242,16 +242,7 @@ func (s *simpleTranslationStore) LoadTranslations(templatePath string) error {
 		}
 	}
 
-	// 2. CRITICAL FIX: Load all component translations first (highest precedence)
-	// This ensures component i18n is available when pages use components
-	if err := s.loadAllComponentTranslations(); err != nil {
-		s.logger.Warn("Failed to load all component translations",
-			zap.String("template_path", templatePath),
-			zap.Error(err))
-		// Don't return error - components are optional for basic functionality
-	}
-
-	// 3. Load template-specific translations (page level)
+	// Load template-specific translations
 	err := s.loadTranslationsForPath(templatePath)
 	if err == nil {
 		// Mark as loaded on success
@@ -517,68 +508,21 @@ func (s *simpleTranslationStore) LoadAllTranslations(templatePaths []string) err
 // discoverComponentTranslations finds all component templates with YAML files using the registry
 func (s *simpleTranslationStore) discoverComponentTranslations() ([]string, error) {
 	var componentPaths []string
-
+	
 	// Use registry to find component templates with YAML files
 	allMetadata := s.templateRegistry.GetAllTemplateMetadata()
 	for _, metadata := range allMetadata {
 		// Check if it's a component with a YAML file
 		if metadata.Type == interfaces.TemplateTypeComponent && metadata.YAMLExists {
 			componentPaths = append(componentPaths, metadata.TemplatePath)
-			s.logger.Debug("Discovered component with YAML",
+			s.logger.Debug("Discovered component with YAML", 
 				zap.String("template_path", metadata.TemplatePath),
 				zap.String("yaml_file", metadata.YAMLFile))
 		}
 	}
-
+	
 	s.logger.Debug("Component discovery completed", zap.Int("found", len(componentPaths)))
 	return componentPaths, nil
-}
-
-// loadAllComponentTranslations loads translations for all discovered components
-// This is called during LoadTranslations to ensure component i18n is available
-func (s *simpleTranslationStore) loadAllComponentTranslations() error {
-	componentPaths, err := s.discoverComponentTranslations()
-	if err != nil {
-		return err
-	}
-
-	s.logger.Debug("Loading translations for all discovered components", zap.Int("component_count", len(componentPaths)))
-
-	var errors []error
-	loadedCount := 0
-
-	for _, componentPath := range componentPaths {
-		s.mu.RLock()
-		alreadyLoaded := s.loadedPaths[componentPath]
-		s.mu.RUnlock()
-
-		if alreadyLoaded {
-			continue // Skip if already loaded
-		}
-
-		if err := s.loadTranslationsForPath(componentPath); err != nil {
-			s.logger.Warn("Failed to load component translations",
-				zap.String("component_path", componentPath),
-				zap.Error(err))
-			errors = append(errors, err)
-		} else {
-			s.mu.Lock()
-			s.loadedPaths[componentPath] = true
-			s.mu.Unlock()
-			loadedCount++
-			s.logger.Debug("Successfully loaded component translations", zap.String("component_path", componentPath))
-		}
-	}
-
-	s.logger.Info("Component translation loading completed",
-		zap.Int("loaded", loadedCount),
-		zap.Int("errors", len(errors)))
-
-	if len(errors) > 0 {
-		return fmt.Errorf("failed to load %d component translations: %v", len(errors), errors)
-	}
-
-	return nil
 }
 
 // GetTranslationsForTemplate returns all translations for a specific template and locale
@@ -596,37 +540,4 @@ func (s *simpleTranslationStore) GetTranslationsForTemplate(templatePath, locale
 	}
 
 	return make(map[string]string)
-}
-
-// GetAllComponentTranslations returns all component translations for a locale with proper precedence
-// Components can override each other, so later components in discovery order win
-func (s *simpleTranslationStore) GetAllComponentTranslations(locale string) map[string]string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-
-	allComponentTranslations := make(map[string]string)
-
-	// Iterate through all loaded templates and collect component translations
-	for templatePath, locales := range s.translations {
-		if !s.isComponentTemplate(templatePath) {
-			continue // Skip non-component templates
-		}
-
-		if localeTranslations, exists := locales[locale]; exists {
-			for key, value := range localeTranslations {
-				allComponentTranslations[key] = value
-				s.logger.Debug("Added component translation to merged set",
-					zap.String("component_template", templatePath),
-					zap.String("locale", locale),
-					zap.String("key", key),
-					zap.String("value", value))
-			}
-		}
-	}
-
-	s.logger.Debug("Collected all component translations",
-		zap.String("locale", locale),
-		zap.Int("total_keys", len(allComponentTranslations)))
-
-	return allComponentTranslations
 }

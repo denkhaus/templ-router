@@ -79,26 +79,26 @@ func (cis *cleanI18nService) CreateContext(ctx context.Context, templatePath str
 			zap.String("template_path", templatePath))
 	}
 
-	cis.logger.Debug("Creating i18n context with hierarchical loading",
+	cis.logger.Debug("Creating i18n context",
 		zap.String("locale", locale),
 		zap.String("template_path", templatePath))
 
-	// Load translations with full hierarchical support (Components > Pages > Layout)
+	// Load translations for this template using TranslationStore
 	if err := cis.translationStore.LoadTranslations(templatePath); err != nil {
-		cis.logger.Debug("Failed to load primary template translations",
+		cis.logger.Debug("Failed to load translations",
 			zap.String("template_path", templatePath),
 			zap.String("locale", locale),
 			zap.Error(err))
 	}
 
-	// Create merged translations with hierarchical precedence
-	mergedTranslations := cis.createHierarchicalTranslations(templatePath, locale)
+	// Extract translations for current template and locale from TranslationStore
+	translations := cis.translationStore.GetTranslationsForTemplate(templatePath, locale)
 
 	// Create i18n data structure that i18n.T() expects
 	i18nData := &i18n.I18nData{
 		Locale:          locale,
 		CurrentTemplate: templatePath,
-		Translations:    mergedTranslations, // Now populated with hierarchical translations!
+		Translations:    translations, // Now populated with actual translations!
 		FallbackLocale:  cis.configService.GetDefaultLocale(),
 		Logger:          cis.logger,
 	}
@@ -179,53 +179,4 @@ func (cis *cleanI18nService) isValidLocale(locale string) bool {
 // LoadAllTranslations implements interfaces.I18nService by delegating to TranslationStore
 func (cis *cleanI18nService) LoadAllTranslations(templatePaths []string) error {
 	return cis.translationStore.LoadAllTranslations(templatePaths)
-}
-
-// createHierarchicalTranslations creates a merged translation map with proper precedence:
-// Components (highest) > Pages > Layout (lowest)
-func (cis *cleanI18nService) createHierarchicalTranslations(templatePath, locale string) map[string]string {
-	mergedTranslations := make(map[string]string)
-
-	// 1. Load layout translations first (lowest precedence)
-	layoutTranslations := cis.translationStore.GetTranslationsForTemplate(cis.getLayoutPath(), locale)
-	for key, value := range layoutTranslations {
-		mergedTranslations[key] = value
-		cis.logger.Debug("Added layout translation (lowest precedence)",
-			zap.String("key", key),
-			zap.String("value", value),
-			zap.String("locale", locale))
-	}
-
-	// 2. Load page translations (medium precedence) - override layout
-	pageTranslations := cis.translationStore.GetTranslationsForTemplate(templatePath, locale)
-	for key, value := range pageTranslations {
-		mergedTranslations[key] = value
-		cis.logger.Debug("Added page translation (medium precedence)",
-			zap.String("key", key),
-			zap.String("value", value),
-			zap.String("locale", locale),
-			zap.String("template_path", templatePath))
-	}
-
-	// 3. Load all component translations (highest precedence) - override everything
-	componentTranslations := cis.translationStore.GetAllComponentTranslations(locale)
-	for key, value := range componentTranslations {
-		mergedTranslations[key] = value
-		cis.logger.Debug("Added component translation (highest precedence)",
-			zap.String("key", key),
-			zap.String("value", value),
-			zap.String("locale", locale))
-	}
-
-	cis.logger.Debug("Created hierarchical translation map",
-		zap.String("template_path", templatePath),
-		zap.String("locale", locale),
-		zap.Int("total_keys", len(mergedTranslations)))
-
-	return mergedTranslations
-}
-
-// getLayoutPath returns the layout template path
-func (cis *cleanI18nService) getLayoutPath() string {
-	return cis.configService.GetLayoutRootDirectory() + "/" + cis.configService.GetLayoutFileName() + cis.configService.GetTemplateExtension()
 }
