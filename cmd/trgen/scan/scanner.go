@@ -25,14 +25,14 @@ func isDataServiceType(paramType gotypes.Type, pkg *packages.Package) (bool, str
 	if ptr, ok := paramType.(*gotypes.Pointer); ok {
 		actualType = ptr.Elem()
 	}
-	
+
 	// Get the type string for the parameter
 	paramTypeStr := paramType.String()
-	
+
 	// Try to find a corresponding service interface
 	// Look for types that could be data types (ending with "Data" or similar patterns)
 	typeStr := actualType.String()
-	
+
 	// Extract package and type name
 	var packagePath, typeName string
 	if named, ok := actualType.(*gotypes.Named); ok {
@@ -42,7 +42,7 @@ func isDataServiceType(paramType gotypes.Type, pkg *packages.Package) (bool, str
 			typeName = obj.Name()
 		}
 	}
-	
+
 	// If we can't extract proper type info, fall back to string analysis
 	if packagePath == "" || typeName == "" {
 		// Parse from type string like "*github.com/path/dataservices.UserData"
@@ -62,18 +62,18 @@ func isDataServiceType(paramType gotypes.Type, pkg *packages.Package) (bool, str
 			}
 		}
 	}
-	
+
 	// Check if this looks like a data type that would have a corresponding service
 	if typeName != "" {
 		var serviceInterfaceName string
 		var servicePackage string
-		
+
 		// Common patterns for data service types
 		if strings.HasSuffix(typeName, "Data") {
 			// Convert "UserData" to "UserDataService"
 			serviceInterfaceName = strings.TrimSuffix(typeName, "Data") + "DataService"
 		} else if strings.HasSuffix(typeName, "Model") {
-			// Convert "UserModel" to "UserDataService"  
+			// Convert "UserModel" to "UserDataService"
 			serviceInterfaceName = strings.TrimSuffix(typeName, "Model") + "DataService"
 		} else if strings.HasSuffix(typeName, "Entity") {
 			// Convert "UserEntity" to "UserDataService"
@@ -82,7 +82,7 @@ func isDataServiceType(paramType gotypes.Type, pkg *packages.Package) (bool, str
 			// For other types, assume they might have a corresponding service
 			serviceInterfaceName = typeName + "DataService"
 		}
-		
+
 		// Determine service package - look for common service package patterns
 		if strings.Contains(packagePath, "/") {
 			pathParts := strings.Split(packagePath, "/")
@@ -97,23 +97,23 @@ func isDataServiceType(paramType gotypes.Type, pkg *packages.Package) (bool, str
 				servicePackage = pathParts[len(pathParts)-1]
 			}
 		}
-		
+
 		// Use only the short service interface name (without package prefix)
 		// This makes the naming shorter and more generic
 		shortServiceInterface := serviceInterfaceName
-		
+
 		// For now, we assume it's a data service if it matches our naming patterns
 		// In a more sophisticated implementation, we could try to resolve and check
 		// if the service actually implements the DataService interface
-		isDataService := strings.HasSuffix(typeName, "Data") || 
-						strings.HasSuffix(typeName, "Model") || 
-						strings.HasSuffix(typeName, "Entity") ||
-						strings.Contains(packagePath, "dataservices") ||
-						strings.Contains(packagePath, "data")
-		
+		isDataService := strings.HasSuffix(typeName, "Data") ||
+			strings.HasSuffix(typeName, "Model") ||
+			strings.HasSuffix(typeName, "Entity") ||
+			strings.Contains(packagePath, "dataservices") ||
+			strings.Contains(packagePath, "data")
+
 		return isDataService, shortServiceInterface, paramTypeStr
 	}
-	
+
 	return false, "", paramTypeStr
 }
 
@@ -218,6 +218,11 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		// Check if function has parameters
 		hasParams := fnType.Params() != nil && fnType.Params().Len() > 0
 
+		// Skip private helper functions with parameters (they're not templates)
+		if hasParams && len(functionName) > 0 && functionName[0] >= 'a' && functionName[0] <= 'z' {
+			continue
+		}
+
 		// Analyze parameters for data service integration
 		var requiresDataService bool
 		var dataServiceInterface, dataParameterType string
@@ -227,25 +232,21 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 			if fnType.Params().Len() > 0 {
 				firstParam := fnType.Params().At(0)
 				paramType := firstParam.Type()
-				
+
 				// Use generic function to check if parameter implements DataService interface
 				isDataService, serviceInterface, paramTypeStr := isDataServiceType(paramType, pkg)
-				
+
 				if isDataService {
 					requiresDataService = true
 					dataParameterType = paramTypeStr
 					dataServiceInterface = serviceInterface
-					
+
 					fmt.Printf("      -> %s (has data service: %s with GetData method)\n", functionName, dataServiceInterface)
 				} else {
 					fmt.Printf("      -> %s (has params, including for routing)\n", functionName)
 				}
 			}
-		} else if hasParams && functionName != "Page" && functionName != "Layout" && functionName != "Error" {
-			fmt.Printf("      -> %s (has params, skipping)\n", functionName)
-			continue
 		}
-
 		// Create template key using UUID
 		packageName, importPath := utils.GetPackageInfo(filePath, config.ModuleName, config)
 
@@ -308,11 +309,11 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 			ComponentName: componentName,
 
 			// YAML Metadata Analysis (determined during scanning)
-			YAMLExists:    yamlAnalysis.Exists,
-			YAMLFile:      yamlAnalysis.FilePath,
-			YAMLHasI18n:   yamlAnalysis.HasI18n,
+			YAMLExists:      yamlAnalysis.Exists,
+			YAMLFile:        yamlAnalysis.FilePath,
+			YAMLHasI18n:     yamlAnalysis.HasI18n,
 			YAMLHasMetadata: yamlAnalysis.HasMetadata,
-			YAMLHasAuth:   yamlAnalysis.HasAuth,
+			YAMLHasAuth:     yamlAnalysis.HasAuth,
 
 			// Data Service Integration
 			RequiresDataService:  requiresDataService,
@@ -354,11 +355,11 @@ func ScanSpecificPackage(config types.Config) ([]types.TemplateInfo, error) {
 func convertToTemplatePath(filePath string, config types.Config) string {
 	// Clean the scan path to handle relative paths like "./app"
 	cleanScanPath := strings.TrimPrefix(config.ScanPath, "./")
-	
+
 	// Find the LAST occurrence of "/scanPath/" to get the correct one
 	searchPattern := "/" + cleanScanPath + "/"
 	lastIndex := strings.LastIndex(filePath, searchPattern)
-	
+
 	if lastIndex >= 0 {
 		// Extract from the scan path onwards
 		relativeFromScanPath := filePath[lastIndex+1:] // +1 to skip the leading "/"
@@ -368,16 +369,16 @@ func convertToTemplatePath(filePath string, config types.Config) string {
 		}
 		return relativeFromScanPath
 	}
-	
+
 	// Fallback: just remove _templ.go and add .templ
 	relativePath := strings.TrimPrefix(filePath, config.ScanPath)
 	relativePath = strings.TrimPrefix(relativePath, "/")
-	
+
 	// Convert from Go file to template file
 	if strings.HasSuffix(relativePath, "_templ.go") {
 		relativePath = strings.TrimSuffix(relativePath, "_templ.go") + ".templ"
 	}
-	
+
 	return relativePath
 }
 
@@ -391,11 +392,11 @@ func generateUniqueTemplateKey(templatePath, functionName string) string {
 
 // YAMLAnalysis contains analysis results for a template's YAML file
 type YAMLAnalysis struct {
-	Exists     bool   // Whether YAML file exists
-	FilePath   string // Full path to YAML file
-	HasI18n    bool   // Whether YAML contains i18n data
-	HasMetadata bool  // Whether YAML contains metadata
-	HasAuth    bool   // Whether YAML contains auth settings
+	Exists      bool   // Whether YAML file exists
+	FilePath    string // Full path to YAML file
+	HasI18n     bool   // Whether YAML contains i18n data
+	HasMetadata bool   // Whether YAML contains metadata
+	HasAuth     bool   // Whether YAML contains auth settings
 }
 
 // analyzeYAMLFile checks if a YAML file exists and analyzes its content
@@ -433,11 +434,11 @@ func analyzeYAMLFile(templatePath string, scanPath string) YAMLAnalysis {
 	}
 
 	analysis := YAMLAnalysis{
-		Exists:     true,
-		FilePath:   fullYamlPath,
-		HasI18n:    yamlContent["i18n"] != nil,
+		Exists:      true,
+		FilePath:    fullYamlPath,
+		HasI18n:     yamlContent["i18n"] != nil,
 		HasMetadata: yamlContent["metadata"] != nil,
-		HasAuth:    yamlContent["auth"] != nil,
+		HasAuth:     yamlContent["auth"] != nil,
 	}
 
 	cmsLogger("YAML analysis complete: HasI18n=%t, HasMetadata=%t, HasAuth=%t", analysis.HasI18n, analysis.HasMetadata, analysis.HasAuth)
@@ -469,7 +470,6 @@ func determineTemplateType(templatePath string) string {
 
 // scanAllTemplates is the original scanTemplates function renamed
 func scanAllTemplates(config types.Config) ([]types.TemplateInfo, error) {
-
 	// scanTemplates is the main entry point for template scanning
 	// If TargetPackage is specified, scan only that package
 	if config.PackageName != "" {
