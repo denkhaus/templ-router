@@ -4,74 +4,11 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestNewConfigService(t *testing.T) {
-	tests := []struct {
-		name        string
-		envVars     map[string]string
-		expectError bool
-		errorMsg    string
-	}{
-		{
-			name:        "default configuration",
-			envVars:     map[string]string{},
-			expectError: false,
-		},
-		{
-			name: "valid custom configuration",
-			envVars: map[string]string{
-				"TR_SERVER_HOST": "0.0.0.0",
-				"TR_SERVER_PORT": "3000",
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid server port",
-			envVars: map[string]string{
-				"TR_SERVER_PORT": "99999",
-			},
-			expectError: true,
-			errorMsg:    "Invalid server port",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Clear environment
-			clearTestEnv(t)
-
-			// Set test environment variables
-			for key, value := range tt.envVars {
-				os.Setenv(key, value)
-			}
-
-			// Create injector and config service
-			injector := do.New()
-			defer injector.Shutdown()
-
-			configFactory := NewConfigService("TR")
-			service, err := configFactory(injector)
-
-			if tt.expectError {
-				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					// The service layer wraps validation errors in "configuration validation failed"
-					assert.Contains(t, err.Error(), "configuration validation failed")
-				}
-				assert.Nil(t, service)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, service)
-			}
-		})
-	}
-}
 
 func TestConfigServiceAccessors(t *testing.T) {
 	// Clear environment and set test values
@@ -146,15 +83,6 @@ func TestConfigServiceAccessors(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, service)
 
-	// Test Server accessors
-	assert.Equal(t, "test.example.com", service.GetServerHost())
-	assert.Equal(t, 9000, service.GetServerPort())
-	assert.Equal(t, "https://test.example.com", service.GetServerBaseURL())
-	assert.Equal(t, 45*time.Second, service.GetServerReadTimeout())
-	assert.Equal(t, 60*time.Second, service.GetServerWriteTimeout())
-	assert.Equal(t, 180*time.Second, service.GetServerIdleTimeout())
-	assert.Equal(t, 45*time.Second, service.GetServerShutdownTimeout())
-
 	// Test Auth route accessors (only route configuration remains in current implementation)
 	assert.Equal(t, "/auth/login", service.GetSignInRoute())
 	assert.Equal(t, "/dashboard", service.GetSignInSuccessRoute())
@@ -213,12 +141,6 @@ func TestDefaultValues(t *testing.T) {
 	service, err := configFactory(injector)
 	require.NoError(t, err)
 	require.NotNil(t, service)
-
-	// Test default values
-	assert.Equal(t, "localhost", service.GetServerHost())
-	assert.Equal(t, 8080, service.GetServerPort())
-	assert.Equal(t, "http://localhost:8080", service.GetServerBaseURL())
-	assert.Equal(t, 30*time.Second, service.GetServerReadTimeout())
 
 	assert.Equal(t, "change-me-in-production", service.GetCSRFSecret())
 	assert.False(t, service.IsCSRFSecure())

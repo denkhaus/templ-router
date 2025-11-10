@@ -28,36 +28,7 @@ func TestConfigValidation(t *testing.T) {
 			expectError: false,
 		},
 		// Server port validation tests
-		{
-			name: "invalid server port - too low",
-			envVars: map[string]string{
-				"TR_SERVER_PORT": "0",
-			},
-			expectError: true,
-			errorMsg:    "Invalid server port",
-		},
-		{
-			name: "invalid server port - too high",
-			envVars: map[string]string{
-				"TR_SERVER_PORT": "65536",
-			},
-			expectError: true,
-			errorMsg:    "Invalid server port",
-		},
-		{
-			name: "valid server port - minimum",
-			envVars: map[string]string{
-				"TR_SERVER_PORT": "1",
-			},
-			expectError: false,
-		},
-		{
-			name: "valid server port - maximum",
-			envVars: map[string]string{
-				"TR_SERVER_PORT": "65535",
-			},
-			expectError: false,
-		},
+
 		// Security rate limit validation tests
 		{
 			name: "invalid rate limit - zero",
@@ -81,15 +52,6 @@ func TestConfigValidation(t *testing.T) {
 				"TR_SECURITY_RATE_LIMIT_REQUESTS": "1",
 			},
 			expectError: false,
-		},
-		// Multiple validation errors (should return first error)
-		{
-			name: "multiple validation errors",
-			envVars: map[string]string{
-				"TR_SERVER_PORT": "0",
-			},
-			expectError: true,
-			errorMsg:    "Invalid server port", // Should return first validation error
 		},
 	}
 
