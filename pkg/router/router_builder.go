@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
@@ -30,8 +29,6 @@ type RouterOptions struct {
 	// Custom middleware is loaded from DI container in definition order
 
 	// Service overrides
-	authHandlersOverride     interfaces.AuthHandlers
-	userStoreOverride        interfaces.UserStore
 	templateRegistryOverride interfaces.TemplateRegistry
 	assetsServiceOverride    interfaces.AssetsService
 
@@ -88,17 +85,6 @@ func NewRouterBuilder(container interfaces.Container) (*RouterBuilder, error) {
 
 
 
-// WithAuthHandlers overrides the default auth handlers
-func (rb *RouterBuilder) WithAuthHandlers(authHandlers interfaces.AuthHandlers) *RouterBuilder {
-	rb.options.authHandlersOverride = authHandlers
-	return rb
-}
-
-// WithUserStore overrides the default user store
-func (rb *RouterBuilder) WithUserStore(userStore interfaces.UserStore) *RouterBuilder {
-	rb.options.userStoreOverride = userStore
-	return rb
-}
 
 // WithTemplateRegistry overrides the default template registry
 func (rb *RouterBuilder) WithTemplateRegistry(registry interfaces.TemplateRegistry) *RouterBuilder {
@@ -185,12 +171,7 @@ func (rb *RouterBuilder) Build() (*chi.Mux, error) {
 		return nil, fmt.Errorf("failed to register routes: %w", err)
 	}
 
-	// Register auth routes if enabled via environment variable
-	if rb.config.GetRouterEnableAuthRoutes() {
-		if err := rb.registerAuthRoutes(mux); err != nil {
-			return nil, fmt.Errorf("failed to register auth routes: %w", err)
-		}
-	}
+	// Auth routes are now registered by client applications
 
 	// Apply custom middleware from DI container in definition order
 	if err := rb.applyCustomMiddleware(mux); err != nil {
@@ -205,12 +186,6 @@ func (rb *RouterBuilder) Build() (*chi.Mux, error) {
 
 // applyServiceOverrides applies any service overrides to the DI container
 func (rb *RouterBuilder) applyServiceOverrides() error {
-	if rb.options.authHandlersOverride != nil {
-		do.OverrideValue(rb.injector, rb.options.authHandlersOverride)
-	}
-	if rb.options.userStoreOverride != nil {
-		do.OverrideValue(rb.injector, rb.options.userStoreOverride)
-	}
 	if rb.options.templateRegistryOverride != nil {
 		do.OverrideValue(rb.injector, rb.options.templateRegistryOverride)
 	}
@@ -231,7 +206,6 @@ func (rb *RouterBuilder) configureMiddleware(mux *chi.Mux) error {
 	}{
 		// All middleware always enabled, controlled by environment variables
 		{"router", true, rb.setupRouterMiddleware, 100},
-		{"auth", true, rb.setupAuthMiddleware, 200},
 		{"i18n", true, rb.setupI18nMiddleware, 300},
 		{"template", true, rb.setupTemplateMiddleware, 400},
 	}
@@ -254,15 +228,7 @@ func (rb *RouterBuilder) setupRouterMiddleware() error {
 	return routerMiddleware.Configure(chi.NewRouter()) // Will be applied to main mux
 }
 
-// setupAuthMiddleware sets up authentication middleware
-func (rb *RouterBuilder) setupAuthMiddleware() error {
-	_, err := middleware.NewAuthContextMiddleware(rb.injector)
-	if err != nil {
-		return fmt.Errorf("failed to create auth middleware: %w", err)
-	}
-	// The middleware will be applied in the actual implementation
-	return nil
-}
+// Auth middleware is now handled by the new hook-based AuthValidator interface
 
 // setupI18nMiddleware sets up internationalization middleware
 func (rb *RouterBuilder) setupI18nMiddleware() error {
@@ -318,22 +284,7 @@ func (rb *RouterBuilder) registerHealthCheck(mux *chi.Mux) {
 	rb.logger.Info("Registered health check", zap.String("path", rb.options.healthCheckPath))
 }
 
-// registerAuthRoutes registers authentication routes
-func (rb *RouterBuilder) registerAuthRoutes(mux *chi.Mux) error {
-	authHandlers := do.MustInvoke[interfaces.AuthHandlers](rb.injector)
-	authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
-		switch method {
-		case "POST":
-			mux.Post(path, handler)
-		case "GET":
-			mux.Get(path, handler)
-		}
-		rb.logger.Info("Auth route registered",
-			zap.String("method", method),
-			zap.String("path", path))
-	})
-	return nil
-}
+// Auth routes are now registered by client applications using AuthHandlers interface
 
 // applyCustomMiddleware loads and applies custom middleware from DI container in definition order
 func (rb *RouterBuilder) applyCustomMiddleware(mux *chi.Mux) error {

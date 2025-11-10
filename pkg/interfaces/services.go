@@ -2,7 +2,6 @@ package interfaces
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/go-chi/chi/v5"
@@ -18,16 +17,6 @@ type ValidationService interface {
 	ValidateConfiguration(routes []Route, configs map[string]*shared.ConfigFile) error
 }
 
-// SessionStore interface for session management (pluggable)
-type SessionStore interface {
-	GetSession(req *http.Request) (*Session, error)
-	CreateSession(userID string) (*Session, error)
-	DeleteSession(sessionID string) error
-
-	GetSessionByID(sessionID string) (*Session, error)            // Direct access
-	ExtendSession(sessionID string, duration time.Duration) error // Session verlängern
-}
-
 // UserEntity defines the minimal interface that any user implementation must satisfy
 type UserEntity interface {
 	GetID() string
@@ -35,11 +24,17 @@ type UserEntity interface {
 	GetRoles() []string
 }
 
-// UserStore interface for user management (pluggable and generic)
-type UserStore interface {
-	GetUserByID(userID string) (UserEntity, error)
+// AuthValidator defines the authentication hook interface that client applications must implement
+// This replaces the concrete AuthService implementation with a flexible hook-based system
+type AuthValidator interface {
+	// IsAuthenticated checks if the current request is from an authenticated user
+	IsAuthenticated(req *http.Request) bool
 
-	// Request-based methods for complete data extraction and validation
-	ValidateCredentialsFromRequest(req *http.Request) (UserEntity, error)
-	CreateUserFromRequest(req *http.Request) (UserEntity, error)
+	// GetCurrentUser returns the authenticated user for the current request
+	// Returns error if user cannot be retrieved or is not authenticated
+	GetCurrentUser(req *http.Request) (UserEntity, error)
+
+	// HasRole checks if the given user has any of the required roles
+	// Returns true if user has at least one of the required roles
+	HasRole(user UserEntity, requiredRoles []string) bool
 }

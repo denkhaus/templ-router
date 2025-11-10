@@ -67,14 +67,6 @@ func startupStreamlined(ctx context.Context) error {
 			return assets.NewService(i)
 		}),
 
-		// Custom User Store Factory - demonstrates pluggable user management
-		// By default, templ-router provides its own user store implementation
-		// Here we use our custom user store with in-memory storage for demo purposes
-		di.WithUserStoreFactory(func(i do.Injector) (interfaces.UserStore, error) {
-			return services.NewDefaultUserStore(i)
-		}),
-
-		// NEW: Health check configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
 		di.WithHealthCheck(true, "/api/health"),
 
 		// NEW: Custom routes - add them directly without manual mux manipulation!
@@ -99,19 +91,29 @@ func startupStreamlined(ctx context.Context) error {
 			})
 		}),
 
-		// NEW: Custom Session Store - demonstrates pluggable session management
-		// By default, templ-router uses in-memory session store
-		// Here we create our own simple in-memory session store to show the principle
-		// In production, you might use Redis, database, or other custom implementations
-		// Create a factory function that provides our custom session store
-		di.WithSessionStoreFactory(func(i do.Injector) (interfaces.SessionStore, error) {
-			logger := do.MustInvoke[*zap.Logger](i)
-			configService := do.MustInvoke[interfaces.ConfigService](i)
-			return services.NewCustomSessionStore(configService, logger)
+		// NEW: Custom Auth Validator - demonstrates hook-based authentication
+		// This replaces the old AuthService with the new AuthValidator interface
+		// The router middleware will use this to check authentication
+		di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
+			return services.NewDemoAuthValidator(i)
 		}),
+
 	)
 
-	// 5. Register DataServices as named dependencies (unchanged)
+	// 5. Register Demo Authentication Services as client-side dependencies
+	// These are now handled by the client application, not the router framework
+	do.Provide(injector, services.NewDefaultUserStore)
+	do.Provide(injector, services.NewDemoSessionStore)
+	
+	// Create auth handlers and register routes manually (client-side)
+	authHandlers, err := services.NewDemoAuthHandlers(injector)
+	if err != nil {
+		return shared.NewServiceError("Failed to create auth handlers").
+			WithCause(err).
+			WithContext("component", "auth_handlers")
+	}
+
+	// 6. Register DataServices as named dependencies (unchanged)
 	do.ProvideNamed(injector, "UserDataService", dataservices.NewUserDataService)
 	do.ProvideNamed(injector, "ProductDataService", dataservices.NewProductDataService)
 	do.ProvideNamed(injector, "OrderDataService", dataservices.NewOrderDataService)
@@ -119,16 +121,12 @@ func startupStreamlined(ctx context.Context) error {
 	do.ProvideNamed(injector, "SpecificDataService", dataservices.NewSpecificOnlyDataService)
 	do.ProvideNamed(injector, "UserWithIdDataService", dataservices.NewUserWithIdDataService)
 
-	// 6. Get logger from container
+	// 7. Get logger from container
 	logger := container.GetLogger()
 	defer logger.Sync()
 
 	logger.Info("Starting application with streamlined bootstrap process")
 
-	// 7. THE MAGIC: Use RouterBootstrap to automatically configure everything!
-	// No more: cleanRouter.GetMiddlewareSetup().GetRouterMiddleware().Configure(mux)
-	// No more: manual middleware creation and ordering
-	// No more: manual route registration
 	routerBootstrap := container.GetRouterBootstrap()
 	mux, err := routerBootstrap.Bootstrap()
 	if err != nil {
@@ -137,10 +135,31 @@ func startupStreamlined(ctx context.Context) error {
 			WithContext("component", "router_bootstrap")
 	}
 
-	// 8. Log route information
+	// 8. Register client-side auth routes manually
+	// Since auth is now client-side, we register the routes directly to the mux
+	authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
+		switch method {
+		case "GET":
+			mux.Get(path, handler)
+		case "POST":
+			mux.Post(path, handler)
+		case "PUT":
+			mux.Put(path, handler)
+		case "DELETE":
+			mux.Delete(path, handler)
+		case "PATCH":
+			mux.Patch(path, handler)
+		default:
+			logger.Warn("Unsupported HTTP method for auth route", 
+				zap.String("method", method), 
+				zap.String("path", path))
+		}
+	})
+
+	// 9. Log route information
 	logRouteInformation(routerBootstrap.GetRouterCore(), logger)
 
-	// 9. Start server - everything is already configured!
+	// 10. Start server - everything is already configured!
 	logger.Info("Starting Streamlined Bootstrap Demo Server on 0.0.0.0:8084")
 	if err := http.ListenAndServe("0.0.0.0:8084", mux); err != nil {
 		return shared.NewServiceError("Failed to start HTTP server").

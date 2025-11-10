@@ -12,11 +12,11 @@ type mockTemplateConfigService struct {
 	layoutRootDir string
 }
 
-func (m *mockTemplateConfigService) GetLayoutRootDirectory() string { 
+func (m *mockTemplateConfigService) GetLayoutRootDirectory() string {
 	if m.layoutRootDir != "" {
 		return m.layoutRootDir
 	}
-	return "app" 
+	return "app"
 }
 
 // Implement other required methods with defaults
@@ -62,8 +62,6 @@ func (m *mockTemplateConfigService) GetCSRFSecret() string                     {
 func (m *mockTemplateConfigService) IsCSRFSecure() bool                        { return false }
 func (m *mockTemplateConfigService) IsCSRFHttpOnly() bool                      { return true }
 func (m *mockTemplateConfigService) GetCSRFSameSite() string                   { return "Lax" }
-func (m *mockTemplateConfigService) IsRateLimitEnabled() bool                  { return false }
-func (m *mockTemplateConfigService) GetRateLimitRequests() int                 { return 100 }
 func (m *mockTemplateConfigService) AreSecurityHeadersEnabled() bool           { return false }
 func (m *mockTemplateConfigService) IsHSTSEnabled() bool                       { return false }
 func (m *mockTemplateConfigService) GetHSTSMaxAge() int                        { return 31536000 }
@@ -279,6 +277,7 @@ func TestNewKeyResolver(t *testing.T) {
 		t.Error("Module name not set correctly")
 	}
 }
+
 // Auth redirect routes (only for success cases)
 func (m *mockTemplateConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
 func (m *mockTemplateConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
@@ -288,8 +287,8 @@ func (m *mockTemplateConfigService) GetSignOutSuccessRoute() string { return "/"
 func (m *mockTemplateConfigService) GetSignInRoute() string { return "/login" }
 
 // Router configuration methods
-func (m *mockTemplateConfigService) GetRouterEnableTrailingSlash() bool     { return true }
-func (m *mockTemplateConfigService) GetRouterEnableSlashRedirect() bool     { return true }
-func (m *mockTemplateConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
-func (m *mockTemplateConfigService) GetRouterEnableAuthRoutes() bool        { return true }
-func (m *mockTemplateConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }
+func (m *mockTemplateConfigService) GetRouterEnableTrailingSlash() bool    { return true }
+func (m *mockTemplateConfigService) GetRouterEnableSlashRedirect() bool    { return true }
+func (m *mockTemplateConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
+func (m *mockTemplateConfigService) GetRouterEnableAuthRoutes() bool       { return true }
+func (m *mockTemplateConfigService) GetRouterAuthRoutePrefix() string      { return "/api" }

@@ -47,11 +47,6 @@ func (m *mockRouterConfigService) GetDatabaseName() string                   { r
 func (m *mockRouterConfigService) GetDatabaseSSLMode() string                { return "disable" }
 func (m *mockRouterConfigService) IsEmailVerificationRequired() bool         { return false }
 func (m *mockRouterConfigService) GetVerificationTokenExpiry() time.Duration { return 24 * time.Hour }
-func (m *mockRouterConfigService) GetSessionCookieName() string              { return "session" }
-func (m *mockRouterConfigService) GetSessionExpiry() time.Duration           { return 24 * time.Hour }
-func (m *mockRouterConfigService) IsSessionSecure() bool                     { return false }
-func (m *mockRouterConfigService) IsSessionHttpOnly() bool                   { return true }
-func (m *mockRouterConfigService) GetSessionSameSite() string                { return "lax" }
 func (m *mockRouterConfigService) GetMinPasswordLength() int                 { return 8 }
 func (m *mockRouterConfigService) IsStrongPasswordRequired() bool            { return false }
 func (m *mockRouterConfigService) ShouldCreateDefaultAdmin() bool            { return false }
@@ -80,8 +75,6 @@ func (m *mockRouterConfigService) GetCSRFSecret() string          { return "secr
 func (m *mockRouterConfigService) IsCSRFSecure() bool             { return false }
 func (m *mockRouterConfigService) IsCSRFHttpOnly() bool           { return true }
 func (m *mockRouterConfigService) GetCSRFSameSite() string        { return "strict" }
-func (m *mockRouterConfigService) IsRateLimitEnabled() bool       { return false }
-func (m *mockRouterConfigService) GetRateLimitRequests() int      { return 100 }
 func (m *mockRouterConfigService) IsHSTSEnabled() bool            { return false }
 func (m *mockRouterConfigService) GetHSTSMaxAge() int             { return 31536000 }
 func (m *mockRouterConfigService) GetLogLevel() string            { return "info" }
@@ -189,16 +182,17 @@ func (m *mockConfigLoader) LoadRouteConfig(templatePath string) (*shared.ConfigF
 	return &shared.ConfigFile{}, nil
 }
 
-type mockAuthService struct{}
+type mockAuthValidator struct{}
 
-func (m *mockAuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
-	return &interfaces.AuthResult{
-		IsAuthenticated: true,
-		User:            &testUser{ID: "test123", Email: "test@example.com", Roles: []string{"user"}},
-	}, nil
+func (m *mockAuthValidator) IsAuthenticated(req *http.Request) bool {
+	return true
 }
 
-func (m *mockAuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
+func (m *mockAuthValidator) GetCurrentUser(req *http.Request) (interfaces.UserEntity, error) {
+	return &testUser{ID: "test123", Email: "test@example.com", Roles: []string{"user"}}, nil
+}
+
+func (m *mockAuthValidator) HasRole(user interfaces.UserEntity, requiredRoles []string) bool {
 	return true
 }
 
@@ -212,30 +206,6 @@ type testUser struct {
 func (u *testUser) GetID() string      { return u.ID }
 func (u *testUser) GetEmail() string   { return u.Email }
 func (u *testUser) GetRoles() []string { return u.Roles }
-
-func (m *mockAuthService) RefreshToken(token string) (string, error) {
-	return "new-mock-token", nil
-}
-
-func (m *mockAuthService) RevokeToken(token string) error {
-	return nil
-}
-
-func (m *mockAuthService) ChangePassword(userID, oldPassword, newPassword string) error {
-	return nil
-}
-
-func (m *mockAuthService) ResetPassword(email string) error {
-	return nil
-}
-
-func (m *mockAuthService) VerifyEmail(token string) error {
-	return nil
-}
-
-func (m *mockAuthService) ResendVerificationEmail(email string) error {
-	return nil
-}
 
 type mockI18nService struct{}
 
@@ -422,44 +392,6 @@ func (m *mockRouterMiddleware) Configure(chiRouter *chi.Mux) error {
 	return nil
 }
 
-// Mock AuthHandlers for router tests
-type mockRouterAuthHandlers struct{}
-
-func (m *mockRouterAuthHandlers) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {
-	// Register mock auth routes
-	registerFunc("GET", "/signin", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Login page"))
-	})
-	registerFunc("POST", "/signin", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Login processed"))
-	})
-	registerFunc("GET", "/signup", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Signup page"))
-	})
-	registerFunc("POST", "/signout", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("Logged out"))
-	})
-}
-
-func (m *mockRouterAuthHandlers) HandleSignIn(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Login handled"))
-}
-
-func (m *mockRouterAuthHandlers) HandleSignOut(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Logout handled"))
-}
-
-func (m *mockRouterAuthHandlers) HandleSignUp(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Signup handled"))
-}
-
 func createRouterTestContainer() do.Injector {
 	injector := do.New()
 
@@ -470,7 +402,7 @@ func createRouterTestContainer() do.Injector {
 	do.ProvideValue[interfaces.TemplateRegistry](injector, &mockRouterTemplateRegistry{})
 	do.ProvideValue[interfaces.RouteDiscovery](injector, &mockRouteDiscovery{})
 	do.ProvideValue[interfaces.ConfigLoader](injector, &mockConfigLoader{})
-	do.ProvideValue[interfaces.AuthService](injector, &mockAuthService{})
+	do.ProvideValue[interfaces.AuthValidator](injector, &mockAuthValidator{})
 	do.ProvideValue[interfaces.I18nService](injector, &mockI18nService{})
 	do.ProvideValue[interfaces.TemplateService](injector, &mockTemplateService{})
 	do.ProvideValue[interfaces.LayoutService](injector, &mockLayoutService{})
@@ -483,9 +415,6 @@ func createRouterTestContainer() do.Injector {
 	do.ProvideValue[interfaces.I18nMiddlewareInterface](injector, &mockI18nMiddleware{})
 	do.ProvideValue[interfaces.TemplateMiddlewareInterface](injector, &mockTemplateMiddleware{})
 	do.ProvideValue[interfaces.RouterMiddlewareInterface](injector, &mockRouterMiddleware{})
-
-	// Register AuthHandlers (required by RegisterRoutes)
-	do.ProvideValue[interfaces.AuthHandlers](injector, &mockRouterAuthHandlers{})
 
 	// Create and register handler pipeline
 	do.Provide(injector, pipeline.NewHandlerPipeline)

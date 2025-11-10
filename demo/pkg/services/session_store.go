@@ -1,4 +1,4 @@
-package auth
+package services
 
 import (
 	"crypto/rand"
@@ -8,34 +8,31 @@ import (
 	"sync"
 	"time"
 
-	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/demo/pkg/interfaces"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
 
-// inMemmorySessionStoreImpl provides a default in-memory session store implementation
-// Users can replace this with Redis, database-backed, or other implementations
-type inMemmorySessionStoreImpl struct {
+// demoSessionStore provides a default in-memory session store implementation for the demo
+// This shows how to implement a session store for production applications
+type demoSessionStore struct {
 	logger        *zap.Logger
 	sessions      map[string]*interfaces.Session
 	mutex         sync.RWMutex
-	configService interfaces.ConfigService
 	sessionExpiry time.Duration
 	cookieName    string
 }
 
-// NewInMemorySessionStore creates a new default session store for DI
-func NewInMemorySessionStore(i do.Injector) (interfaces.SessionStore, error) {
+// NewDemoSessionStore creates a new demo session store for DI
+func NewDemoSessionStore(i do.Injector) (interfaces.SessionStore, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
-	configService := do.MustInvoke[interfaces.ConfigService](i)
 
-	store := &inMemmorySessionStoreImpl{
+	store := &demoSessionStore{
 		logger:        logger,
 		sessions:      make(map[string]*interfaces.Session),
 		mutex:         sync.RWMutex{},
-		configService: configService,
-		cookieName:    configService.GetSessionCookieName(),
-		sessionExpiry: configService.GetSessionExpiry(),
+		cookieName:    "session_id",   // Hardcoded for demo
+		sessionExpiry: 24 * time.Hour, // Hardcoded for demo
 	}
 
 	// Start cleanup routine for expired sessions
@@ -45,7 +42,7 @@ func NewInMemorySessionStore(i do.Injector) (interfaces.SessionStore, error) {
 }
 
 // GetSession retrieves a session from the request
-func (s *inMemmorySessionStoreImpl) GetSession(req *http.Request) (*interfaces.Session, error) {
+func (s *demoSessionStore) GetSession(req *http.Request) (*interfaces.Session, error) {
 	// Get session ID from cookie
 	cookie, err := req.Cookie(s.cookieName)
 	if err != nil {
@@ -70,7 +67,7 @@ func (s *inMemmorySessionStoreImpl) GetSession(req *http.Request) (*interfaces.S
 }
 
 // CreateSession creates a new session for a user
-func (s *inMemmorySessionStoreImpl) CreateSession(userID string) (*interfaces.Session, error) {
+func (s *demoSessionStore) CreateSession(userID string) (*interfaces.Session, error) {
 	sessionID, err := s.generateSessionID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate session ID: %w", err)
@@ -90,35 +87,35 @@ func (s *inMemmorySessionStoreImpl) CreateSession(userID string) (*interfaces.Se
 	s.mutex.Unlock()
 
 	s.logger.Info("Session created",
-		zap.String(s.cookieName, sessionID),
+		zap.String("session_id", sessionID),
 		zap.String("user_id", userID))
 
 	return session, nil
 }
 
 // DeleteSession deletes a session
-func (s *inMemmorySessionStoreImpl) DeleteSession(sessionID string) error {
+func (s *demoSessionStore) DeleteSession(sessionID string) error {
 	s.mutex.Lock()
-	delete(s.sessions, sessionID)
-	s.mutex.Unlock()
+	defer s.mutex.Unlock()
 
-	s.logger.Info("Session deleted", zap.String(s.cookieName, sessionID))
+	delete(s.sessions, sessionID)
+	s.logger.Info("Session deleted", zap.String("session_id", sessionID))
 	return nil
 }
 
 // GetSessionByID retrieves a session by its ID (direct access)
-func (s *inMemmorySessionStoreImpl) GetSessionByID(sessionID string) (*interfaces.Session, error) {
+func (s *demoSessionStore) GetSessionByID(sessionID string) (*interfaces.Session, error) {
 	s.mutex.RLock()
-	session, exists := s.sessions[sessionID]
-	s.mutex.RUnlock()
+	defer s.mutex.RUnlock()
 
+	session, exists := s.sessions[sessionID]
 	if !exists {
 		return nil, fmt.Errorf("session not found")
 	}
 
 	// Check if session is expired
 	if time.Now().After(session.ExpiresAt) {
-		s.DeleteSession(session.ID)
+		s.DeleteSession(sessionID)
 		return nil, fmt.Errorf("session expired")
 	}
 
@@ -126,7 +123,7 @@ func (s *inMemmorySessionStoreImpl) GetSessionByID(sessionID string) (*interface
 }
 
 // ExtendSession extends the expiry time of an existing session
-func (s *inMemmorySessionStoreImpl) ExtendSession(sessionID string, duration time.Duration) error {
+func (s *demoSessionStore) ExtendSession(sessionID string, duration time.Duration) error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -146,7 +143,7 @@ func (s *inMemmorySessionStoreImpl) ExtendSession(sessionID string, duration tim
 	s.sessions[sessionID] = session
 
 	s.logger.Info("Session extended",
-		zap.String(s.cookieName, sessionID),
+		zap.String("session_id", sessionID),
 		zap.String("user_id", session.UserID),
 		zap.Duration("duration", duration),
 		zap.Time("new_expiry", session.ExpiresAt))
@@ -155,17 +152,18 @@ func (s *inMemmorySessionStoreImpl) ExtendSession(sessionID string, duration tim
 }
 
 // generateSessionID generates a cryptographically secure session ID
-func (s *inMemmorySessionStoreImpl) generateSessionID() (string, error) {
+func (s *demoSessionStore) generateSessionID() (string, error) {
 	bytes := make([]byte, 32) // 256 bits
 	if _, err := rand.Read(bytes); err != nil {
-		return "", err
+		return "", fmt.Errorf("failed to generate random bytes: %w", err)
 	}
 	return hex.EncodeToString(bytes), nil
 }
 
-// cleanupExpiredSessions runs a background routine to clean up expired sessions
-func (s *inMemmorySessionStoreImpl) cleanupExpiredSessions() {
-	ticker := time.NewTicker(1 * time.Hour) // Run every hour
+// cleanupExpiredSessions removes expired sessions from memory
+// This runs in a background goroutine
+func (s *demoSessionStore) cleanupExpiredSessions() {
+	ticker := time.NewTicker(5 * time.Minute) // Cleanup every 5 minutes
 	defer ticker.Stop()
 
 	for range ticker.C {
@@ -182,11 +180,13 @@ func (s *inMemmorySessionStoreImpl) cleanupExpiredSessions() {
 		for _, sessionID := range expiredSessions {
 			delete(s.sessions, sessionID)
 		}
+
 		s.mutex.Unlock()
 
 		if len(expiredSessions) > 0 {
 			s.logger.Info("Cleaned up expired sessions",
-				zap.Int("count", len(expiredSessions)))
+				zap.Int("expired_count", len(expiredSessions)),
+				zap.Int("remaining_sessions", len(s.sessions)))
 		}
 	}
 }

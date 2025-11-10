@@ -2,7 +2,6 @@ package router
 
 import (
 	"fmt"
-	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/pipeline"
@@ -17,7 +16,6 @@ type routerCore struct {
 	scanPath      string
 	config        interfaces.ConfigService
 	assetsService interfaces.AssetsService
-	authHandlers  interfaces.AuthHandlers
 	logger        *zap.Logger
 	injector      do.Injector
 
@@ -46,7 +44,6 @@ func NewRouterCore(i do.Injector) (interfaces.RouterCore, error) {
 	handlerPipeline := do.MustInvoke[*pipeline.HandlerPipeline](i)
 	routeDiscovery := do.MustInvoke[interfaces.RouteDiscovery](i)
 	assetsService := do.MustInvoke[interfaces.AssetsService](i)
-	authHandlers := do.MustInvoke[interfaces.AuthHandlers](i)
 	configLoader := do.MustInvoke[interfaces.ConfigLoader](i)
 
 	// Create separated components
@@ -68,7 +65,6 @@ func NewRouterCore(i do.Injector) (interfaces.RouterCore, error) {
 	return &routerCore{
 		scanPath:        config.GetLayoutRootDirectory(),
 		config:          config,
-		authHandlers:    authHandlers,
 		assetsService:   assetsService,
 		logger:          logger,
 		injector:        i, // Store injector for RouteRegistrar creation
@@ -144,26 +140,7 @@ func (crc *routerCore) RegisterRoutes(chiRouter *chi.Mux) error {
 	// Register static routes
 	crc.routeRegistrar.RegisterStaticRoutes()
 
-	// Register authentication handlers
-
-	crc.authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
-		switch method {
-		case "GET":
-			chiRouter.Get(path, handler)
-		case "POST":
-			chiRouter.Post(path, handler)
-		case "PUT":
-			chiRouter.Put(path, handler)
-		case "DELETE":
-			chiRouter.Delete(path, handler)
-		case "PATCH":
-			chiRouter.Patch(path, handler)
-		default:
-			crc.logger.Warn("Unsupported HTTP method for auth handler",
-				zap.String("method", method),
-				zap.String("path", path))
-		}
-	})
+	// Authentication handlers are now registered by client applications
 
 	// Register error handlers
 	crc.routeRegistrar.Register404Handler()

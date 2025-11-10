@@ -23,11 +23,6 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "valid custom configuration",
 			envVars: map[string]string{
-				"TR_SERVER_PORT":                "3000",
-				"TR_DATABASE_PORT":              "5432",
-				"TR_AUTH_MIN_PASSWORD_LENGTH":   "10",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD": "validpassword123",
-				"TR_EMAIL_SMTP_PORT":            "587",
 				"TR_SECURITY_RATE_LIMIT_REQUESTS": "50",
 			},
 			expectError: false,
@@ -63,170 +58,6 @@ func TestConfigValidation(t *testing.T) {
 			},
 			expectError: false,
 		},
-		// Database port validation tests
-		{
-			name: "invalid database port - too low",
-			envVars: map[string]string{
-				"TR_DATABASE_PORT": "0",
-			},
-			expectError: true,
-			errorMsg:    "Invalid database port",
-		},
-		{
-			name: "invalid database port - too high",
-			envVars: map[string]string{
-				"TR_DATABASE_PORT": "65536",
-			},
-			expectError: true,
-			errorMsg:    "Invalid database port",
-		},
-		{
-			name: "valid database port - minimum",
-			envVars: map[string]string{
-				"TR_DATABASE_PORT": "1",
-			},
-			expectError: false,
-		},
-		{
-			name: "valid database port - maximum",
-			envVars: map[string]string{
-				"TR_DATABASE_PORT": "65535",
-			},
-			expectError: false,
-		},
-		// Auth password length validation tests
-		{
-			name: "invalid min password length - zero",
-			envVars: map[string]string{
-				"TR_AUTH_MIN_PASSWORD_LENGTH": "0",
-			},
-			expectError: true,
-			errorMsg:    "Minimum password length must be at least 1",
-		},
-		{
-			name: "invalid min password length - negative",
-			envVars: map[string]string{
-				"TR_AUTH_MIN_PASSWORD_LENGTH": "-1",
-			},
-			expectError: true,
-			errorMsg:    "Minimum password length must be at least 1",
-		},
-		{
-			name: "valid min password length - minimum",
-			envVars: map[string]string{
-				"TR_AUTH_MIN_PASSWORD_LENGTH": "1",
-			},
-			expectError: false,
-		},
-		// Default admin validation tests
-		{
-			name: "default admin enabled with empty email",
-			envVars: map[string]string{
-				"TR_AUTH_CREATE_DEFAULT_ADMIN": "true",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":  "",
-			},
-			expectError: true,
-			errorMsg:    "Email cannot be empty when CreateDefaultAdmin is enabled",
-		},
-		{
-			name: "default admin enabled with empty password",
-			envVars: map[string]string{
-				"TR_AUTH_CREATE_DEFAULT_ADMIN":   "true",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":    "admin@test.com",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD": "",
-			},
-			expectError: true,
-			errorMsg:    "Password cannot be empty when CreateDefaultAdmin is enabled",
-		},
-		{
-			name: "default admin password too short",
-			envVars: map[string]string{
-				"TR_AUTH_CREATE_DEFAULT_ADMIN":    "true",
-				"TR_AUTH_MIN_PASSWORD_LENGTH":     "10",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":     "admin@test.com",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD":  "short",
-				"TR_AUTH_DEFAULT_ADMIN_FIRST_NAME": "Admin",
-				"TR_AUTH_DEFAULT_ADMIN_LAST_NAME":  "User",
-			},
-			expectError: true,
-			errorMsg:    "Password must be at least 10 characters",
-		},
-		{
-			name: "default admin enabled with empty first name",
-			envVars: map[string]string{
-				"TR_AUTH_CREATE_DEFAULT_ADMIN":     "true",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":      "admin@test.com",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD":   "validpassword",
-				"TR_AUTH_DEFAULT_ADMIN_FIRST_NAME": "",
-				"TR_AUTH_DEFAULT_ADMIN_LAST_NAME":  "User",
-			},
-			expectError: true,
-			errorMsg:    "First name cannot be empty when CreateDefaultAdmin is enabled",
-		},
-		{
-			name: "default admin enabled with empty last name",
-			envVars: map[string]string{
-				"TR_AUTH_CREATE_DEFAULT_ADMIN":     "true",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":      "admin@test.com",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD":   "validpassword",
-				"TR_AUTH_DEFAULT_ADMIN_FIRST_NAME": "Admin",
-				"TR_AUTH_DEFAULT_ADMIN_LAST_NAME":  "",
-			},
-			expectError: true,
-			errorMsg:    "Last name cannot be empty when CreateDefaultAdmin is enabled",
-		},
-		{
-			name: "valid default admin configuration",
-			envVars: map[string]string{
-				"TR_AUTH_CREATE_DEFAULT_ADMIN":     "true",
-				"TR_AUTH_MIN_PASSWORD_LENGTH":      "8",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":      "admin@test.com",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD":   "validpassword123",
-				"TR_AUTH_DEFAULT_ADMIN_FIRST_NAME": "Admin",
-				"TR_AUTH_DEFAULT_ADMIN_LAST_NAME":  "User",
-			},
-			expectError: false,
-		},
-		{
-			name: "default admin disabled - validation skipped",
-			envVars: map[string]string{
-				"TR_AUTH_CREATE_DEFAULT_ADMIN": "false",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":  "",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD": "",
-			},
-			expectError: false,
-		},
-		// Email SMTP port validation tests
-		{
-			name: "invalid SMTP port - too low",
-			envVars: map[string]string{
-				"TR_EMAIL_SMTP_PORT": "0",
-			},
-			expectError: true,
-			errorMsg:    "Invalid SMTP port",
-		},
-		{
-			name: "invalid SMTP port - too high",
-			envVars: map[string]string{
-				"TR_EMAIL_SMTP_PORT": "65536",
-			},
-			expectError: true,
-			errorMsg:    "Invalid SMTP port",
-		},
-		{
-			name: "valid SMTP port - minimum",
-			envVars: map[string]string{
-				"TR_EMAIL_SMTP_PORT": "1",
-			},
-			expectError: false,
-		},
-		{
-			name: "valid SMTP port - maximum",
-			envVars: map[string]string{
-				"TR_EMAIL_SMTP_PORT": "65535",
-			},
-			expectError: false,
-		},
 		// Security rate limit validation tests
 		{
 			name: "invalid rate limit - zero",
@@ -255,9 +86,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "multiple validation errors",
 			envVars: map[string]string{
-				"TR_SERVER_PORT":                   "0",
-				"TR_DATABASE_PORT":                 "0",
-				"TR_AUTH_MIN_PASSWORD_LENGTH":      "0",
+				"TR_SERVER_PORT": "0",
 			},
 			expectError: true,
 			errorMsg:    "Invalid server port", // Should return first validation error
@@ -267,7 +96,7 @@ func TestConfigValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			clearTestEnv(t)
-			
+
 			for key, value := range tt.envVars {
 				os.Setenv(key, value)
 			}
@@ -283,77 +112,6 @@ func TestConfigValidation(t *testing.T) {
 				if tt.errorMsg != "" {
 					// The service layer wraps validation errors in "configuration validation failed"
 					assert.Contains(t, err.Error(), "configuration validation failed")
-				}
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestDirectValidation(t *testing.T) {
-	// Test the Validate method directly on configImpl
-	tests := []struct {
-		name        string
-		config      configImpl
-		expectError bool
-		errorMsg    string
-	}{
-		{
-			name: "valid configuration",
-			config: configImpl{
-				Server: ServerConfig{
-					Port: 8080,
-				},
-				Database: DatabaseConfig{
-					Port: 5432,
-				},
-				Auth: AuthConfig{
-					MinPasswordLength:   8,
-					CreateDefaultAdmin:  false,
-				},
-				Email: EmailConfig{
-					SMTPPort: 587,
-				},
-				Security: SecurityConfig{
-					RateLimitRequests: 100,
-				},
-			},
-			expectError: false,
-		},
-		{
-			name: "invalid server port",
-			config: configImpl{
-				Server: ServerConfig{
-					Port: 0,
-				},
-				Database: DatabaseConfig{
-					Port: 5432,
-				},
-				Auth: AuthConfig{
-					MinPasswordLength: 8,
-				},
-				Email: EmailConfig{
-					SMTPPort: 587,
-				},
-				Security: SecurityConfig{
-					RateLimitRequests: 100,
-				},
-			},
-			expectError: true,
-			errorMsg:    "Invalid server port",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.config.Validate()
-
-			if tt.expectError {
-				assert.Error(t, err)
-				if tt.errorMsg != "" {
-					// Check for the specific validation error message
-					assert.Contains(t, err.Error(), tt.errorMsg)
 				}
 			} else {
 				assert.NoError(t, err)

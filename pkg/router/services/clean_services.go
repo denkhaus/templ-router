@@ -9,12 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// authService provides authentication without dependencies on router internals
-type authService struct {
-	sessionStore interfaces.SessionStore
-	userStore    interfaces.UserStore
-	logger       *zap.Logger
-}
 
 // cleanI18nService provides internationalization without router dependencies
 type cleanI18nService struct {

@@ -69,11 +69,6 @@ func (m *mockRouteDiscoveryConfigService) IsEmailVerificationRequired() bool { r
 func (m *mockRouteDiscoveryConfigService) GetVerificationTokenExpiry() time.Duration {
 	return 24 * time.Hour
 }
-func (m *mockRouteDiscoveryConfigService) GetSessionCookieName() string     { return "session" }
-func (m *mockRouteDiscoveryConfigService) GetSessionExpiry() time.Duration  { return 24 * time.Hour }
-func (m *mockRouteDiscoveryConfigService) IsSessionSecure() bool            { return false }
-func (m *mockRouteDiscoveryConfigService) IsSessionHTTPOnly() bool          { return true }
-func (m *mockRouteDiscoveryConfigService) GetSessionSameSite() string       { return "lax" }
 func (m *mockRouteDiscoveryConfigService) GetMinPasswordLength() int        { return 8 }
 func (m *mockRouteDiscoveryConfigService) IsStrongPasswordRequired() bool   { return false }
 func (m *mockRouteDiscoveryConfigService) ShouldCreateDefaultAdmin() bool   { return false }
@@ -94,8 +89,6 @@ func (m *mockRouteDiscoveryConfigService) GetCSRFSecret() string            { re
 func (m *mockRouteDiscoveryConfigService) IsCSRFSecure() bool               { return false }
 func (m *mockRouteDiscoveryConfigService) IsCSRFHTTPOnly() bool             { return true }
 func (m *mockRouteDiscoveryConfigService) GetCSRFSameSite() string          { return "strict" }
-func (m *mockRouteDiscoveryConfigService) IsRateLimitEnabled() bool         { return false }
-func (m *mockRouteDiscoveryConfigService) GetRateLimitRequests() int        { return 100 }
 func (m *mockRouteDiscoveryConfigService) IsHSTSEnabled() bool              { return false }
 func (m *mockRouteDiscoveryConfigService) GetHSTSMaxAge() int               { return 31536000 }
 func (m *mockRouteDiscoveryConfigService) GetLogLevel() string              { return "info" }
@@ -353,12 +346,15 @@ func TestI18nPlaceholderFix(t *testing.T) {
 func (m *mockRouteDiscoveryConfigService) GetServerReadTimeout() time.Duration {
 	return 30 * time.Second
 }
+
 func (m *mockRouteDiscoveryConfigService) GetServerWriteTimeout() time.Duration {
 	return 30 * time.Second
 }
+
 func (m *mockRouteDiscoveryConfigService) GetServerIdleTimeout() time.Duration {
 	return 2 * time.Minute
 }
+
 func (m *mockRouteDiscoveryConfigService) GetServerShutdownTimeout() time.Duration {
 	return 30 * time.Second
 }
@@ -369,7 +365,6 @@ func (m *mockRouteDiscoveryConfigService) GetMetadataExtension() string     { re
 func (m *mockRouteDiscoveryConfigService) IsLayoutInheritanceEnabled() bool { return true }
 func (m *mockRouteDiscoveryConfigService) GetTemplateOutputDir() string     { return "generated" }
 func (m *mockRouteDiscoveryConfigService) GetTemplatePackageName() string   { return "templates" }
-func (m *mockRouteDiscoveryConfigService) IsSessionHttpOnly() bool          { return true }
 func (m *mockRouteDiscoveryConfigService) IsCSRFHttpOnly() bool             { return true }
 func (m *mockRouteDiscoveryConfigService) IsDevelopment() bool              { return true }
 func (m *mockRouteDiscoveryConfigService) IsProduction() bool               { return false }
@@ -387,4 +382,4 @@ func (m *mockRouteDiscoveryConfigService) GetRouterEnableTrailingSlash() bool   
 func (m *mockRouteDiscoveryConfigService) GetRouterEnableSlashRedirect() bool    { return true }
 func (m *mockRouteDiscoveryConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
 func (m *mockRouteDiscoveryConfigService) GetRouterEnableAuthRoutes() bool       { return true }
-func (m *mockRouteDiscoveryConfigService) GetRouterAuthRoutePrefix() string     { return "/api" }
+func (m *mockRouteDiscoveryConfigService) GetRouterAuthRoutePrefix() string      { return "/api" }

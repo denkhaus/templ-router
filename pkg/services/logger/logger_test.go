@@ -15,29 +15,29 @@ import (
 
 // Mock ConfigService for logger tests
 type mockLoggerConfigService struct {
-	logLevel            string
-	logFormat           string
-	logOutput           string
-	fileLoggingEnabled  bool
-	logFilePath         string
-	isDevelopment       bool
-	isProduction        bool
+	logLevel           string
+	logFormat          string
+	logOutput          string
+	fileLoggingEnabled bool
+	logFilePath        string
+	isDevelopment      bool
+	isProduction       bool
 }
 
-func (m *mockLoggerConfigService) GetLogLevel() string                    { return m.logLevel }
-func (m *mockLoggerConfigService) GetLogFormat() string                   { return m.logFormat }
-func (m *mockLoggerConfigService) GetLogOutput() string                   { return m.logOutput }
-func (m *mockLoggerConfigService) IsFileLoggingEnabled() bool             { return m.fileLoggingEnabled }
-func (m *mockLoggerConfigService) GetLogFilePath() string                 { return m.logFilePath }
-func (m *mockLoggerConfigService) IsDevelopment() bool                    { return m.isDevelopment }
-func (m *mockLoggerConfigService) IsProduction() bool                     { return m.isProduction }
+func (m *mockLoggerConfigService) GetLogLevel() string        { return m.logLevel }
+func (m *mockLoggerConfigService) GetLogFormat() string       { return m.logFormat }
+func (m *mockLoggerConfigService) GetLogOutput() string       { return m.logOutput }
+func (m *mockLoggerConfigService) IsFileLoggingEnabled() bool { return m.fileLoggingEnabled }
+func (m *mockLoggerConfigService) GetLogFilePath() string     { return m.logFilePath }
+func (m *mockLoggerConfigService) IsDevelopment() bool        { return m.isDevelopment }
+func (m *mockLoggerConfigService) IsProduction() bool         { return m.isProduction }
 
 // Router configuration methods
-func (m *mockLoggerConfigService) GetRouterEnableTrailingSlash() bool     { return true }
-func (m *mockLoggerConfigService) GetRouterEnableSlashRedirect() bool     { return true }
-func (m *mockLoggerConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
-func (m *mockLoggerConfigService) GetRouterEnableAuthRoutes() bool        { return true }
-func (m *mockLoggerConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }
+func (m *mockLoggerConfigService) GetRouterEnableTrailingSlash() bool    { return true }
+func (m *mockLoggerConfigService) GetRouterEnableSlashRedirect() bool    { return true }
+func (m *mockLoggerConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
+func (m *mockLoggerConfigService) GetRouterEnableAuthRoutes() bool       { return true }
+func (m *mockLoggerConfigService) GetRouterAuthRoutePrefix() string      { return "/api" }
 
 // Implement remaining interface methods with defaults
 func (m *mockLoggerConfigService) GetServerHost() string                     { return "localhost" }
@@ -83,8 +83,6 @@ func (m *mockLoggerConfigService) GetCSRFSecret() string                     { r
 func (m *mockLoggerConfigService) IsCSRFSecure() bool                        { return false }
 func (m *mockLoggerConfigService) IsCSRFHttpOnly() bool                      { return true }
 func (m *mockLoggerConfigService) GetCSRFSameSite() string                   { return "Lax" }
-func (m *mockLoggerConfigService) IsRateLimitEnabled() bool                  { return false }
-func (m *mockLoggerConfigService) GetRateLimitRequests() int                 { return 100 }
 func (m *mockLoggerConfigService) AreSecurityHeadersEnabled() bool           { return false }
 func (m *mockLoggerConfigService) IsHSTSEnabled() bool                       { return false }
 func (m *mockLoggerConfigService) GetHSTSMaxAge() int                        { return 31536000 }
@@ -179,10 +177,10 @@ func TestCreateEncoder(t *testing.T) {
 
 func TestCreateWriteSyncer(t *testing.T) {
 	tests := []struct {
-		name           string
-		config         *mockLoggerConfigService
-		expectError    bool
-		expectFileLog  bool
+		name          string
+		config        *mockLoggerConfigService
+		expectError   bool
+		expectFileLog bool
 	}{
 		{
 			name: "stdout only",
@@ -271,10 +269,10 @@ func TestCreateWriteSyncer(t *testing.T) {
 
 func TestNewService(t *testing.T) {
 	tests := []struct {
-		name           string
-		config         *mockLoggerConfigService
-		expectError    bool
-		expectCaller   bool
+		name         string
+		config       *mockLoggerConfigService
+		expectError  bool
+		expectCaller bool
 	}{
 		{
 			name: "development logger",
@@ -440,6 +438,7 @@ func TestNewService_InterfaceCompliance(t *testing.T) {
 
 	logger.Sync()
 }
+
 // Auth redirect routes (only for success cases)
 func (m *mockLoggerConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
 func (m *mockLoggerConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }

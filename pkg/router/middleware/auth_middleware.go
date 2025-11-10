@@ -14,32 +14,26 @@ const (
 	DefaultSigninRoute = "/login"
 )
 
-// authMiddleware handles authentication concerns separately (private implementation)
+// authMiddleware handles authentication concerns using AuthValidator hooks
 type authMiddleware struct {
-	authService   interfaces.AuthService
+	authValidator interfaces.AuthValidator
 	configService interfaces.ConfigService
 	logger        *zap.Logger
 }
 
-// AuthService interface for clean dependency
-
-// Import central auth types to eliminate redundancy
-// AuthResult, AuthSettings, AuthType, User are now imported from interfaces package
-
-// AuthType methods moved to interfaces package
-
-// NewAuthMiddleware creates a new auth middleware for DI
+// NewAuthMiddleware creates a new auth middleware for DI using AuthValidator
 func NewAuthMiddleware(i do.Injector) (interfaces.AuthMiddlewareInterface, error) {
-	authService := do.MustInvoke[interfaces.AuthService](i)
+	authValidator := do.MustInvoke[interfaces.AuthValidator](i)
 	configService := do.MustInvoke[interfaces.ConfigService](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &authMiddleware{
-		authService:   authService,
+		authValidator: authValidator,
 		configService: configService,
 		logger:        logger,
 	}, nil
 }
+
 
 // Handle processes authentication for a request
 func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler {
@@ -50,24 +44,24 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 			return
 		}
 
-		// Authenticate the request
-		authResult, err := am.authService.Authenticate(r, requirements)
+		// Check if user is authenticated
+		if !am.authValidator.IsAuthenticated(r) {
+			am.handleAuthFailure(w, r, requirements)
+			return
+		}
+
+		// Get current user
+		user, err := am.authValidator.GetCurrentUser(r)
 		if err != nil {
-			am.logger.Error("Authentication error",
+			am.logger.Error("Failed to get current user",
 				zap.String("path", r.URL.Path),
 				zap.Error(err))
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			am.handleAuthFailure(w, r, requirements)
 			return
 		}
 
-		// Handle authentication failure
-		if !authResult.IsAuthenticated {
-			am.handleAuthFailure(w, r, authResult, requirements)
-			return
-		}
-
-		// Check permissions
-		if !am.authService.HasRequiredPermissions(r, requirements) {
+		// Check role-based permissions
+		if !am.authValidator.HasRole(user, requirements.Roles) {
 			am.handlePermissionFailure(w, r, requirements)
 			return
 		}
@@ -78,15 +72,15 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 }
 
 // handleAuthFailure handles authentication failures
-func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Request, authResult *interfaces.AuthResult, requirements *shared.AuthConfig) {
+func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Request, requirements *shared.AuthConfig) {
 	am.logger.Info("Authentication required but user not authenticated",
 		zap.String("path", r.URL.Path),
 		zap.String("auth_type", requirements.Type))
 
 	// Determine redirect URL
 	var redirectURL string
-	if authResult.RedirectURL != "" {
-		redirectURL = authResult.RedirectURL
+	if requirements.RedirectURL != "" {
+		redirectURL = requirements.RedirectURL
 	} else {
 		// Default to signin route from config
 		redirectURL = DefaultSigninRoute

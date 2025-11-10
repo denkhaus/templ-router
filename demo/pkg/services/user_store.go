@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/demo/pkg/interfaces"
+	sharedInterfaces "github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
@@ -22,9 +23,9 @@ func (u *DemoUser) GetID() string      { return u.ID }
 func (u *DemoUser) GetEmail() string   { return u.Email }
 func (u *DemoUser) GetRoles() []string { return u.Roles }
 
-// DefaultUserStore provides a default in-memory user store implementation
+// defaultUserStore provides a default in-memory user store implementation
 // Users can replace this with their own database-backed implementation
-type DefaultUserStore struct {
+type defaultUserStore struct {
 	logger *zap.Logger
 	users  map[string]*DemoUser // In-memory store for development
 }
@@ -52,14 +53,14 @@ func NewDefaultUserStore(i do.Injector) (interfaces.UserStore, error) {
 		},
 	}
 
-	return &DefaultUserStore{
+	return &defaultUserStore{
 		logger: logger,
 		users:  users,
 	}, nil
 }
 
 // GetUserByID retrieves a user by ID
-func (s *DefaultUserStore) GetUserByID(userID string) (interfaces.UserEntity, error) {
+func (s *defaultUserStore) GetUserByID(userID string) (sharedInterfaces.UserEntity, error) {
 	user, exists := s.users[userID]
 	if !exists {
 		return nil, fmt.Errorf("user with ID %s not found", userID)
@@ -68,7 +69,7 @@ func (s *DefaultUserStore) GetUserByID(userID string) (interfaces.UserEntity, er
 }
 
 // GetUserByEmail retrieves a user by email
-func (s *DefaultUserStore) GetUserByEmail(email string) (interfaces.UserEntity, error) {
+func (s *defaultUserStore) GetUserByEmail(email string) (sharedInterfaces.UserEntity, error) {
 	for _, user := range s.users {
 		if user.GetEmail() == email {
 			return user, nil
@@ -78,7 +79,7 @@ func (s *DefaultUserStore) GetUserByEmail(email string) (interfaces.UserEntity, 
 }
 
 // ValidateCredentials validates user credentials (simple demo implementation)
-func (s *DefaultUserStore) ValidateCredentials(email, password string) (interfaces.UserEntity, error) {
+func (s *defaultUserStore) ValidateCredentials(email, password string) (sharedInterfaces.UserEntity, error) {
 	user, err := s.GetUserByEmail(email)
 	if err != nil {
 		return nil, err
@@ -106,7 +107,7 @@ func (s *DefaultUserStore) ValidateCredentials(email, password string) (interfac
 }
 
 // CreateUser creates a new user
-func (s *DefaultUserStore) CreateUser(username, email, password string) (interfaces.UserEntity, error) {
+func (s *defaultUserStore) CreateUser(username, email, password string) (sharedInterfaces.UserEntity, error) {
 	// Check if user already exists
 	if exists, _ := s.UserExists(username, email); exists {
 		return nil, fmt.Errorf("user with username %s or email %s already exists", username, email)
@@ -131,7 +132,7 @@ func (s *DefaultUserStore) CreateUser(username, email, password string) (interfa
 }
 
 // UserExists checks if a user exists by username or email
-func (s *DefaultUserStore) UserExists(username, email string) (bool, error) {
+func (s *defaultUserStore) UserExists(username, email string) (bool, error) {
 	for _, user := range s.users {
 		if user.GetEmail() == email {
 			return true, nil
@@ -142,7 +143,7 @@ func (s *DefaultUserStore) UserExists(username, email string) (bool, error) {
 
 // ValidateCredentialsFromRequest extracts and validates credentials from HTTP request
 // This method handles all data extraction and validation logic
-func (s *DefaultUserStore) ValidateCredentialsFromRequest(req *http.Request) (interfaces.UserEntity, error) {
+func (s *defaultUserStore) ValidateCredentialsFromRequest(req *http.Request) (sharedInterfaces.UserEntity, error) {
 	// Extract credentials from request
 	email := req.FormValue("email")
 	password := req.FormValue("password")
@@ -175,7 +176,7 @@ func (s *DefaultUserStore) ValidateCredentialsFromRequest(req *http.Request) (in
 
 // CreateUserFromRequest extracts and creates user from HTTP request
 // This method handles all data extraction, validation, and user creation logic
-func (s *DefaultUserStore) CreateUserFromRequest(req *http.Request) (interfaces.UserEntity, error) {
+func (s *defaultUserStore) CreateUserFromRequest(req *http.Request) (sharedInterfaces.UserEntity, error) {
 	// Extract user data from request
 	username := req.FormValue("username")
 	email := req.FormValue("email")

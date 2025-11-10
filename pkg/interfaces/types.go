@@ -110,6 +110,7 @@ type Session struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
+
 type Template struct {
 	// File information
 	FilePath      string `json:"file_path"`
@@ -155,11 +156,6 @@ type RouteRegistrar interface {
 	RegisterMethodNotAllowedHandler()
 }
 
-// AuthService handles authentication and authorization
-type AuthService interface {
-	Authenticate(req *http.Request, requirements *shared.AuthConfig) (*AuthResult, error)
-	HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool
-}
 
 // I18nService handles internationalization
 // I18nService handles internationalization
@@ -240,7 +236,6 @@ type FileSystemChecker interface {
 
 // MiddlewareSetup defines the contract for middleware configuration
 type MiddlewareSetup interface {
-	GetAuthService() AuthService
 	GetI18nService() I18nService
 	GetTemplateService() TemplateService
 	GetLayoutService() LayoutService

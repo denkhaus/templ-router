@@ -24,22 +24,8 @@ func WithAssetsServiceFactory(factory func(do.Injector) (interfaces.AssetsServic
 	}
 }
 
-// WithUserStoreFactory sets a custom user store implementation using a factory function
-func WithUserStoreFactory(factory func(do.Injector) (interfaces.UserStore, error)) ApplicationOption {
-	return func(c *Container) {
-		do.Override(c.injector, factory)
-	}
-}
-
-// WithAuthHandlersFactory sets custom authentication handlers using a factory function
-func WithAuthHandlersFactory(factory func(do.Injector) (interfaces.AuthHandlers, error)) ApplicationOption {
-	return func(c *Container) {
-		do.Override(c.injector, factory)
-	}
-}
-
-// WithSessionStoreFactory sets a custom session store implementation using a factory function
-func WithSessionStoreFactory(factory func(do.Injector) (interfaces.SessionStore, error)) ApplicationOption {
+// WithAuthValidatorFactory sets a custom authentication validator using a factory function
+func WithAuthValidatorFactory(factory func(do.Injector) (interfaces.AuthValidator, error)) ApplicationOption {
 	return func(c *Container) {
 		do.Override(c.injector, factory)
 	}

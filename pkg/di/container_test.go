@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
@@ -19,11 +18,11 @@ import (
 
 func TestNewContainer(t *testing.T) {
 	container := NewContainer()
-	
+
 	if container == nil {
 		t.Fatal("NewContainer() returned nil")
 	}
-	
+
 	if container.injector == nil {
 		t.Fatal("Container injector is nil")
 	}
@@ -32,11 +31,11 @@ func TestNewContainer(t *testing.T) {
 func TestGetInjector(t *testing.T) {
 	container := NewContainer()
 	injector := container.GetInjector()
-	
+
 	if injector == nil {
 		t.Fatal("GetInjector() returned nil")
 	}
-	
+
 	// Verify it's the same injector
 	if injector != container.injector {
 		t.Error("GetInjector() returned different injector")
@@ -45,50 +44,46 @@ func TestGetInjector(t *testing.T) {
 
 func TestRegisterRouterServices(t *testing.T) {
 	container := NewContainer()
-	
-	// Register required dependencies (AuthHandlers are provided by default)
+
+	// Register required dependencies
 	mockRegistry := &mockTemplateRegistry{}
-	mockAssets := &mockAssetsService{}
-	mockUserStore := &mockUserStore{}
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
-		WithAssetsService(mockAssets),
-		WithUserStore(mockUserStore),
-		// Note: No AuthHandlers needed - provided by default
+		WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
+			return &mockAssetsService{}, nil
+		}),
 	)
-	
-	// Should not panic - default AuthHandlers are automatically available
+
+	// Should not panic - all required services are registered
 	container.RegisterRouterServices(context.Background(), "TR")
-	
+
 	// Verify logger is registered and can be retrieved
 	logger := container.GetLogger()
 	if logger == nil {
 		t.Error("Logger not registered properly")
 	}
-	
+
 	// Note: Not testing router here since it requires UserStore which is application-provided
 }
 
 func TestGetLogger(t *testing.T) {
 	container := NewContainer()
-	
-	// Register required dependencies (without custom AuthHandlers - use default)
+
+	// Register required dependencies
 	mockRegistry := &mockTemplateRegistry{}
-	mockAssets := &mockAssetsService{}
-	mockUserStore := &mockUserStore{}
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
-		WithAssetsService(mockAssets),
-		WithUserStore(mockUserStore),
-		// Note: Using default AuthHandlers from container
+		WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
+			return &mockAssetsService{}, nil
+		}),
 	)
 	container.RegisterRouterServices(context.Background(), "TR")
-	
+
 	logger := container.GetLogger()
 	if logger == nil {
 		t.Fatal("GetLogger() returned nil")
 	}
-	
+
 	// Verify it's a zap logger
 	if _, ok := interface{}(logger).(*zap.Logger); !ok {
 		t.Error("GetLogger() did not return *zap.Logger")
@@ -97,20 +92,17 @@ func TestGetLogger(t *testing.T) {
 
 func TestGetRouter(t *testing.T) {
 	container := NewContainer()
-	
-	// Register required dependencies including mock UserStore
-	// This simulates how an application would provide its own UserStore implementation
+
+	// Register required dependencies
 	mockRegistry := &mockTemplateRegistry{}
-	mockAssets := &mockAssetsService{}
-	mockUserStore := &mockUserStore{}
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
-		WithAssetsService(mockAssets),
-		WithUserStore(mockUserStore),
-		// Note: Using default AuthHandlers from container
+		WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
+			return &mockAssetsService{}, nil
+		}),
 	)
 	container.RegisterRouterServices(context.Background(), "TR")
-	
+
 	router := container.GetRouter()
 	if router == nil {
 		t.Fatal("GetRouter() returned nil")
@@ -119,19 +111,17 @@ func TestGetRouter(t *testing.T) {
 
 func TestShutdown(t *testing.T) {
 	container := NewContainer()
-	
+
 	// Register minimal dependencies for shutdown test
 	mockRegistry := &mockTemplateRegistry{}
-	mockAssets := &mockAssetsService{}
-	mockUserStore := &mockUserStore{}
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
-		WithAssetsService(mockAssets),
-		WithUserStore(mockUserStore),
-		// Note: Using default AuthHandlers from container
+		WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
+			return &mockAssetsService{}, nil
+		}),
 	)
 	container.RegisterRouterServices(context.Background(), "TR")
-	
+
 	err := container.Shutdown()
 	if err != nil && err.Error() != "" {
 		t.Errorf("Shutdown() returned error: %v", err)
@@ -140,28 +130,21 @@ func TestShutdown(t *testing.T) {
 
 func TestRegisterApplicationServices(t *testing.T) {
 	container := NewContainer()
-	
+
 	// Mock template registry
 	mockRegistry := &mockTemplateRegistry{}
-	
-	// Mock assets service  
-	mockAssets := &mockAssetsService{}
-	
+
+	// Note: mockAssets removed as it's no longer needed for testing
+
 	// Register with options
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
-		WithAssetsService(mockAssets),
 	)
-	
+
 	// Verify services are registered
 	retrievedRegistry := do.MustInvoke[interfaces.TemplateRegistry](container.injector)
 	if retrievedRegistry == nil {
 		t.Error("Template registry not registered correctly")
-	}
-	
-	retrievedAssets := do.MustInvoke[interfaces.AssetsService](container.injector)
-	if retrievedAssets == nil {
-		t.Error("Assets service not registered correctly")
 	}
 }
 
@@ -222,7 +205,7 @@ func (m *mockTemplateRegistry) GetTemplateKeyByComponentName(componentName strin
 
 type mockAssetsService struct{}
 
-func (m *mockAssetsService) SetupRoutes(router *chi.Mux) {}
+func (m *mockAssetsService) SetupRoutes(router *chi.Mux)             {}
 func (m *mockAssetsService) SetupRoutesWithRouter(router chi.Router) {}
 
 // Mock UserStore for testing
@@ -256,13 +239,7 @@ func (m *mockUserStore) CreateUserFromRequest(req *http.Request) (interfaces.Use
 	return &mockUser{ID: "new123", Email: "new@example.com", Roles: []string{"user"}}, nil
 }
 
-// Mock AuthHandlers for testing
-type mockAuthHandlers struct{}
-
-func (m *mockAuthHandlers) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {}
-func (m *mockAuthHandlers) HandleLogin(w http.ResponseWriter, r *http.Request) {}
-func (m *mockAuthHandlers) HandleLogout(w http.ResponseWriter, r *http.Request) {}
-func (m *mockAuthHandlers) HandleSignup(w http.ResponseWriter, r *http.Request) {}
+// Note: AuthHandlers are now client-side and not part of the router framework
 
 // Mock User for testing
 type mockUser struct {
@@ -271,8 +248,8 @@ type mockUser struct {
 	Roles []string
 }
 
-func (u *mockUser) GetID() string    { return u.ID }
-func (u *mockUser) GetEmail() string { return u.Email }
+func (u *mockUser) GetID() string      { return u.ID }
+func (u *mockUser) GetEmail() string   { return u.Email }
 func (u *mockUser) GetRoles() []string { return u.Roles }
 
 // TestCustomMiddlewareDefinitionOrder tests that custom middleware are executed in definition order
@@ -397,7 +374,7 @@ func TestCustomMiddlewareEmpty(t *testing.T) {
 // MockSessionStore for testing
 type mockSessionStore struct {
 	sessions map[string]*interfaces.Session
-	mutex     sync.RWMutex
+	mutex    sync.RWMutex
 }
 
 func (m *mockSessionStore) GetSession(req *http.Request) (*interfaces.Session, error) {
@@ -407,11 +384,9 @@ func (m *mockSessionStore) GetSession(req *http.Request) (*interfaces.Session, e
 
 func (m *mockSessionStore) CreateSession(userID string) (*interfaces.Session, error) {
 	session := &interfaces.Session{
-		ID:        "mock-session-id",
-		UserID:    userID,
-		Valid:     true,
-		CreatedAt: time.Now(),
-		ExpiresAt: time.Now().Add(time.Hour),
+		ID:     "mock-session-id",
+		UserID: userID,
+		Valid:  true,
 	}
 
 	m.mutex.Lock()
@@ -429,56 +404,4 @@ func (m *mockSessionStore) DeleteSession(sessionID string) error {
 	delete(m.sessions, sessionID)
 	m.mutex.Unlock()
 	return nil
-}
-
-// TestWithSessionStore tests custom session store injection
-func TestWithSessionStore(t *testing.T) {
-	// Create DI container
-	container := NewContainer()
-	defer container.Shutdown()
-
-	// Register router services
-	injector := container.RegisterRouterServices(context.Background(), "TR")
-
-	// Create a custom session store
-	customSessionStore := &mockSessionStore{}
-
-	// Register application services with custom session store
-	container.RegisterApplicationServices(
-		WithSessionStore(customSessionStore),
-	)
-
-	// Verify that our custom session store is injected
-	injectedSessionStore := do.MustInvoke[interfaces.SessionStore](injector)
-	assert.Same(t, customSessionStore, injectedSessionStore, "Custom session store should be injected")
-
-	// Test session operations
-	session, err := injectedSessionStore.CreateSession("test-user-id")
-	assert.NoError(t, err, "Session creation should succeed")
-	assert.NotNil(t, session, "Session should not be nil")
-	assert.Equal(t, "test-user-id", session.UserID, "Session should have correct user ID")
-	assert.Equal(t, "mock-session-id", session.ID, "Session should have correct ID")
-}
-
-// TestDefaultSessionStore tests that default session store is used when no custom one is provided
-func TestDefaultSessionStore(t *testing.T) {
-	// Create DI container
-	container := NewContainer()
-	defer container.Shutdown()
-
-	// Register router services
-	injector := container.RegisterRouterServices(context.Background(), "TR")
-
-	// Register application services without custom session store
-	container.RegisterApplicationServices()
-
-	// Verify that default session store is injected
-	sessionStore := do.MustInvoke[interfaces.SessionStore](injector)
-	assert.NotNil(t, sessionStore, "Default session store should be injected")
-
-	// Test that default session store works (it should be the in-memory implementation)
-	session, err := sessionStore.CreateSession("test-user-id")
-	assert.NoError(t, err, "Default session store creation should succeed")
-	assert.NotNil(t, session, "Session should not be nil")
-	assert.Equal(t, "test-user-id", session.UserID, "Session should have correct user ID")
 }

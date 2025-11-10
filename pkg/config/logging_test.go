@@ -93,26 +93,7 @@ func TestLogSummary(t *testing.T) {
 				"Host: localhost",
 				"Port: 8080",
 				"Base URL: http://localhost:8080",
-				"Database:",
-				"Host: localhost",
-				"Port: 5432",
-				"User: postgres",
-				"Name: router_db",
-				"SSL Mode: disable",
 				"Authentication:",
-				"Require Email Verification: true",
-				"Min Password Length: 8",
-				"Create Default Admin: true",
-				"Default Admin Email: admin@example.com",
-				"Email:",
-				"SMTP Host: <not configured>",
-				"SMTP Port: 587",
-				"SMTP Username: <not configured>",
-				"SMTP Password: <not configured>",
-				"From Email: noreply@example.com",
-				"From Name: Router Application",
-				"Reply To Email: <not set>",
-				"Enable Dummy Mode: true",
 				"Security:",
 				"Enable Rate Limit: true",
 				"Rate Limit Requests: 100",
@@ -127,68 +108,39 @@ func TestLogSummary(t *testing.T) {
 				"=============================",
 			},
 			expectMasked: []string{
-				"Password: po****es",                   // postgres password masked
 				"CSRF Secret: ch*******************on", // change-me-in-production masked
-				"Default Admin Password: ad****23",     // admin123 masked
 			},
 		},
 		{
 			name: "custom configuration with sensitive data",
 			envVars: map[string]string{
-				"TR_ENVIRONMENT_KIND":            "production",
-				"TR_SERVER_HOST":                 "prod.example.com",
-				"TR_SERVER_PORT":                 "443",
-				"TR_SERVER_BASE_URL":             "https://prod.example.com",
-				"TR_DATABASE_HOST":               "db.prod.com",
-				"TR_DATABASE_PASSWORD":           "supersecretdbpass",
-				"TR_AUTH_CREATE_DEFAULT_ADMIN":   "true",
-				"TR_AUTH_DEFAULT_ADMIN_EMAIL":    "admin@prod.com",
-				"TR_AUTH_DEFAULT_ADMIN_PASSWORD": "verysecureadminpass",
-				"TR_SECURITY_CSRF_SECRET":        "production-csrf-secret-key",
-				"TR_EMAIL_SMTP_HOST":             "smtp.prod.com",
-				"TR_EMAIL_SMTP_USERNAME":         "smtp@prod.com",
-				"TR_EMAIL_SMTP_PASSWORD":         "smtpsecretpass",
-				"TR_EMAIL_REPLY_TO_EMAIL":        "support@prod.com",
-				"TR_LOGGING_ENABLE_FILE":         "true",
-				"TR_LOGGING_FILE_PATH":           "/var/log/app.log",
+				"TR_ENVIRONMENT_KIND":     "production",
+				"TR_SERVER_HOST":          "prod.example.com",
+				"TR_SERVER_PORT":          "443",
+				"TR_SERVER_BASE_URL":      "https://prod.example.com",
+				"TR_SECURITY_CSRF_SECRET": "production-csrf-secret-key",
+				"TR_LOGGING_ENABLE_FILE":  "true",
+				"TR_LOGGING_FILE_PATH":    "/var/log/app.log",
 			},
 			expectInLog: []string{
 				"Host: prod.example.com",
 				"Port: 443",
 				"Base URL: https://prod.example.com",
-				"Host: db.prod.com",
-				"Default Admin Email: admin@prod.com",
-				"SMTP Host: smtp.prod.com",
-				"Reply To Email: support@prod.com",
 				"Enable File: true",
 				"File Path: /var/log/app.log",
 				"Production Mode: true",
 				"Development Mode: false",
 			},
 			expectMasked: []string{
-				"Password: su*************ss",                 // supersecretdbpass masked
-				"Default Admin Password: ve***************ss", // verysecureadminpass masked
-				"CSRF Secret: pr**********************ey",     // production-csrf-secret-key masked
-				"SMTP Username: sm*********om",                // smtp@prod.com masked
-				"SMTP Password: sm**********ss",               // smtpsecretpass masked
+				"CSRF Secret: pr**********************ey", // production-csrf-secret-key masked
 			},
 		},
 		{
 			name: "configuration with empty sensitive fields",
 			envVars: map[string]string{
 				"TR_AUTH_CREATE_DEFAULT_ADMIN": "false",
-				"TR_EMAIL_SMTP_HOST":           "",
-				"TR_EMAIL_SMTP_USERNAME":       "",
-				"TR_EMAIL_SMTP_PASSWORD":       "",
-				"TR_EMAIL_REPLY_TO_EMAIL":      "",
 			},
-			expectInLog: []string{
-				"Create Default Admin: false",
-				"SMTP Host: <not configured>",
-				"SMTP Username: <not configured>",
-				"SMTP Password: <not configured>",
-				"Reply To Email: <not set>",
-			},
+			expectInLog: []string{},
 		},
 	}
 
@@ -324,27 +276,16 @@ func TestLogSummaryConditionalFields(t *testing.T) {
 			envVars: map[string]string{
 				"TR_AUTH_CREATE_DEFAULT_ADMIN": "true",
 			},
-			expectInLog: []string{
-				"Create Default Admin: true",
-				"Default Admin Email: admin@example.com",
-				"Default Admin Password: ad****23",
-				"Default Admin First Name: Default",
-				"Default Admin Last Name: Admin",
-			},
+			expectInLog: []string{},
 		},
 		{
 			name: "default admin disabled - hides admin fields",
 			envVars: map[string]string{
 				"TR_AUTH_CREATE_DEFAULT_ADMIN": "false",
 			},
-			expectInLog: []string{
-				"Create Default Admin: false",
-			},
+			expectInLog: []string{},
 			notInLog: []string{
 				"Default Admin Email:",
-				"Default Admin Password:",
-				"Default Admin First Name:",
-				"Default Admin Last Name:",
 			},
 		},
 		{

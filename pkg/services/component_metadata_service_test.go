@@ -252,16 +252,6 @@ func (m *MockConfigService) GetCSRFSameSite() string {
 	return args.String(0)
 }
 
-func (m *MockConfigService) IsRateLimitEnabled() bool {
-	args := m.Called("IsRateLimitEnabled")
-	return args.Bool(0)
-}
-
-func (m *MockConfigService) GetRateLimitRequests() int {
-	args := m.Called("GetRateLimitRequests")
-	return args.Int(0)
-}
-
 func (m *MockConfigService) AreSecurityHeadersEnabled() bool {
 	args := m.Called("AreSecurityHeadersEnabled")
 	return args.Bool(0)
@@ -497,11 +487,11 @@ func TestComponentMetadataService_LoadComponentMetadata(t *testing.T) {
 
 	// Create service instance manually for testing (not using DI)
 	cms := &componentMetadataService{
-		configService:     mockConfigService,
-		templateRegistry:  mockTemplateRegistry,
-		logger:            logger,
-		metadataCache:     make(map[string]*shared.ConfigFile),
-		translationCache:  make(map[string]map[string]string),
+		configService:    mockConfigService,
+		templateRegistry: mockTemplateRegistry,
+		logger:           logger,
+		metadataCache:    make(map[string]*shared.ConfigFile),
+		translationCache: make(map[string]map[string]string),
 	}
 
 	tests := []struct {
@@ -554,10 +544,10 @@ func TestComponentMetadataService_DetectComponentsFromTemplate(t *testing.T) {
 	mockConfigService := &MockConfigService{}
 
 	cms := &componentMetadataService{
-		configService:     mockConfigService,
-		logger:            logger,
-		metadataCache:     make(map[string]*shared.ConfigFile),
-		translationCache:  make(map[string]map[string]string),
+		configService:    mockConfigService,
+		logger:           logger,
+		metadataCache:    make(map[string]*shared.ConfigFile),
+		translationCache: make(map[string]map[string]string),
 	}
 
 	tests := []struct {
@@ -632,11 +622,11 @@ func TestComponentMetadataService_CacheBehavior(t *testing.T) {
 	})
 
 	cms := &componentMetadataService{
-		configService:     mockConfigService,
-		templateRegistry:  mockTemplateRegistry,
-		logger:            logger,
-		metadataCache:     make(map[string]*shared.ConfigFile),
-		translationCache:  make(map[string]map[string]string),
+		configService:    mockConfigService,
+		templateRegistry: mockTemplateRegistry,
+		logger:           logger,
+		metadataCache:    make(map[string]*shared.ConfigFile),
+		translationCache: make(map[string]map[string]string),
 	}
 
 	// Test metadata cache
@@ -723,11 +713,11 @@ func TestComponentMetadataService_LoadMultipleComponentMetadata(t *testing.T) {
 	}, nil)
 
 	cms := &componentMetadataService{
-		configService:     mockConfigService,
-		templateRegistry:  mockTemplateRegistry,
-		logger:            logger,
-		metadataCache:     make(map[string]*shared.ConfigFile),
-		translationCache:  make(map[string]map[string]string),
+		configService:    mockConfigService,
+		templateRegistry: mockTemplateRegistry,
+		logger:           logger,
+		metadataCache:    make(map[string]*shared.ConfigFile),
+		translationCache: make(map[string]map[string]string),
 	}
 
 	componentNames := []string{"footer", "navbar", "nonexistent"}

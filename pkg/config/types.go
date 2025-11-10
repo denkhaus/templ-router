@@ -1,20 +1,9 @@
 package config
 
-import "time"
-
 // Config holds all application configuration
 type configImpl struct {
-	// Server configuration
-	Server ServerConfig `envconfig:"SERVER"`
-
-	// Database configuration
-	Database DatabaseConfig `envconfig:"DATABASE"`
-
 	// Authentication configuration
 	Auth AuthConfig `envconfig:"AUTH"`
-
-	// Email configuration
-	Email EmailConfig `envconfig:"EMAIL"`
 
 	// Security configuration
 	Security SecurityConfig `envconfig:"SECURITY"`
@@ -41,17 +30,6 @@ type configImpl struct {
 	Router RouterConfig `envconfig:"ROUTER"`
 }
 
-// ServerConfig holds server-related configuration
-type ServerConfig struct {
-	Host            string        `envconfig:"HOST" default:"localhost"`
-	Port            int           `envconfig:"PORT" default:"8080"`
-	BaseURL         string        `envconfig:"BASE_URL" default:"http://localhost:8080"`
-	ReadTimeout     time.Duration `envconfig:"READ_TIMEOUT" default:"30s"`
-	WriteTimeout    time.Duration `envconfig:"WRITE_TIMEOUT" default:"30s"`
-	IdleTimeout     time.Duration `envconfig:"IDLE_TIMEOUT" default:"120s"`
-	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
-}
-
 // RouterConfig holds router-related configuration
 type RouterConfig struct {
 	// Enable automatic trailing slash redirection
@@ -74,65 +52,16 @@ type ConfigConfig struct {
 	PrintSummary bool `envconfig:"PRINT_SUMMARY" default:"false"`
 }
 
-// DatabaseConfig holds database-related configuration
-type DatabaseConfig struct {
-	Host     string `envconfig:"HOST" default:"localhost"`
-	Port     int    `envconfig:"PORT" default:"5432"`
-	User     string `envconfig:"USER" default:"postgres"`
-	Password string `envconfig:"PASSWORD" default:"postgres"`
-	Name     string `envconfig:"NAME" default:"router_db"`
-	SSLMode  string `envconfig:"SSL_MODE" default:"disable"`
-}
-
-// AuthConfig holds authentication-related configuration
+// AuthConfig holds authentication-related configuration for router
+// Only redirect routes remain for router-level authentication failure handling
 type AuthConfig struct {
-	// Email verification settings
-	RequireEmailVerification bool          `envconfig:"REQUIRE_EMAIL_VERIFICATION" default:"true"`
-	VerificationTokenExpiry  time.Duration `envconfig:"VERIFICATION_TOKEN_EXPIRY" default:"24h"`
-
-	// Session settings
-	SessionCookieName string        `envconfig:"SESSION_COOKIE_NAME" default:"session_id"`
-	SessionExpiry     time.Duration `envconfig:"SESSION_EXPIRY" default:"24h"`
-	SessionSecure     bool          `envconfig:"SESSION_SECURE" default:"false"`
-	SessionHttpOnly   bool          `envconfig:"SESSION_HTTP_ONLY" default:"true"`
-	SessionSameSite   string        `envconfig:"SESSION_SAME_SITE" default:"lax"`
-
-	// Password settings
-	MinPasswordLength   int  `envconfig:"MIN_PASSWORD_LENGTH" default:"8"`
-	RequireStrongPasswd bool `envconfig:"REQUIRE_STRONG_PASSWORD" default:"false"`
-
-	// Default admin user settings
-	CreateDefaultAdmin    bool   `envconfig:"CREATE_DEFAULT_ADMIN" default:"true"`
-	DefaultAdminEmail     string `envconfig:"DEFAULT_ADMIN_EMAIL" default:"admin@example.com"`
-	DefaultAdminPassword  string `envconfig:"DEFAULT_ADMIN_PASSWORD" default:"admin123"`
-	DefaultAdminFirstName string `envconfig:"DEFAULT_ADMIN_FIRST_NAME" default:"Default"`
-	DefaultAdminLastName  string `envconfig:"DEFAULT_ADMIN_LAST_NAME" default:"Admin"`
-
-	// Auth routes
+	// Auth routes - kept for router-level authentication failure handling
 	SignInRoute string `envconfig:"SIGNIN_ROUTE" default:"/login"`
-	
-	// Auth redirect routes (only for success cases)
+
+	// Auth redirect routes (only for success cases) - kept for router-level handling
 	SignInSuccessRoute  string `envconfig:"SIGNIN_SUCCESS_ROUTE" default:"/"`
 	SignUpSuccessRoute  string `envconfig:"SIGNUP_SUCCESS_ROUTE" default:"/"`
 	SignOutSuccessRoute string `envconfig:"SIGNOUT_SUCCESS_ROUTE" default:"/"`
-}
-
-// EmailConfig holds email-related configuration
-type EmailConfig struct {
-	// SMTP settings
-	SMTPHost     string `envconfig:"SMTP_HOST" default:""`
-	SMTPPort     int    `envconfig:"SMTP_PORT" default:"587"`
-	SMTPUsername string `envconfig:"SMTP_USERNAME" default:""`
-	SMTPPassword string `envconfig:"SMTP_PASSWORD" default:""`
-	SMTPUseTLS   bool   `envconfig:"SMTP_USE_TLS" default:"true"`
-
-	// Email settings
-	FromEmail    string `envconfig:"FROM_EMAIL" default:"noreply@example.com"`
-	FromName     string `envconfig:"FROM_NAME" default:"Router Application"`
-	ReplyToEmail string `envconfig:"REPLY_TO_EMAIL" default:""`
-
-	// Development settings
-	EnableDummyMode bool `envconfig:"ENABLE_DUMMY_MODE" default:"true"`
 }
 
 // SecurityConfig holds security-related configuration

@@ -23,11 +23,12 @@ func TestWithTemplateRegistry(t *testing.T) {
 	}
 }
 
-func TestWithAssetsService(t *testing.T) {
+func TestWithAssetsServiceFactory(t *testing.T) {
 	container := NewContainer()
-	mockAssets := &mockAssetsService{}
 	
-	option := WithAssetsService(mockAssets)
+	option := WithAssetsServiceFactory(func(do.Injector) (interfaces.AssetsService, error) {
+		return &mockAssetsService{}, nil
+	})
 	
 	// Apply option
 	option(container)
@@ -35,19 +36,20 @@ func TestWithAssetsService(t *testing.T) {
 	// Verify assets service is registered
 	retrievedAssets := do.MustInvoke[interfaces.AssetsService](container.injector)
 	if retrievedAssets == nil {
-		t.Error("WithAssetsService option did not register assets service correctly")
+		t.Error("WithAssetsServiceFactory option did not register assets service correctly")
 	}
 }
 
 func TestMultipleOptions(t *testing.T) {
 	container := NewContainer()
 	mockRegistry := &mockTemplateRegistry{}
-	mockAssets := &mockAssetsService{}
 	
 	// Apply multiple options
 	container.RegisterApplicationServices(
 		WithTemplateRegistry(mockRegistry),
-		WithAssetsService(mockAssets),
+		WithAssetsServiceFactory(func(do.Injector) (interfaces.AssetsService, error) {
+			return &mockAssetsService{}, nil
+		}),
 	)
 	
 	// Verify both services are registered

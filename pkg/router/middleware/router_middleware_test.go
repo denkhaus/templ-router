@@ -26,8 +26,8 @@ func (m *mockRouterConfigService) GetRouterEnableSlashRedirect() bool { return m
 func (m *mockRouterConfigService) GetRouterEnableMethodNotAllowed() bool {
 	return m.enableMethodNotAllowed
 }
-func (m *mockRouterConfigService) GetRouterEnableAuthRoutes() bool        { return true }
-func (m *mockRouterConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }
+func (m *mockRouterConfigService) GetRouterEnableAuthRoutes() bool  { return true }
+func (m *mockRouterConfigService) GetRouterAuthRoutePrefix() string { return "/api" }
 
 // Implement all required ConfigService methods (minimal implementation for tests)
 func (m *mockRouterConfigService) GetLayoutRootDirectory() string            { return "app" }
@@ -59,11 +59,6 @@ func (m *mockRouterConfigService) GetDatabaseName() string                   { r
 func (m *mockRouterConfigService) GetDatabaseSSLMode() string                { return "disable" }
 func (m *mockRouterConfigService) IsEmailVerificationRequired() bool         { return false }
 func (m *mockRouterConfigService) GetVerificationTokenExpiry() time.Duration { return 24 * time.Hour }
-func (m *mockRouterConfigService) GetSessionCookieName() string              { return "session" }
-func (m *mockRouterConfigService) GetSessionExpiry() time.Duration           { return 24 * time.Hour }
-func (m *mockRouterConfigService) IsSessionSecure() bool                     { return false }
-func (m *mockRouterConfigService) IsSessionHttpOnly() bool                   { return true }
-func (m *mockRouterConfigService) GetSessionSameSite() string                { return "Lax" }
 func (m *mockRouterConfigService) GetMinPasswordLength() int                 { return 8 }
 func (m *mockRouterConfigService) IsStrongPasswordRequired() bool            { return false }
 func (m *mockRouterConfigService) ShouldCreateDefaultAdmin() bool            { return false }
@@ -79,8 +74,6 @@ func (m *mockRouterConfigService) GetCSRFSecret() string                     { r
 func (m *mockRouterConfigService) IsCSRFSecure() bool                        { return false }
 func (m *mockRouterConfigService) IsCSRFHttpOnly() bool                      { return true }
 func (m *mockRouterConfigService) GetCSRFSameSite() string                   { return "Lax" }
-func (m *mockRouterConfigService) IsRateLimitEnabled() bool                  { return false }
-func (m *mockRouterConfigService) GetRateLimitRequests() int                 { return 100 }
 func (m *mockRouterConfigService) AreSecurityHeadersEnabled() bool           { return false }
 func (m *mockRouterConfigService) IsHSTSEnabled() bool                       { return false }
 func (m *mockRouterConfigService) GetHSTSMaxAge() int                        { return 31536000 }

@@ -1,32 +1,33 @@
-package auth
+package services
 
 import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/demo/pkg/interfaces"
+	sharedInterfaces "github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
 
-// authHandlersImpl provides generic authentication API handlers
-// Works with any UserEntity implementation through the UserStore interface
-type authHandlersImpl struct {
+// demoAuthHandlers provides authentication API handlers for the demo application
+// This shows how to implement authentication endpoints using custom stores
+type demoAuthHandlers struct {
 	userStore     interfaces.UserStore
 	sessionStore  interfaces.SessionStore
-	configService interfaces.ConfigService
+	configService sharedInterfaces.ConfigService
 	logger        *zap.Logger
 }
 
-// NewAuthHandlers creates new generic auth handlers
-func NewAuthHandlers(i do.Injector) (interfaces.AuthHandlers, error) {
+// NewDemoAuthHandlers creates new demo auth handlers
+func NewDemoAuthHandlers(i do.Injector) (interfaces.AuthHandlers, error) {
 	userStore := do.MustInvoke[interfaces.UserStore](i)
-	configService := do.MustInvoke[interfaces.ConfigService](i)
+	configService := do.MustInvoke[sharedInterfaces.ConfigService](i)
 	sessionStore := do.MustInvoke[interfaces.SessionStore](i)
 	logger := do.MustInvoke[*zap.Logger](i)
 
-	return &authHandlersImpl{
+	return &demoAuthHandlers{
 		userStore:     userStore,
 		configService: configService,
 		sessionStore:  sessionStore,
@@ -34,17 +35,15 @@ func NewAuthHandlers(i do.Injector) (interfaces.AuthHandlers, error) {
 	}, nil
 }
 
-// RegisterRoutes registers authentication routes only
-func (h *authHandlersImpl) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {
-	authPrefix := h.configService.GetRouterAuthRoutePrefix()
-	registerFunc("POST", authPrefix+"/auth/signin", h.HandleSignIn)
-	registerFunc("POST", authPrefix+"/auth/signup", h.HandleSignUp)
-	registerFunc("POST", authPrefix+"/auth/signout", h.HandleSignOut)
+// RegisterRoutes registers authentication routes
+func (h *demoAuthHandlers) RegisterRoutes(registerFunc func(method, path string, handler http.HandlerFunc)) {
+	registerFunc("POST", "/api/auth/signin", h.HandleSignIn)
+	registerFunc("POST", "/api/auth/signup", h.HandleSignUp)
+	registerFunc("POST", "/api/auth/signout", h.HandleSignOut)
 }
 
-// HandleLogin handles user login API endpoint
-// UserStore extracts and validates all relevant data from the request
-func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) {
+// HandleSignIn handles user login API endpoint
+func (h *demoAuthHandlers) HandleSignIn(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.respondWithError(w, r, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -54,8 +53,6 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 	user, err := h.userStore.ValidateCredentialsFromRequest(r)
 	if err != nil {
 		h.logger.Warn("Login failed", zap.Error(err))
-
-		// Return appropriate error response (HTML for HTMX, JSON for API)
 		h.respondWithError(w, r, "Invalid credentials", http.StatusUnauthorized)
 		return
 	}
@@ -70,7 +67,7 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 
 	// Set session cookie
 	http.SetCookie(w, &http.Cookie{
-		Name:     h.configService.GetSessionCookieName(),
+		Name:     "session_id",
 		Value:    session.ID,
 		Path:     "/",
 		HttpOnly: true,
@@ -85,15 +82,14 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 	successRoute := h.configService.GetSignInSuccessRoute()
 	if successRoute != "" {
 		successRoute := i18n.LocalizeRouteIfRequired(r.Context(), successRoute)
-		
+
 		// Check if this is an HTMX request
 		if h.isHTMXRequest(r) {
-			// Use HX-Redirect header for HTMX requests
 			w.Header().Set("HX-Redirect", successRoute)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		
+
 		http.Redirect(w, r, successRoute, http.StatusSeeOther)
 		return
 	}
@@ -107,8 +103,7 @@ func (h *authHandlersImpl) HandleSignIn(w http.ResponseWriter, r *http.Request) 
 }
 
 // HandleSignUp handles user registration API endpoint
-// UserStore extracts and validates ALL relevant data from the request
-func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) {
+func (h *demoAuthHandlers) HandleSignUp(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.respondWithError(w, r, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -118,8 +113,6 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 	user, err := h.userStore.CreateUserFromRequest(r)
 	if err != nil {
 		h.logger.Warn("Signup failed", zap.Error(err))
-
-		// Return appropriate error response (HTML for HTMX, JSON for API)
 		h.respondWithError(w, r, "Failed to create user", http.StatusBadRequest)
 		return
 	}
@@ -132,15 +125,14 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 	successRoute := h.configService.GetSignUpSuccessRoute()
 	if successRoute != "" {
 		successRoute := i18n.LocalizeRouteIfRequired(r.Context(), successRoute)
-		
+
 		// Check if this is an HTMX request
 		if h.isHTMXRequest(r) {
-			// Use HX-Redirect header for HTMX requests
 			w.Header().Set("HX-Redirect", successRoute)
 			w.WriteHeader(http.StatusOK)
 			return
 		}
-		
+
 		http.Redirect(w, r, successRoute, http.StatusSeeOther)
 		return
 	}
@@ -154,13 +146,13 @@ func (h *authHandlersImpl) HandleSignUp(w http.ResponseWriter, r *http.Request) 
 }
 
 // HandleSignOut handles user logout API endpoint
-func (h *authHandlersImpl) HandleSignOut(w http.ResponseWriter, r *http.Request) {
+func (h *demoAuthHandlers) HandleSignOut(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		h.respondWithError(w, r, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	sessionCookieName := h.configService.GetSessionCookieName()
+	sessionCookieName := "session_id"
 
 	// Get session cookie
 	cookie, err := r.Cookie(sessionCookieName)
@@ -196,16 +188,15 @@ func (h *authHandlersImpl) HandleSignOut(w http.ResponseWriter, r *http.Request)
 }
 
 // respondWithError sends an error response (HTML for HTMX, JSON for API)
-func (h *authHandlersImpl) respondWithError(w http.ResponseWriter, r *http.Request, message string, statusCode int) {
+func (h *demoAuthHandlers) respondWithError(w http.ResponseWriter, r *http.Request, message string, statusCode int) {
 	// Check if this is an HTMX request
 	if h.isHTMXRequest(r) {
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(statusCode)
-		// Return HTML error message for HTMX to inject into the error container
 		w.Write([]byte(`<span class="font-medium">` + message + `</span>`))
 		return
 	}
-	
+
 	// Default JSON response for API requests
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
@@ -215,12 +206,12 @@ func (h *authHandlersImpl) respondWithError(w http.ResponseWriter, r *http.Reque
 }
 
 // isHTMXRequest checks if the request is from HTMX
-func (h *authHandlersImpl) isHTMXRequest(r *http.Request) bool {
+func (h *demoAuthHandlers) isHTMXRequest(r *http.Request) bool {
 	return r.Header.Get("HX-Request") == "true"
 }
 
 // respondWithSuccess sends a success JSON response
-func (h *authHandlersImpl) respondWithSuccess(w http.ResponseWriter, data map[string]interface{}) {
+func (h *demoAuthHandlers) respondWithSuccess(w http.ResponseWriter, data map[string]interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(data)

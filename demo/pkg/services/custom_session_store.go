@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/demo/pkg/interfaces"
 	"go.uber.org/zap"
 )
 
@@ -14,7 +14,6 @@ import (
 // This shows how to create a custom SessionStore for your application
 type CustomSessionStore struct {
 	logger        *zap.Logger
-	configService interfaces.ConfigService
 	sessionExpiry time.Duration
 	cookieName    string
 	sessions      map[string]*interfaces.Session
@@ -22,14 +21,13 @@ type CustomSessionStore struct {
 }
 
 // NewCustomSessionStore creates a new custom in-memory session store
-func NewCustomSessionStore(configService interfaces.ConfigService, logger *zap.Logger) (interfaces.SessionStore, error) {
+func NewCustomSessionStore(configService any, logger *zap.Logger) (interfaces.SessionStore, error) {
 	logger.Info("Custom in-memory session store initialized")
 
 	return &CustomSessionStore{
 		logger:        logger,
-		configService: configService,
-		sessionExpiry: configService.GetSessionExpiry(),
-		cookieName:    configService.GetSessionCookieName(),
+		sessionExpiry: 24 * time.Hour, // Hardcoded for demo
+		cookieName:    "session_id",   // Hardcoded for demo
 		sessions:      make(map[string]*interfaces.Session),
 		mutex:         sync.RWMutex{},
 	}, nil

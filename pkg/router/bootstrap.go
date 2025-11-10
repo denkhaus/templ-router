@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
-	"github.com/denkhaus/templ-router/pkg/router/middleware"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/samber/do/v2"
@@ -28,9 +27,9 @@ type BootstrapConfig struct {
 	middlewareOrder []string
 
 	// Route configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
-	enableHealthCheck   bool
-	healthCheckPath     string
-	customRoutes        []map[string]interface{}
+	enableHealthCheck bool
+	healthCheckPath   string
+	customRoutes      []map[string]interface{}
 
 	// Error handling
 	errorHandlers map[string]interface{}
@@ -105,12 +104,7 @@ func (rb *RouterBootstrap) Bootstrap() (*chi.Mux, error) {
 		return nil, fmt.Errorf("failed to register routes: %w", err)
 	}
 
-	// Register auth routes if enabled via environment variable
-	if rb.config.GetRouterEnableAuthRoutes() {
-		if err := rb.registerAuthRoutes(mux); err != nil {
-			return nil, fmt.Errorf("failed to register auth routes: %w", err)
-		}
-	}
+	// Auth routes are now registered by client applications
 
 	// Configure error handlers
 	rb.configureErrorHandlers(mux)
@@ -125,10 +119,7 @@ func (rb *RouterBootstrap) configureMiddleware(mux *chi.Mux) error {
 		return fmt.Errorf("failed to setup router middleware: %w", err)
 	}
 
-	// Always configure auth middleware (controlled by env vars: TR_AUTH_ENABLE_*)
-	if err := rb.setupAuthMiddleware(mux); err != nil {
-		return fmt.Errorf("failed to setup auth middleware: %w", err)
-	}
+	// Auth middleware is now handled by the new hook-based AuthValidator interface
 
 	// Note: i18n and template middleware are handled internally by the router core
 	// based on environment variables: TR_I18N_ENABLE_*, TR_TEMPLATE_ENABLE_*
@@ -142,7 +133,9 @@ func (rb *RouterBootstrap) setupRouterMiddleware(mux *chi.Mux) error {
 	middlewareSetup := rb.routerCore.GetMiddlewareSetup()
 
 	// Use type assertion to access the concrete implementation
-	if setup, ok := middlewareSetup.(interface{ GetRouterMiddleware() interfaces.RouterMiddlewareInterface }); ok {
+	if setup, ok := middlewareSetup.(interface {
+		GetRouterMiddleware() interfaces.RouterMiddlewareInterface
+	}); ok {
 		routerMiddleware := setup.GetRouterMiddleware()
 
 		// Configure the router middleware
@@ -168,17 +161,7 @@ func (rb *RouterBootstrap) setupRouterMiddleware(mux *chi.Mux) error {
 	return nil
 }
 
-// setupAuthMiddleware sets up authentication middleware
-func (rb *RouterBootstrap) setupAuthMiddleware(mux *chi.Mux) error {
-	authMiddleware, err := middleware.NewAuthContextMiddleware(rb.injector)
-	if err != nil {
-		return fmt.Errorf("failed to create auth middleware: %w", err)
-	}
-
-	mux.Use(authMiddleware.Middleware)
-	rb.logger.Info("Applied authentication middleware")
-	return nil
-}
+// Auth middleware is now handled by the new hook-based AuthValidator interface
 
 // registerCustomRoutes registers all custom routes
 func (rb *RouterBootstrap) registerCustomRoutes(mux *chi.Mux) error {
@@ -227,23 +210,6 @@ func (rb *RouterBootstrap) registerHealthCheck(mux *chi.Mux) {
 		}`))
 	})
 	rb.logger.Info("Registered health check", zap.String("path", rb.options.healthCheckPath))
-}
-
-// registerAuthRoutes registers authentication routes
-func (rb *RouterBootstrap) registerAuthRoutes(mux *chi.Mux) error {
-	authHandlers := do.MustInvoke[interfaces.AuthHandlers](rb.injector)
-	authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
-		switch method {
-		case "POST":
-			mux.Post(path, handler)
-		case "GET":
-			mux.Get(path, handler)
-		}
-		rb.logger.Info("Auth route registered",
-			zap.String("method", method),
-			zap.String("path", path))
-	})
-	return nil
 }
 
 // applyCustomMiddleware loads and applies custom middleware from DI container in definition order

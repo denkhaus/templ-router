@@ -1,18 +1,89 @@
 # Authentication & Authorization
 
-**Complete guide to implementing authentication and authorization in Templ Router.**
+**Complete guide to implementing hook-based authentication and authorization in Templ Router.**
 
 ## Overview
 
-Templ Router provides session-based authentication with role-based access control and built-in API endpoints. The system integrates seamlessly with file-based routing through `.templ.yaml` metadata files.
+Templ Router provides a **hook-based authentication system** where the router handles route protection and access control, while client applications implement their own authentication logic through interfaces. This approach ensures the library remains generic and works with any authentication system (OAuth, JWT, LDAP, custom session stores, etc.).
 
 **Key Features:**
+- Hook-based authentication via `AuthValidator` interface
 - Three authentication types: `Public`, `UserRequired`, `AdminRequired`
-- Session-based authentication with configurable expiry
-- Built-in authentication API endpoints
+- Route protection middleware that calls client-provided authentication hooks
 - Role-based access control
-- Configurable redirect routes
+- Configurable redirect routes for authentication failures
 - Internationalized authentication flows
+- Complete separation of authentication logic from router core
+
+## Hook-Based Authentication Architecture
+
+### Router Responsibilities
+- **Route Protection**: Middleware that checks authentication based on template metadata
+- **Access Control**: Validates user roles against route requirements
+- **Failure Handling**: Redirects unauthenticated users to login routes
+- **Configuration**: Manages redirect URLs for authentication failures
+
+### Client Application Responsibilities
+- **Authentication Logic**: Implement `AuthValidator` interface with your auth system
+- **Session Management**: Handle cookies, tokens, or other session mechanisms
+- **User Stores**: Implement user lookup and validation (database, LDAP, OAuth, etc.)
+- **API Endpoints**: Provide signin, signup, signout endpoints
+- **User Management**: Handle user creation, validation, and role management
+
+### AuthValidator Interface
+
+```go
+type AuthValidator interface {
+    // IsAuthenticated checks if the current request is from an authenticated user
+    IsAuthenticated(req *http.Request) bool
+
+    // GetCurrentUser returns the authenticated user for the current request
+    GetCurrentUser(req *http.Request) (UserEntity, error)
+
+    // HasRole checks if the given user has any of the required roles
+    HasRole(user UserEntity, requiredRoles []string) bool
+}
+```
+
+### Implementation Example
+
+```go
+// Your custom authentication validator
+type MyAuthValidator struct {
+    userStore    MyUserStore
+    sessionStore MySessionStore
+    jwtService   MyJWTService
+}
+
+func (av *MyAuthValidator) IsAuthenticated(req *http.Request) bool {
+    // Check JWT token, session cookie, or other auth mechanism
+    token := av.extractToken(req)
+    return av.jwtService.ValidateToken(token)
+}
+
+func (av *MyAuthValidator) GetCurrentUser(req *http.Request) (UserEntity, error) {
+    // Extract user from token, session, or other mechanism
+    token := av.extractToken(req)
+    userID, err := av.jwtService.GetUserIDFromToken(token)
+    if err != nil {
+        return nil, err
+    }
+    return av.userStore.GetUserByID(userID)
+}
+
+func (av *MyAuthValidator) HasRole(user UserEntity, requiredRoles []string) bool {
+    // Check if user has required roles
+    userRoles := user.GetRoles()
+    for _, required := range requiredRoles {
+        for _, userRole := range userRoles {
+            if userRole == required {
+                return true
+            }
+        }
+    }
+    return false
+}
+```
 
 ## Configuration Prefix
 
@@ -64,23 +135,38 @@ auth:
 
 ### Environment Variables
 
+**Router-Level Configuration** (handled by templ-router):
+
 ```bash
-# Session Configuration
-TR_AUTH_SESSION_EXPIRY=24h                # Session duration
-TR_AUTH_SESSION_COOKIE_NAME=session_id     # Cookie name
-TR_AUTH_SESSION_COOKIE_SECURE=true         # HTTPS-only cookies
-TR_AUTH_SESSION_COOKIE_HTTP_ONLY=true      # HTTP-only cookies
+# Redirect Routes for authentication failures
+TR_AUTH_SIGNIN_ROUTE=/login                # Where to redirect unauthenticated users
+TR_AUTH_SIGNIN_SUCCESS_ROUTE=/dashboard    # Where to redirect after successful login
+TR_AUTH_SIGNUP_SUCCESS_ROUTE=/welcome      # Where to redirect after successful registration
+TR_AUTH_SIGNOUT_SUCCESS_ROUTE=/           # Where to redirect after successful logout
 
-# Redirect Configuration
-TR_AUTH_SIGNIN_SUCCESS_ROUTE=/dashboard    # After login
-TR_AUTH_SIGNUP_SUCCESS_ROUTE=/welcome      # After registration
-TR_AUTH_SIGNOUT_SUCCESS_ROUTE=/           # After logout
-
-# Default Admin User (development)
-TR_AUTH_CREATE_DEFAULT_ADMIN=true
-TR_AUTH_DEFAULT_ADMIN_EMAIL=admin@example.com
-TR_AUTH_DEFAULT_ADMIN_PASSWORD=admin123
+# Route Configuration
+TR_ROUTER_ENABLE_AUTH_ROUTES=true          # Enable/disable auth routes
+TR_ROUTER_AUTH_ROUTE_PREFIX=/api           # Prefix for auth API endpoints
 ```
+
+**Client Application Configuration** (handled by your application):
+
+```bash
+# Session Management - implement in your application
+# Example: MYAPP_SESSION_EXPIRY=24h
+# Example: MYAPP_SESSION_COOKIE_NAME=session_id
+# Example: MYAPP_JWT_SECRET=your-secret-key
+
+# User Management - implement in your application
+# Example: MYAPP_DEFAULT_ADMIN_EMAIL=admin@example.com
+# Example: MYAPP_PASSWORD_MIN_LENGTH=8
+
+# Email Configuration - implement in your application
+# Example: MYAPP_SMTP_HOST=smtp.example.com
+# Example: MYAPP_SMTP_PORT=587
+```
+
+**Note**: Most authentication configuration has been moved to client applications. Only redirect routes remain in the router to handle authentication failures.
 
 ### Internationalized Redirects
 
@@ -288,40 +374,113 @@ i18n:
 
 ## Integration
 
-### Main Application Setup
+### Main Application Setup with Hook-Based Authentication
 
 ```go
 // main.go
 func main() {
     container := di.NewContainer()
-    container.RegisterRouterServices("TR")
 
-    mux := chi.NewRouter()
+    // Register router services
+    injector := container.RegisterRouterServices(context.Background(), "TR")
 
-    // Add authentication middleware
-    authMiddleware, err := middleware.NewAuthContextMiddleware(container.GetInjector())
+    // Register your custom authentication components
+    container.RegisterApplicationServices(
+        // Your custom AuthValidator implementation
+        di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
+            return NewMyAuthValidator(i) // Your implementation
+        }),
+
+        // Your custom AuthHandlers for API endpoints
+        di.WithAuthHandlersFactory(func(i do.Injector) (interfaces.AuthHandlers, error) {
+            return NewMyAuthHandlers(i) // Your implementation
+        }),
+
+        // Your custom SessionStore
+        di.WithSessionStoreFactory(func(i do.Injector) (interfaces.SessionStore, error) {
+            return NewMySessionStore(i) // Your implementation
+        }),
+
+        // Your custom UserStore
+        di.WithUserStoreFactory(func(i do.Injector) (interfaces.UserStore, error) {
+            return NewMyUserStore(i) // Your implementation
+        }),
+    )
+
+    // Bootstrap router - auth middleware automatically uses your AuthValidator
+    routerBootstrap := container.GetRouterBootstrap()
+    mux, err := routerBootstrap.Bootstrap()
     if err != nil {
         panic(err)
     }
-    mux.Use(authMiddleware.Middleware)
-
-    // Register routes
-    router := container.GetRouter()
-    if err := router.Initialize(); err != nil {
-        panic(err)
-    }
-    if err := router.RegisterRoutes(mux); err != nil {
-        panic(err)
-    }
-
-    // Register authentication API routes
-    authHandlers := do.MustInvoke[interfaces.AuthHandlers](container.GetInjector())
-    authHandlers.RegisterRoutes(func(method, path string, handler http.HandlerFunc) {
-        mux.Post(path, handler)
-        mux.Get(path, handler)
-    })
 
     http.ListenAndServe(":8080", mux)
+}
+```
+
+### Custom AuthValidator Example
+
+```go
+// auth_validator.go
+type MyAuthValidator struct {
+    userStore    MyUserStore
+    sessionStore MySessionStore
+    jwtSecret    string
+}
+
+func NewMyAuthValidator(i do.Injector) (interfaces.AuthValidator, error) {
+    userStore := do.MustInvoke[interfaces.UserStore](i)
+    sessionStore := do.MustInvoke[interfaces.SessionStore](i)
+
+    return &MyAuthValidator{
+        userStore:    userStore.(MyUserStore),
+        sessionStore: sessionStore.(MySessionStore),
+        jwtSecret:    os.Getenv("JWT_SECRET"),
+    }, nil
+}
+
+func (av *MyAuthValidator) IsAuthenticated(req *http.Request) bool {
+    // Extract JWT from Authorization header or cookie
+    token := av.extractJWTFromRequest(req)
+    if token == "" {
+        return false
+    }
+
+    // Validate JWT token
+    claims, err := av.validateJWT(token)
+    if err != nil {
+        return false
+    }
+
+    // Check if user still exists and is active
+    _, err = av.userStore.GetUserByID(claims.UserID)
+    return err == nil
+}
+
+func (av *MyAuthValidator) GetCurrentUser(req *http.Request) (interfaces.UserEntity, error) {
+    token := av.extractJWTFromRequest(req)
+    if token == "" {
+        return nil, fmt.Errorf("no authentication token found")
+    }
+
+    claims, err := av.validateJWT(token)
+    if err != nil {
+        return nil, err
+    }
+
+    return av.userStore.GetUserByID(claims.UserID)
+}
+
+func (av *MyAuthValidator) HasRole(user interfaces.UserEntity, requiredRoles []string) bool {
+    userRoles := user.GetRoles()
+    for _, required := range requiredRoles {
+        for _, userRole := range userRoles {
+            if userRole == required {
+                return true
+            }
+        }
+    }
+    return false
 }
 ```
 

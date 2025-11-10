@@ -12,7 +12,6 @@ import (
 // SEPARATED FROM: clean_router.go (Separation of Concerns)
 type middlewareSetup struct {
 	// Clean services (no circular dependencies)
-	authService     interfaces.AuthService
 	i18nService     interfaces.I18nService
 	templateService interfaces.TemplateService
 	layoutService   interfaces.LayoutService
@@ -30,7 +29,6 @@ type middlewareSetup struct {
 // NewMiddlewareSetup creates a new middleware setup
 func NewMiddlewareSetup(i do.Injector) (interfaces.MiddlewareSetup, error) {
 	// Inject clean services
-	authService := do.MustInvoke[interfaces.AuthService](i)
 	i18nService := do.MustInvoke[interfaces.I18nService](i)
 	templateService := do.MustInvoke[interfaces.TemplateService](i)
 	layoutService := do.MustInvoke[interfaces.LayoutService](i)
@@ -45,7 +43,6 @@ func NewMiddlewareSetup(i do.Injector) (interfaces.MiddlewareSetup, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &middlewareSetup{
-		authService:        authService,
 		i18nService:        i18nService,
 		templateService:    templateService,
 		layoutService:      layoutService,
@@ -56,11 +53,6 @@ func NewMiddlewareSetup(i do.Injector) (interfaces.MiddlewareSetup, error) {
 		routerMiddleware:   routerMiddleware,
 		logger:             logger,
 	}, nil
-}
-
-// GetAuthService returns the auth service
-func (ms *middlewareSetup) GetAuthService() interfaces.AuthService {
-	return ms.authService
 }
 
 // GetI18nService returns the i18n service
@@ -138,11 +130,6 @@ func (ms *middlewareSetup) ValidateMiddlewareSetup() error {
 	ms.logger.Debug("Validating middleware setup")
 
 	// Check that all services are available
-	if ms.authService == nil {
-		ms.logger.Error("Auth service is nil")
-		return fmt.Errorf("auth service not configured")
-	}
-
 	if ms.i18nService == nil {
 		ms.logger.Error("I18n service is nil")
 		return fmt.Errorf("i18n service not configured")

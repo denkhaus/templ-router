@@ -13,70 +13,70 @@ type MockConfigService struct {
 func NewMockConfigService() *MockConfigService {
 	return &MockConfigService{
 		config: map[string]interface{}{
-			"server.host":                    "localhost",
-			"server.port":                    8080,
-			"server.base_url":                "http://localhost:8080",
-			"server.read_timeout":            30 * time.Second,
-			"server.write_timeout":           30 * time.Second,
-			"server.idle_timeout":            60 * time.Second,
-			"server.shutdown_timeout":        10 * time.Second,
-			"i18n.supported_locales":         []string{"en", "de", "fr"},
-			"i18n.default_locale":            "en",
-			"i18n.fallback_locale":           "en",
-			"layout.root_directory":          "app",
-			"layout.file_name":               "layout.templ",
-			"layout.assets_directory":        "assets",
-			"layout.assets_route_name":       "/assets/",
-			"layout.template_extension":      ".templ",
-			"layout.metadata_extension":      ".yaml",
-			"layout.inheritance_enabled":     true,
-			"template.output_dir":            "generated/templates",
-			"template.package_name":          "templates",
-			"database.host":                  "localhost",
-			"database.port":                  5432,
-			"database.user":                  "testuser",
-			"database.password":              "testpass",
-			"database.name":                  "testdb",
-			"database.ssl_mode":              "disable",
+			"server.host":                      "localhost",
+			"server.port":                      8080,
+			"server.base_url":                  "http://localhost:8080",
+			"server.read_timeout":              30 * time.Second,
+			"server.write_timeout":             30 * time.Second,
+			"server.idle_timeout":              60 * time.Second,
+			"server.shutdown_timeout":          10 * time.Second,
+			"i18n.supported_locales":           []string{"en", "de", "fr"},
+			"i18n.default_locale":              "en",
+			"i18n.fallback_locale":             "en",
+			"layout.root_directory":            "app",
+			"layout.file_name":                 "layout.templ",
+			"layout.assets_directory":          "assets",
+			"layout.assets_route_name":         "/assets/",
+			"layout.template_extension":        ".templ",
+			"layout.metadata_extension":        ".yaml",
+			"layout.inheritance_enabled":       true,
+			"template.output_dir":              "generated/templates",
+			"template.package_name":            "templates",
+			"database.host":                    "localhost",
+			"database.port":                    5432,
+			"database.user":                    "testuser",
+			"database.password":                "testpass",
+			"database.name":                    "testdb",
+			"database.ssl_mode":                "disable",
 			"auth.email_verification_required": true,
 			"auth.verification_token_expiry":   24 * time.Hour,
-			"auth.session_cookie_name":        "session_id",
-			"auth.session_expiry":             7 * 24 * time.Hour,
-			"auth.session_secure":             true,
-			"auth.session_http_only":          true,
-			"auth.session_same_site":          "Strict",
-			"auth.min_password_length":        8,
-			"auth.strong_password_required":   true,
-			"auth.create_default_admin":       false,
-			"auth.default_admin_email":        "admin@example.com",
-			"auth.default_admin_password":     "admin123",
-			"auth.default_admin_first_name":   "Admin",
-			"auth.default_admin_last_name":    "User",
-			"security.csrf_secret":            "csrf-secret-key",
-			"security.csrf_secure":            true,
-			"security.csrf_http_only":         true,
-			"security.csrf_same_site":         "Strict",
-			"security.rate_limit_enabled":     true,
-			"security.rate_limit_requests":    100,
-			"security.headers_enabled":        true,
-			"security.hsts_enabled":           true,
-			"security.hsts_max_age":           31536000,
-			"logging.level":                   "info",
-			"logging.format":                  "json",
-			"logging.output":                  "stdout",
-			"logging.file_enabled":            false,
-			"logging.file_path":               "/var/log/app.log",
-			"email.smtp_host":                 "smtp.example.com",
-			"email.smtp_port":                 587,
-			"email.smtp_username":             "user@example.com",
-			"email.smtp_password":             "password",
-			"email.smtp_tls_enabled":          true,
-			"email.from_email":                "noreply@example.com",
-			"email.from_name":                 "Test App",
-			"email.reply_to_email":            "support@example.com",
-			"email.dummy_mode_enabled":        true,
-			"environment.development":         true,
-			"environment.production":          false,
+			"auth.session_cookie_name":         "session_id",
+			"auth.session_expiry":              7 * 24 * time.Hour,
+			"auth.session_secure":              true,
+			"auth.session_http_only":           true,
+			"auth.session_same_site":           "Strict",
+			"auth.min_password_length":         8,
+			"auth.strong_password_required":    true,
+			"auth.create_default_admin":        false,
+			"auth.default_admin_email":         "admin@example.com",
+			"auth.default_admin_password":      "admin123",
+			"auth.default_admin_first_name":    "Admin",
+			"auth.default_admin_last_name":     "User",
+			"security.csrf_secret":             "csrf-secret-key",
+			"security.csrf_secure":             true,
+			"security.csrf_http_only":          true,
+			"security.csrf_same_site":          "Strict",
+			"security.rate_limit_enabled":      true,
+			"security.rate_limit_requests":     100,
+			"security.headers_enabled":         true,
+			"security.hsts_enabled":            true,
+			"security.hsts_max_age":            31536000,
+			"logging.level":                    "info",
+			"logging.format":                   "json",
+			"logging.output":                   "stdout",
+			"logging.file_enabled":             false,
+			"logging.file_path":                "/var/log/app.log",
+			"email.smtp_host":                  "smtp.example.com",
+			"email.smtp_port":                  587,
+			"email.smtp_username":              "user@example.com",
+			"email.smtp_password":              "password",
+			"email.smtp_tls_enabled":           true,
+			"email.from_email":                 "noreply@example.com",
+			"email.from_name":                  "Test App",
+			"email.reply_to_email":             "support@example.com",
+			"email.dummy_mode_enabled":         true,
+			"environment.development":          true,
+			"environment.production":           false,
 		},
 	}
 }
@@ -251,14 +251,6 @@ func (m *MockConfigService) IsCSRFHttpOnly() bool {
 
 func (m *MockConfigService) GetCSRFSameSite() string {
 	return m.config["security.csrf_same_site"].(string)
-}
-
-func (m *MockConfigService) IsRateLimitEnabled() bool {
-	return m.config["security.rate_limit_enabled"].(bool)
-}
-
-func (m *MockConfigService) GetRateLimitRequests() int {
-	return m.config["security.rate_limit_requests"].(int)
 }
 
 func (m *MockConfigService) AreSecurityHeadersEnabled() bool {
@@ -477,8 +469,6 @@ func TestConfigService_SecurityConfiguration(t *testing.T) {
 	}{
 		{"GetCSRFSecret", func() interface{} { return config.GetCSRFSecret() }, "csrf-secret-key"},
 		{"IsCSRFSecure", func() interface{} { return config.IsCSRFSecure() }, true},
-		{"IsRateLimitEnabled", func() interface{} { return config.IsRateLimitEnabled() }, true},
-		{"GetRateLimitRequests", func() interface{} { return config.GetRateLimitRequests() }, 100},
 		{"AreSecurityHeadersEnabled", func() interface{} { return config.AreSecurityHeadersEnabled() }, true},
 		{"IsHSTSEnabled", func() interface{} { return config.IsHSTSEnabled() }, true},
 		{"GetHSTSMaxAge", func() interface{} { return config.GetHSTSMaxAge() }, 31536000},
@@ -509,10 +499,10 @@ func TestConfigService_EnvironmentConfiguration(t *testing.T) {
 // Test interface compliance
 func TestConfigServiceInterfaceCompliance(t *testing.T) {
 	var _ ConfigService = (*MockConfigService)(nil)
-	
+
 	// This test ensures our mock implements the interface correctly
 	config := NewMockConfigService()
-	
+
 	// Test that all methods are callable without panicking
 	_ = config.GetServerHost()
 	_ = config.GetSupportedLocales()
@@ -524,6 +514,7 @@ func TestConfigServiceInterfaceCompliance(t *testing.T) {
 	_ = config.GetSMTPHost()
 	_ = config.IsDevelopment()
 }
+
 // Auth redirect routes (only for success cases)
 func (m *MockConfigService) GetSignInSuccessRoute() string  { return "/dashboard" }
 func (m *MockConfigService) GetSignUpSuccessRoute() string  { return "/welcome" }
@@ -533,8 +524,8 @@ func (m *MockConfigService) GetSignOutSuccessRoute() string { return "/" }
 func (m *MockConfigService) GetSignInRoute() string { return "/login" }
 
 // Router configuration methods
-func (m *MockConfigService) GetRouterEnableTrailingSlash() bool     { return true }
-func (m *MockConfigService) GetRouterEnableSlashRedirect() bool     { return true }
-func (m *MockConfigService) GetRouterEnableMethodNotAllowed() bool  { return true }
-func (m *MockConfigService) GetRouterEnableAuthRoutes() bool        { return true }
-func (m *MockConfigService) GetRouterAuthRoutePrefix() string       { return "/api" }
+func (m *MockConfigService) GetRouterEnableTrailingSlash() bool    { return true }
+func (m *MockConfigService) GetRouterEnableSlashRedirect() bool    { return true }
+func (m *MockConfigService) GetRouterEnableMethodNotAllowed() bool { return true }
+func (m *MockConfigService) GetRouterEnableAuthRoutes() bool       { return true }
+func (m *MockConfigService) GetRouterAuthRoutePrefix() string      { return "/api" }

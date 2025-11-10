@@ -62,11 +62,6 @@ func (m *MockConfigService) GetDatabaseName() string                   { return 
 func (m *MockConfigService) GetDatabaseSSLMode() string                { return "disable" }
 func (m *MockConfigService) IsEmailVerificationRequired() bool         { return false }
 func (m *MockConfigService) GetVerificationTokenExpiry() time.Duration { return 24 * time.Hour }
-func (m *MockConfigService) GetSessionCookieName() string              { return "session" }
-func (m *MockConfigService) GetSessionExpiry() time.Duration           { return 24 * time.Hour }
-func (m *MockConfigService) IsSessionSecure() bool                     { return false }
-func (m *MockConfigService) IsSessionHttpOnly() bool                   { return true }
-func (m *MockConfigService) GetSessionSameSite() string                { return "Lax" }
 func (m *MockConfigService) GetMinPasswordLength() int                 { return 8 }
 func (m *MockConfigService) IsStrongPasswordRequired() bool            { return false }
 func (m *MockConfigService) ShouldCreateDefaultAdmin() bool            { return false }
@@ -78,8 +73,6 @@ func (m *MockConfigService) GetCSRFSecret() string                     { return 
 func (m *MockConfigService) IsCSRFSecure() bool                        { return false }
 func (m *MockConfigService) IsCSRFHttpOnly() bool                      { return true }
 func (m *MockConfigService) GetCSRFSameSite() string                   { return "Lax" }
-func (m *MockConfigService) IsRateLimitEnabled() bool                  { return false }
-func (m *MockConfigService) GetRateLimitRequests() int                 { return 100 }
 func (m *MockConfigService) AreSecurityHeadersEnabled() bool           { return false }
 func (m *MockConfigService) IsHSTSEnabled() bool                       { return false }
 func (m *MockConfigService) GetHSTSMaxAge() int                        { return 31536000 }
@@ -132,9 +125,8 @@ func (m *MockRouteDiscovery) DiscoverErrorTemplates(scanPath string) ([]interfac
 }
 
 type MockConfigLoader struct {
-	ShouldError  bool
-	Config       *shared.ConfigFile
-	AuthConfig   *shared.AuthConfig
+	ShouldError bool
+	Config      *shared.ConfigFile
 }
 
 func (m *MockConfigLoader) LoadRouteConfig(templateFile string) (*shared.ConfigFile, error) {
@@ -161,9 +153,7 @@ func (m *MockConfigLoader) LoadAuthSettings(templatePath string) (*shared.AuthCo
 	if m.ShouldError {
 		return nil, errors.New("mock auth settings load error")
 	}
-	if m.AuthConfig != nil {
-		return m.AuthConfig, nil
-	}
+	// Return default public auth config for all templates
 	return &shared.AuthConfig{Type: "Public"}, nil
 }
 
@@ -184,35 +174,7 @@ func (m *MockHandlerPipeline) BuildHandler(config pipeline.PipelineConfig) http.
 	})
 }
 
-// Service mocks
-type MockAuthService struct{}
-
-type MockUser struct {
-	ID    string
-	Email string
-	Roles []string
-}
-
-func (u *MockUser) GetID() string    { return u.ID }
-func (u *MockUser) GetEmail() string { return u.Email }
-func (u *MockUser) GetRoles() []string { return u.Roles }
-
-func (m *MockAuthService) Authenticate(req *http.Request, requirements *shared.AuthConfig) (*interfaces.AuthResult, error) {
-	return &interfaces.AuthResult{IsAuthenticated: true}, nil
-}
-
-func (m *MockAuthService) HasRequiredPermissions(req *http.Request, settings *shared.AuthConfig) bool {
-	return true
-}
-
-func (m *MockAuthService) Login(email, password string) (interfaces.UserEntity, string, error) {
-	user := &MockUser{ID: "test-user", Email: email, Roles: []string{"user"}}
-	return user, "test-session", nil
-}
-
-func (m *MockAuthService) Logout(sessionID string) error {
-	return nil
-}
+// Service mocks - MockAuthService removed in favor of AuthValidator interface
 
 type MockI18nService struct{}
 
@@ -266,14 +228,7 @@ func (m *MockErrorService) CreateErrorComponent(message, path string) templ.Comp
 	return templ.Raw("error content")
 }
 
-// Middleware mocks
-type MockAuthMiddleware struct{}
-
-func (m *MockAuthMiddleware) Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		next.ServeHTTP(w, r)
-	})
-}
+// Middleware mocks - MockAuthMiddleware removed in favor of new AuthValidator interface
 
 type MockI18nMiddleware struct{}
 
@@ -341,11 +296,6 @@ func CreateTestContainer() do.Injector {
 		return &MockConfigLoader{}, nil
 	})
 
-	// Register services for middleware
-	do.Provide(injector, func(i do.Injector) (interfaces.AuthService, error) {
-		return &MockAuthService{}, nil
-	})
-
 	do.Provide(injector, func(i do.Injector) (interfaces.I18nService, error) {
 		return &MockI18nService{}, nil
 	})
@@ -362,10 +312,7 @@ func CreateTestContainer() do.Injector {
 		return &MockErrorService{}, nil
 	})
 
-	// Register all middleware interfaces for complete testing
-	do.Provide(injector, func(i do.Injector) (interfaces.AuthMiddlewareInterface, error) {
-		return &MockAuthMiddleware{}, nil
-	})
+	// AuthMiddlewareInterface now provided by default implementation using AuthValidator
 
 	do.Provide(injector, func(i do.Injector) (interfaces.I18nMiddlewareInterface, error) {
 		return &MockI18nMiddleware{}, nil

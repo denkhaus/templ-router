@@ -52,11 +52,6 @@ func (m *mockConfigService) GetDatabaseName() string                   { return 
 func (m *mockConfigService) GetDatabaseSSLMode() string                { return "disable" }
 func (m *mockConfigService) IsEmailVerificationRequired() bool         { return false }
 func (m *mockConfigService) GetVerificationTokenExpiry() time.Duration { return 24 * time.Hour }
-func (m *mockConfigService) GetSessionCookieName() string              { return "session" }
-func (m *mockConfigService) GetSessionExpiry() time.Duration           { return 24 * time.Hour }
-func (m *mockConfigService) IsSessionSecure() bool                     { return false }
-func (m *mockConfigService) IsSessionHttpOnly() bool                   { return true }
-func (m *mockConfigService) GetSessionSameSite() string                { return "Lax" }
 func (m *mockConfigService) GetMinPasswordLength() int                 { return 8 }
 func (m *mockConfigService) IsStrongPasswordRequired() bool            { return false }
 func (m *mockConfigService) ShouldCreateDefaultAdmin() bool            { return false }
@@ -72,8 +67,6 @@ func (m *mockConfigService) GetCSRFSecret() string                     { return 
 func (m *mockConfigService) IsCSRFSecure() bool                        { return false }
 func (m *mockConfigService) IsCSRFHttpOnly() bool                      { return true }
 func (m *mockConfigService) GetCSRFSameSite() string                   { return "Lax" }
-func (m *mockConfigService) IsRateLimitEnabled() bool                  { return false }
-func (m *mockConfigService) GetRateLimitRequests() int                 { return 100 }
 func (m *mockConfigService) AreSecurityHeadersEnabled() bool           { return false }
 func (m *mockConfigService) IsHSTSEnabled() bool                       { return false }
 func (m *mockConfigService) GetHSTSMaxAge() int                        { return 31536000 }

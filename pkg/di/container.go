@@ -53,18 +53,14 @@ func (c *Container) RegisterRouterServices(ctx context.Context, configPraefix st
 	// this should not be exposed. use config.NewConfigService instead
 	do.Provide(c.injector, config.NewConfigService(configPraefix))
 
-	// Register stores - constructors already return interfaces! (pluggable)
-	// Session store stays in router (user-type agnostic)
-	do.Provide(c.injector, auth.NewInMemorySessionStore)
-
 	// Internal services (these can remain concrete for now)
 	do.Provide(c.injector, services.NewInMemoryTranslationStore)
 
 	// Cache service for performance optimization
 	do.Provide(c.injector, cache.NewCacheService)
 
-	do.Provide(c.injector, auth.NewAuthHandlers)
-	do.Provide(c.injector, auth.NewAuthService)
+	// Register AuthValidator - applications should override with WithAuthValidatorFactory
+	do.Provide(c.injector, auth.NewDefaultAuthValidator)
 	do.Provide(c.injector, services.NewI18nService)
 	do.Provide(c.injector, appservices.NewComponentMetadataService)
 
@@ -73,7 +69,6 @@ func (c *Container) RegisterRouterServices(ctx context.Context, configPraefix st
 	// Data Service Resolution
 	do.Provide(c.injector, services.NewDataServiceResolver)
 
-	// UNIFIED VALIDATION ARCHITECTURE - Orchestrated Validation Logic
 	do.Provide(c.injector, services.NewValidationOrchestrator)
 
 	// Register middleware services - constructors already return interfaces!
