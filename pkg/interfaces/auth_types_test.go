@@ -180,36 +180,6 @@ func TestUser_HasRole(t *testing.T) {
 	}
 }
 
-func TestSession_Validation(t *testing.T) {
-	session := Session{
-		ID:     "session123",
-		UserID: "user123",
-		Valid:  true,
-	}
-
-	if session.ID == "" {
-		t.Error("Session should have an ID")
-	}
-	if session.UserID == "" {
-		t.Error("Session should have a UserID")
-	}
-	if !session.Valid {
-		t.Error("Session should be valid in this test")
-	}
-}
-
-func TestSession_InvalidSession(t *testing.T) {
-	session := Session{
-		ID:     "session123",
-		UserID: "user123",
-		Valid:  false,
-	}
-
-	if session.Valid {
-		t.Error("Session should be invalid in this test")
-	}
-}
-
 func TestAuthSettings_RoleValidation(t *testing.T) {
 	settings := shared.AuthConfig{
 		Type:        "AdminRequired",

@@ -28,7 +28,7 @@ type UserEntity interface {
 // This replaces the concrete AuthService implementation with a flexible hook-based system
 type AuthValidator interface {
 	// IsAuthenticated checks if the current request is from an authenticated user
-	IsAuthenticated(req *http.Request) bool
+	IsAuthenticated(req *http.Request) (bool, error)
 
 	// GetCurrentUser returns the authenticated user for the current request
 	// Returns error if user cannot be retrieved or is not authenticated
