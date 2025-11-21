@@ -9,10 +9,10 @@ import (
 	"go.uber.org/zap"
 )
 
-// DefaultAuthValidator provides a no-op authentication validator
+// defaultAuthValidatorImpl provides a no-op authentication validator
 // This is used when no custom AuthValidator is provided by the application
 // All authentication checks will fail - applications must provide their own implementation
-type DefaultAuthValidator struct {
+type defaultAuthValidatorImpl struct {
 	logger *zap.Logger
 }
 
@@ -20,27 +20,27 @@ type DefaultAuthValidator struct {
 func NewDefaultAuthValidator(i do.Injector) (interfaces.AuthValidator, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 
-	return &DefaultAuthValidator{
+	return &defaultAuthValidatorImpl{
 		logger: logger,
 	}, nil
 }
 
 // IsAuthenticated always returns false - applications must provide their own implementation
-func (av *DefaultAuthValidator) IsAuthenticated(req *http.Request) bool {
+func (av *defaultAuthValidatorImpl) IsAuthenticated(req *http.Request) (bool, error) {
 	av.logger.Warn("Default AuthValidator used - authentication will always fail. " +
 		"Please provide your own AuthValidator implementation using WithAuthValidatorFactory.")
-	return false
+	return false, nil
 }
 
 // GetCurrentUser always returns an error - applications must provide their own implementation
-func (av *DefaultAuthValidator) GetCurrentUser(req *http.Request) (interfaces.UserEntity, error) {
+func (av *defaultAuthValidatorImpl) GetCurrentUser(req *http.Request) (interfaces.UserEntity, error) {
 	av.logger.Warn("Default AuthValidator used - cannot get current user. " +
 		"Please provide your own AuthValidator implementation using WithAuthValidatorFactory.")
 	return nil, fmt.Errorf("no custom AuthValidator provided")
 }
 
 // HasRole always returns false - applications must provide their own implementation
-func (av *DefaultAuthValidator) HasRole(user interfaces.UserEntity, requiredRoles []string) bool {
+func (av *defaultAuthValidatorImpl) HasRole(user interfaces.UserEntity, requiredRoles []string) bool {
 	av.logger.Warn("Default AuthValidator used - role checking will always fail. " +
 		"Please provide your own AuthValidator implementation using WithAuthValidatorFactory.")
 	return false
