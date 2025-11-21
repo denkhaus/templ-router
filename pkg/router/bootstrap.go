@@ -14,17 +14,16 @@ import (
 
 // RouterBootstrap provides a streamlined way to bootstrap a router with all middleware and routes
 type RouterBootstrap struct {
-	injector   do.Injector
-	config     interfaces.ConfigService
-	logger     *zap.Logger
-	routerCore interfaces.RouterCore
-	options    *BootstrapConfig
+	injector                 do.Injector
+	config                   interfaces.ConfigService
+	logger                   *zap.Logger
+	routerCore               interfaces.RouterCore
+	componentMetadataService interfaces.ComponentMetadataService
+	options                  *BootstrapConfig
 }
 
 // BootstrapConfig holds configuration for router bootstrap
 type BootstrapConfig struct {
-	// Middleware configuration (all middleware enabled/disabled via env vars)
-	middlewareOrder []string
 
 	// Route configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
 	enableHealthCheck bool
@@ -40,33 +39,22 @@ func NewRouterBootstrap(injector do.Injector) (*RouterBootstrap, error) {
 	config := do.MustInvoke[interfaces.ConfigService](injector)
 	logger := do.MustInvoke[*zap.Logger](injector)
 	routerCore := do.MustInvoke[interfaces.RouterCore](injector)
+	componentMetadataService := do.MustInvoke[interfaces.ComponentMetadataService](injector)
 
 	// Load configuration from DI container or use defaults
 	bootstrapConfig := &BootstrapConfig{
 		enableHealthCheck: true,
 		healthCheckPath:   "/api/health",
-		middlewareOrder:   []string{"router", "auth", "i18n", "template"},
-	}
-
-	// Try to load overridden configuration from DI container
-	if err := bootstrapConfig.loadFromDI(injector); err != nil {
-		logger.Info("No bootstrap configuration found in DI container, using defaults")
 	}
 
 	return &RouterBootstrap{
-		injector:   injector,
-		config:     config,
-		logger:     logger,
-		routerCore: routerCore,
-		options:    bootstrapConfig,
+		injector:                 injector,
+		config:                   config,
+		logger:                   logger,
+		routerCore:               routerCore,
+		options:                  bootstrapConfig,
+		componentMetadataService: componentMetadataService,
 	}, nil
-}
-
-// loadFromDI attempts to load configuration from the DI container
-func (bc *BootstrapConfig) loadFromDI(injector do.Injector) error {
-	// This would look for configuration values in the DI container
-	// For now, we'll use the defaults
-	return nil
 }
 
 // Bootstrap initializes and configures the router with all middleware and routes
@@ -74,6 +62,11 @@ func (rb *RouterBootstrap) Bootstrap() (*chi.Mux, error) {
 	// Initialize router core first
 	if err := rb.routerCore.Initialize(); err != nil {
 		return nil, fmt.Errorf("failed to initialize router core: %w", err)
+	}
+
+	// Validate all YAML configuration files during startup to fail fast on errors
+	if err := rb.validateYAMLConfiguration(); err != nil {
+		return nil, fmt.Errorf("YAML validation failed during router bootstrap: %w", err)
 	}
 
 	// Create Chi router
@@ -217,12 +210,7 @@ func (rb *RouterBootstrap) registerHealthCheck(mux *chi.Mux) {
 	mux.HandleFunc(rb.options.healthCheckPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{
-			"status": "healthy",
-			"architecture": "clean",
-			"dependency_injection": "samber/do",
-			"router": "multi-language file-based",
-			"i18n": "decentralized",
-			"languages": ["en", "de"]
+			"status": "ok"
 		}`))
 	})
 	rb.logger.Info("Registered health check", zap.String("path", rb.options.healthCheckPath))
@@ -274,6 +262,19 @@ func (rb *RouterBootstrap) configureErrorHandlers(mux *chi.Mux) {
 // GetRouterCore returns the underlying router core for advanced usage
 func (rb *RouterBootstrap) GetRouterCore() interfaces.RouterCore {
 	return rb.routerCore
+}
+
+// validateYAMLConfiguration validates all YAML files during router bootstrap
+func (rb *RouterBootstrap) validateYAMLConfiguration() error {
+
+	// Validate all component YAML files
+	if err := rb.componentMetadataService.ValidateAllComponentYAML(); err != nil {
+		rb.logger.Error("YAML validation failed during router bootstrap", zap.Error(err))
+		return fmt.Errorf("YAML validation failed during router bootstrap: %w", err)
+	}
+
+	rb.logger.Info("YAML configuration validation completed successfully")
+	return nil
 }
 
 // GetLogger returns the logger for debugging

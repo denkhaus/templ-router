@@ -3,7 +3,6 @@ package interfaces
 import (
 	"context"
 	"net/http"
-	"time"
 
 	"github.com/a-h/templ"
 	"github.com/denkhaus/templ-router/pkg/shared"
@@ -101,16 +100,6 @@ type AuthResult struct {
 	ErrorMessage    string     `json:"error_message,omitempty"`
 }
 
-// Session represents a user session
-type Session struct {
-	ID        string    `json:"id"`
-	UserID    string    `json:"user_id"`
-	Valid     bool      `json:"valid"`
-	CreatedAt time.Time `json:"created_at"`
-	ExpiresAt time.Time `json:"expires_at"`
-}
-
-
 type Template struct {
 	// File information
 	FilePath      string `json:"file_path"`
@@ -155,7 +144,6 @@ type RouteRegistrar interface {
 	Register404Handler()
 	RegisterMethodNotAllowedHandler()
 }
-
 
 // I18nService handles internationalization
 // I18nService handles internationalization
@@ -205,6 +193,10 @@ type ComponentMetadataService interface {
 
 	// LoadMultipleComponentMetadata loads metadata for multiple components efficiently
 	LoadMultipleComponentMetadata(componentNames []string) (map[string]*shared.ConfigFile, error)
+
+	// ValidateAllComponentYAML performs startup validation of all component YAML files
+	// This should be called during application bootstrap to fail fast on invalid YAML
+	ValidateAllComponentYAML() error
 }
 
 // AuthMiddlewareInterface handles authentication middleware

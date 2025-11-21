@@ -3,6 +3,7 @@ package shared
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 )
@@ -194,7 +195,25 @@ func isStandardMetadataField(key string) bool {
 	return false
 }
 
-// ParseYAMLMetadata parses YAML metadata files with validation
+// ValidateYAMLStartup performs fail-fast validation of YAML files during application startup
+// This should be called during application bootstrap to ensure configuration quality
+func ValidateYAMLStartup(filePath string) error {
+	if filePath == "" {
+		return fmt.Errorf("file path cannot be empty")
+	}
+
+	// Check if file exists first
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		// File doesn't exist - that's okay for startup validation
+		return nil
+	}
+
+	_, _, err := ParseYAMLMetadata(filePath)
+	return err
+}
+
+// ParseYAMLMetadataWithContext parses YAML metadata files with context-aware validation
+
 func ParseYAMLMetadata(filePath string) (bool, *ConfigFile, error) {
 	if filePath == "" {
 		return false, nil, fmt.Errorf("file path cannot be empty")
@@ -218,8 +237,8 @@ func ParseYAMLMetadata(filePath string) (bool, *ConfigFile, error) {
 		rawConfig = convertedMap
 	}
 
-	// Validate that only known root keys are used
-	if err := validateRootKeys(rawConfig); err != nil {
+	// Validate that only known root keys are used with enhanced error reporting
+	if err := validateRootKeysWithContext(rawConfig, filePath); err != nil {
 		return true, nil, fmt.Errorf("invalid YAML structure in file %s: %w", filePath, err)
 	}
 
@@ -256,8 +275,8 @@ func ParseYAMLMetadata(filePath string) (bool, *ConfigFile, error) {
 	return true, &configFile, nil
 }
 
-// validateRootKeys validates that only known root keys are used in YAML
-func validateRootKeys(rawConfig map[string]interface{}) error {
+// validateRootKeysWithContext validates root keys with enhanced error reporting and context awareness
+func validateRootKeysWithContext(rawConfig map[string]interface{}, filePath string) error {
 	allowedKeys := map[string]bool{
 		"i18n":     true,
 		"auth":     true,
@@ -267,13 +286,34 @@ func validateRootKeys(rawConfig map[string]interface{}) error {
 		"dynamic":  true,
 	}
 
+	var invalidKeys []string
 	for key := range rawConfig {
 		if !allowedKeys[key] {
-			return fmt.Errorf("unknown root key '%s' - allowed keys are: i18n, auth, metadata, layout, error, dynamic", key)
+			invalidKeys = append(invalidKeys, key)
 		}
 	}
 
-	return nil
+	if len(invalidKeys) == 0 {
+		return nil
+	}
+
+	// Create detailed error message with examples and suggestions
+	errorMsg := createYAMLValidationError(invalidKeys, filePath, allowedKeys)
+
+	// For runtime scenario, return basic error
+	return fmt.Errorf("%s", errorMsg)
+}
+
+// createYAMLValidationError creates a detailed, actionable error message for YAML validation failures
+func createYAMLValidationError(invalidKeys []string, filePath string, allowedKeys map[string]bool) string {
+	var errorMsg strings.Builder
+
+	errorMsg.WriteString(fmt.Sprintf("Found %d invalid root key(s) in YAML configuration %s:\n", len(invalidKeys), filePath))
+	for i, key := range invalidKeys {
+		errorMsg.WriteString(fmt.Sprintf("   %d. '%s' - This is not a recognized root key\n", i+1, key))
+	}
+
+	return errorMsg.String()
 }
 
 // processI18nData processes raw i18n data and converts it to our type-safe I18nConfig
@@ -409,38 +449,6 @@ func IsValidLocaleCode(code string) bool {
 	}
 
 	return false
-}
-
-// flattenI18nMap recursively flattens nested i18n structures with interface{} keys
-// Example: {"feedback": {"title": "Dashboard"}} becomes {"feedback.title": "Dashboard"}
-func flattenI18nMap(data map[interface{}]interface{}, prefix string, result map[string]string) {
-	for key, value := range data {
-		keyStr, ok := key.(string)
-		if !ok {
-			continue
-		}
-
-		currentKey := keyStr
-		if prefix != "" {
-			currentKey = prefix + "." + keyStr
-		}
-
-		switch v := value.(type) {
-		case string:
-			// Direct string value
-			result[currentKey] = v
-		case map[interface{}]interface{}:
-			// Nested map - recurse
-			flattenI18nMap(v, currentKey, result)
-		case map[string]interface{}:
-			// Convert and recurse
-			converted := make(map[interface{}]interface{})
-			for k, val := range v {
-				converted[k] = val
-			}
-			flattenI18nMap(converted, currentKey, result)
-		}
-	}
 }
 
 // flattenI18nMapStringKeys recursively flattens nested i18n structures with string keys

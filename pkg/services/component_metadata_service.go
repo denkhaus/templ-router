@@ -56,12 +56,25 @@ func (cms *componentMetadataService) LoadComponentMetadata(componentName string)
 		zap.String("component", componentName),
 		zap.String("yaml_path", componentYAMLPath))
 
-	// Parse YAML metadata
+	// Parse YAML metadata with graceful fallback for runtime
 	_, config, err := shared.ParseYAMLMetadata(componentYAMLPath)
 	if err != nil {
-		cms.logger.Debug("Failed to parse component metadata",
+		// Check if this is a validation error vs file not found error
+		if isYAMLValidationError(err) {
+			cms.logger.Error("YAML validation failed for component metadata",
+				zap.String("component", componentName),
+				zap.String("yaml_path", componentYAMLPath),
+				zap.String("error_type", "validation_error"),
+				zap.Error(err))
+			// For runtime, continue without metadata rather than failing completely
+			return nil, fmt.Errorf("component '%s' has invalid YAML configuration: %w", componentName, err)
+		}
+
+		// For file not found or other errors, log at debug level (this is expected)
+		cms.logger.Debug("Component metadata file not found or unreadable",
 			zap.String("component", componentName),
 			zap.String("yaml_path", componentYAMLPath),
+			zap.String("error_type", "file_error"),
 			zap.Error(err))
 		return nil, fmt.Errorf("failed to load metadata for component '%s': %w", componentName, err)
 	}
@@ -222,7 +235,6 @@ func (cms *componentMetadataService) buildComponentYAMLPath(componentName string
 	return ""
 }
 
-
 func (cms *componentMetadataService) buildTranslationCacheKey(componentName, locale string) string {
 	return fmt.Sprintf("%s:%s", componentName, locale)
 }
@@ -249,4 +261,48 @@ func (cms *componentMetadataService) cacheTranslations(componentName, locale str
 func (cms *componentMetadataService) getFallbackLocale() string {
 	// Get fallback locale from config
 	return cms.configService.GetFallbackLocale()
+}
+
+// ValidateAllComponentYAML performs startup validation of all component YAML files
+// This should be called during application bootstrap to fail fast on invalid YAML
+func (cms *componentMetadataService) ValidateAllComponentYAML() error {
+	// Get all component templates from registry
+	allMetadata := cms.templateRegistry.GetAllTemplateMetadata()
+
+	var validationErrors []string
+
+	// Validate each component that has a YAML file
+	for _, metadata := range allMetadata {
+		if metadata.Type == interfaces.TemplateTypeComponent && metadata.YAMLExists {
+			componentYAMLPath := cms.buildComponentYAMLPath(metadata.ComponentName)
+
+			// Validate the YAML file with fail-fast enabled
+			if err := shared.ValidateYAMLStartup(componentYAMLPath); err != nil {
+				validationErrors = append(validationErrors,
+					fmt.Sprintf("Component '%s': %v", metadata.ComponentName, err))
+			}
+		}
+	}
+
+	if len(validationErrors) > 0 {
+		return fmt.Errorf("YAML validation errors found in %d component(s):\n%s",
+			len(validationErrors), strings.Join(validationErrors, "\n"))
+	}
+
+	cms.logger.Info("All component YAML files validated successfully",
+		zap.Int("total_components", len(allMetadata)))
+
+	return nil
+}
+
+// isYAMLValidationError checks if an error is related to YAML validation
+func isYAMLValidationError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	errorStr := err.Error()
+	return strings.Contains(errorStr, "invalid YAML structure") ||
+		strings.Contains(errorStr, "unknown root key") ||
+		strings.Contains(errorStr, "Found") && strings.Contains(errorStr, "invalid root key")
 }

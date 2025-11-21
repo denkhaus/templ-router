@@ -221,13 +221,13 @@ func (tm *templateMiddleware) buildCorrectYAMLPath(registryYAMLPath string) stri
 	// actual file location = "demo/app/components/footer.templ.yaml"
 	// We need to replace "app/" with the full layoutRoot path
 	layoutRoot := tm.configService.GetLayoutRootDirectory()
-	
+
 	// If registry path starts with "app/", replace it with the full layout root
 	if strings.HasPrefix(registryYAMLPath, "app/") {
 		// Replace "app/" with "demo/app/" (or whatever layoutRoot is)
 		return strings.Replace(registryYAMLPath, "app/", layoutRoot+"/", 1)
 	}
-	
+
 	// Fallback: prepend layout root if no "app/" prefix
 	return layoutRoot + "/" + registryYAMLPath
 }
@@ -242,7 +242,7 @@ func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Contex
 	currentConfig := tm.loadCurrentTemplateMetadata(currentMetadata)
 
 	// Step 3: Load embedded components metadata (highest priority)
-	componentsConfigs := tm.loadEmbeddedComponentsMetadata(currentMetadata)
+	componentsConfigs := tm.loadEmbeddedComponentsMetadata()
 
 	// Step 4: Merge hierarchically: Layout + Current + Components
 	mergedConfig := tm.mergeConfigsHierarchically(layoutConfig, currentConfig, componentsConfigs)
@@ -326,22 +326,23 @@ func (tm *templateMiddleware) loadCurrentTemplateMetadata(metadata *interfaces.T
 }
 
 // loadEmbeddedComponentsMetadata finds and loads all embedded components metadata
-func (tm *templateMiddleware) loadEmbeddedComponentsMetadata(currentMetadata *interfaces.TemplateMetadata) map[string]*shared.ConfigFile {
+func (tm *templateMiddleware) loadEmbeddedComponentsMetadata() map[string]*shared.ConfigFile {
 	components := make(map[string]*shared.ConfigFile)
 
 	// For now, load all available components as a simple approach
 	// In a more sophisticated implementation, we could analyze template files
 	// to find exactly which components are used
 	routeMapping := tm.templateRegistry.GetRouteToTemplateMapping()
-	for routePath, templateKey := range routeMapping {
-		// Only process component routes
-		if !strings.Contains(routePath, "/components/") {
-			continue
-		}
+	for _, templateKey := range routeMapping {
 
 		// Get component metadata
 		componentMetadata, err := tm.templateRegistry.GetTemplateMetadata(templateKey)
 		if err != nil {
+			continue
+		}
+
+		// Only process component routes
+		if componentMetadata.Type != interfaces.TemplateTypeComponent {
 			continue
 		}
 
