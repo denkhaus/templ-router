@@ -5,6 +5,7 @@ import (
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 )
 
 // ApplicationOption defines an option for configuring application services
@@ -43,6 +44,12 @@ func WithCustomMiddleware(middlewareName string, middlewareFunc func(http.Handle
 		// Calculate next order (append to end)
 		nextOrder := len(middlewareDefs)
 
+		// Log middleware registration
+		logger := do.MustInvoke[*zap.Logger](c.injector)
+		logger.Info("Registering custom middleware",
+			zap.String("name", middlewareName),
+			zap.Int("order", nextOrder))
+
 		// Add new middleware with definition order
 		middlewareDefs = append(middlewareDefs, interfaces.CustomMiddlewareDefinition{
 			Name:  middlewareName,
@@ -52,6 +59,9 @@ func WithCustomMiddleware(middlewareName string, middlewareFunc func(http.Handle
 
 		// Override the middleware definitions slice
 		do.OverrideValue(c.injector, middlewareDefs)
+
+		logger.Info("Custom middleware registered successfully",
+			zap.Int("total_middleware", len(middlewareDefs)))
 	}
 }
 
