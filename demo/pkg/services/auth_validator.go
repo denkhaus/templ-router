@@ -31,11 +31,17 @@ func NewDemoAuthValidator(i do.Injector) (sharedInterfaces.AuthValidator, error)
 }
 
 // IsAuthenticated checks if the current request is from an authenticated user
-func (av *demoAuthValidator) IsAuthenticated(req *http.Request) bool {
+func (av *demoAuthValidator) IsAuthenticated(req *http.Request) (bool, error) {
 	// Get session from request
 	session, err := av.sessionStore.GetSession(req)
-	if err != nil || !session.Valid {
-		return false
+	if err != nil {
+		av.logger.Warn("Failed to get session from request",
+			zap.Error(err))
+		return false, err
+	}
+
+	if !session.Valid {
+		return false, nil
 	}
 
 	// Verify user exists
@@ -45,10 +51,10 @@ func (av *demoAuthValidator) IsAuthenticated(req *http.Request) bool {
 			zap.String("session_id", session.ID),
 			zap.String("user_id", session.UserID),
 			zap.Error(err))
-		return false
+		return false, err
 	}
 
-	return true
+	return true, nil
 }
 
 // GetCurrentUser returns the authenticated user for the current request
