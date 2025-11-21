@@ -165,7 +165,6 @@ func TestConfigFile_I18nMappings(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := shared.ConfigFile{
-				FilePath: "/app/config.yaml",
 				I18n: &shared.I18nConfig{
 					FlatMappings: tt.mappings,
 				},
@@ -220,7 +219,6 @@ func TestConfigFile_MultiLocaleI18n(t *testing.T) {
 	}
 
 	config := shared.ConfigFile{
-		FilePath: "/app/config.yaml",
 		I18n: &shared.I18nConfig{
 			Translations: multiLocale,
 		},
@@ -290,8 +288,7 @@ func TestDynamicSettings_Validation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := shared.ConfigFile{
-				FilePath: "/app/config.yaml",
-				Dynamic:  tt.settings,
+				Dynamic: tt.settings,
 			}
 
 			// All dynamic settings configurations should be valid

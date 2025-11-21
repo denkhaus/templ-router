@@ -10,7 +10,7 @@ import (
 	"github.com/denkhaus/templ-router/demo/assets"
 	"github.com/denkhaus/templ-router/demo/generated/templates"
 	"github.com/denkhaus/templ-router/demo/pkg/dataservices"
-	"github.com/denkhaus/templ-router/demo/pkg/services"
+	demoservices "github.com/denkhaus/templ-router/demo/pkg/services"
 	"github.com/denkhaus/templ-router/pkg/di"
 	"github.com/denkhaus/templ-router/pkg/interfaces"
 	"github.com/denkhaus/templ-router/pkg/shared"
@@ -111,18 +111,18 @@ func startupStreamlined(ctx context.Context) error {
 		// This replaces the old AuthService with the new AuthValidator interface
 		// The router middleware will use this to check authentication
 		di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
-			return services.NewDemoAuthValidator(i)
+			return demoservices.NewDemoAuthValidator(i)
 		}),
 
 	)
 
 	// 5. Register Demo Authentication Services as client-side dependencies
 	// These are now handled by the client application, not the router framework
-	do.Provide(injector, services.NewDefaultUserStore)
-	do.Provide(injector, services.NewDemoSessionStore)
-	
+	do.Provide(injector, demoservices.NewDefaultUserStore)
+	do.Provide(injector, demoservices.NewDemoSessionStore)
+
 	// Create auth handlers and register routes manually (client-side)
-	authHandlers, err := services.NewDemoAuthHandlers(injector)
+	authHandlers, err := demoservices.NewDemoAuthHandlers(injector)
 	if err != nil {
 		return shared.NewServiceError("Failed to create auth handlers").
 			WithCause(err).
@@ -166,8 +166,8 @@ func startupStreamlined(ctx context.Context) error {
 		case "PATCH":
 			mux.Patch(path, handler)
 		default:
-			logger.Warn("Unsupported HTTP method for auth route", 
-				zap.String("method", method), 
+			logger.Warn("Unsupported HTTP method for auth route",
+				zap.String("method", method),
 				zap.String("path", path))
 		}
 	})

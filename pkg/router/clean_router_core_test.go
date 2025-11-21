@@ -184,8 +184,8 @@ func (m *mockConfigLoader) LoadRouteConfig(templatePath string) (*shared.ConfigF
 
 type mockAuthValidator struct{}
 
-func (m *mockAuthValidator) IsAuthenticated(req *http.Request) bool {
-	return true
+func (m *mockAuthValidator) IsAuthenticated(req *http.Request) (bool, error) {
+	return true, nil
 }
 
 func (m *mockAuthValidator) GetCurrentUser(req *http.Request) (interfaces.UserEntity, error) {

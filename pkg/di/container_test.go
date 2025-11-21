@@ -2,10 +2,8 @@ package di
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"sync"
 	"testing"
 
 	"github.com/a-h/templ"
@@ -369,39 +367,4 @@ func TestCustomMiddlewareEmpty(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, middlewareDefs, 1, "Should have exactly 1 custom middleware")
 	assert.Equal(t, "test", middlewareDefs[0].Name, "Middleware name should match")
-}
-
-// MockSessionStore for testing
-type mockSessionStore struct {
-	sessions map[string]*interfaces.Session
-	mutex    sync.RWMutex
-}
-
-func (m *mockSessionStore) GetSession(req *http.Request) (*interfaces.Session, error) {
-	// Simple mock implementation - just return nil for now
-	return nil, fmt.Errorf("mock session store - no session found")
-}
-
-func (m *mockSessionStore) CreateSession(userID string) (*interfaces.Session, error) {
-	session := &interfaces.Session{
-		ID:     "mock-session-id",
-		UserID: userID,
-		Valid:  true,
-	}
-
-	m.mutex.Lock()
-	if m.sessions == nil {
-		m.sessions = make(map[string]*interfaces.Session)
-	}
-	m.sessions[session.ID] = session
-	m.mutex.Unlock()
-
-	return session, nil
-}
-
-func (m *mockSessionStore) DeleteSession(sessionID string) error {
-	m.mutex.Lock()
-	delete(m.sessions, sessionID)
-	m.mutex.Unlock()
-	return nil
 }
