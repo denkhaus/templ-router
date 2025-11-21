@@ -34,7 +34,6 @@ func NewAuthMiddleware(i do.Injector) (interfaces.AuthMiddlewareInterface, error
 	}, nil
 }
 
-
 // Handle processes authentication for a request
 func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -45,7 +44,16 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 		}
 
 		// Check if user is authenticated
-		if !am.authValidator.IsAuthenticated(r) {
+		authenticated, err := am.authValidator.IsAuthenticated(r)
+		if err != nil {
+			am.logger.Error("Failed to get authentication status",
+				zap.String("path", r.URL.Path),
+				zap.Error(err))
+			am.handleAuthFailure(w, r, requirements)
+			return
+		}
+
+		if !authenticated {
 			am.handleAuthFailure(w, r, requirements)
 			return
 		}
