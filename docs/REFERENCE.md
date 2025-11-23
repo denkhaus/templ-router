@@ -8,22 +8,26 @@
 package main
 
 import (
+    "context"
     "github.com/denkhaus/templ-router/pkg/di"
-    "github.com/go-chi/chi/v5"
     "github.com/youruser/yourproject/generated/templates"
 )
 
 func main() {
     container := di.NewContainer()
-    container.RegisterRouterServices("TR")  // Configurable prefix
+    container.RegisterRouterServices(context.Background(), "TR")  // Configurable prefix
 
-    templateRegistry, _ := templates.NewRegistry(container.GetInjector())
-    container.RegisterApplicationServices(di.WithTemplateRegistry(templateRegistry))
+    // Register template registry using factory pattern
+    container.RegisterApplicationServices(
+        di.WithTemplateRegistryFactory(templates.NewRegistry),
+    )
 
-    mux := chi.NewRouter()
-    router := container.GetRouter()
-    router.Initialize()
-    router.RegisterRoutes(mux)
+    // Use router bootstraper for streamlined setup
+    bootstraper := container.GetRouterBootstraper()
+    mux, err := bootstraper.Bootstrap()
+    if err != nil {
+        panic(err)
+    }
 
     http.ListenAndServe(":8080", mux)
 }
@@ -66,10 +70,15 @@ container.RegisterRouterServices("MYAPP")  // Uses MYAPP_* variables
 
 ```go
 container := di.NewContainer()
-container.RegisterRouterServices("TR")
-container.RegisterApplicationServices(di.WithTemplateRegistry(registry))
+container.RegisterRouterServices(context.Background(), "TR")
+container.RegisterApplicationServices(
+    di.WithTemplateRegistryFactory(func(injector interface{}) (interface{}, error) {
+        return registry, nil
+    }),
+)
 
 router := container.GetRouter()
+bootstraper := container.GetRouterBootstraper()
 injector := container.GetInjector()
 ```
 
@@ -159,7 +168,7 @@ i18n:
 
 ### Route Generation
 
-```
+```ini
 app/
 ├── page.templ                → /
 ├── about.templ               → /about

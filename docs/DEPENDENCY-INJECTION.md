@@ -7,6 +7,7 @@
 Templ Router uses [samber/do/v2](https://github.com/samber/do) for dependency injection, providing a clean, type-safe, and flexible way to manage services and their dependencies. The DI system separates router services from application services, allowing for clear separation of concerns and easy testing.
 
 **Key Features:**
+
 - Two-tier DI system (Router Services + Application Services)
 - Type-safe service resolution
 - Named service registration for data services
@@ -27,6 +28,7 @@ container.RegisterRouterServices("MYAPP")  // Environment variables will use MYA
 ```
 
 **Examples:**
+
 - Default: `TR_SERVER_HOST=localhost`
 - Custom: `MYAPP_SERVER_HOST=localhost`
 
@@ -51,15 +53,10 @@ func main() {
     // Register router services with prefix
     container.RegisterRouterServices("TR")
 
-    // Create template registry
-    templateRegistry, _ := templates.NewRegistry(container.GetInjector())
-
-    // Register application services
+    // Register application services with template registry factory
     container.RegisterApplicationServices(
-        di.WithTemplateRegistry(templateRegistry),
-        di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
-            return services.NewAuthValidator(i)
-        }),
+        di.WithTemplateRegistryFactory(templates.NewRegistry),
+        di.WithAuthValidatorFactory(services.NewAuthValidator),
     )
 
     // Register data services (named)
@@ -123,7 +120,9 @@ Configure using the options pattern:
 
 ```go
 container.RegisterApplicationServices(
-    di.WithTemplateRegistry(templateRegistry),
+    di.WithTemplateRegistryFactory(func(injector interface{}) (interface{}, error) {
+        return templateRegistry, nil
+    }),
     di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
         return services.NewAuthValidator(i)
     }),
@@ -262,6 +261,7 @@ func createTestContainer() *di.Container {
 ### Common Issues
 
 **Service Not Found:**
+
 ```go
 // Ensure service is registered before resolving
 do.Provide(injector, NewMyService)
@@ -269,6 +269,7 @@ service := do.MustInvoke[*MyService](injector)
 ```
 
 **Circular Dependency:**
+
 ```go
 // Use interfaces to break cycles
 type ServiceA struct {
@@ -277,6 +278,7 @@ type ServiceA struct {
 ```
 
 **Type Mismatch:**
+
 ```go
 // Types must match exactly
 do.Provide(injector, func() *MyService { return &MyService{} })

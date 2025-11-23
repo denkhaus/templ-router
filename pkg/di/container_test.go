@@ -46,7 +46,9 @@ func TestRegisterRouterServices(t *testing.T) {
 	// Register required dependencies
 	mockRegistry := &mockTemplateRegistry{}
 	container.RegisterApplicationServices(
-		WithTemplateRegistry(mockRegistry),
+		WithTemplateRegistryFactory(func(i do.Injector) (interfaces.TemplateRegistry, error) {
+			return mockRegistry, nil
+		}),
 		WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
 			return &mockAssetsService{}, nil
 		}),
@@ -70,7 +72,9 @@ func TestGetLogger(t *testing.T) {
 	// Register required dependencies
 	mockRegistry := &mockTemplateRegistry{}
 	container.RegisterApplicationServices(
-		WithTemplateRegistry(mockRegistry),
+		WithTemplateRegistryFactory(func(i do.Injector) (interfaces.TemplateRegistry, error) {
+			return mockRegistry, nil
+		}),
 		WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
 			return &mockAssetsService{}, nil
 		}),
@@ -94,7 +98,9 @@ func TestGetRouter(t *testing.T) {
 	// Register required dependencies
 	mockRegistry := &mockTemplateRegistry{}
 	container.RegisterApplicationServices(
-		WithTemplateRegistry(mockRegistry),
+		WithTemplateRegistryFactory(func(i do.Injector) (interfaces.TemplateRegistry, error) {
+			return mockRegistry, nil
+		}),
 		WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
 			return &mockAssetsService{}, nil
 		}),
@@ -113,7 +119,9 @@ func TestShutdown(t *testing.T) {
 	// Register minimal dependencies for shutdown test
 	mockRegistry := &mockTemplateRegistry{}
 	container.RegisterApplicationServices(
-		WithTemplateRegistry(mockRegistry),
+		WithTemplateRegistryFactory(func(i do.Injector) (interfaces.TemplateRegistry, error) {
+			return mockRegistry, nil
+		}),
 		WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
 			return &mockAssetsService{}, nil
 		}),
@@ -136,7 +144,9 @@ func TestRegisterApplicationServices(t *testing.T) {
 
 	// Register with options
 	container.RegisterApplicationServices(
-		WithTemplateRegistry(mockRegistry),
+		WithTemplateRegistryFactory(func(i do.Injector) (interfaces.TemplateRegistry, error) {
+			return mockRegistry, nil
+		}),
 	)
 
 	// Verify services are registered

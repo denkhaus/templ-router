@@ -75,22 +75,30 @@ trgen --scan-path=app --module-name=github.com/youruser/yourproject
 package main
 
 import (
+    "context"
     "github.com/denkhaus/templ-router/pkg/di"
-    "github.com/go-chi/chi/v5"
     "github.com/youruser/yourproject/generated/templates"
 )
 
 func main() {
     container := di.NewContainer()
-    container.RegisterRouterServices("TR")  // Environment variable prefix
 
-    templateRegistry, _ := templates.NewRegistry(container.GetInjector())
-    container.RegisterApplicationServices(di.WithTemplateRegistry(templateRegistry))
+    // Register router services with environment variable prefix
+    container.RegisterRouterServices(context.Background(), "TR")
 
-    mux := chi.NewRouter()
-    router := container.GetRouter()
-    router.Initialize()
-    router.RegisterRoutes(mux)
+    // Register template registry using factory pattern
+    container.RegisterApplicationServices(
+        di.WithTemplateRegistryFactory(func(injector interface{}) (interface{}, error) {
+            return templates.NewRegistry(injector)
+        }),
+    )
+
+    // Use router bootstraper for streamlined setup
+    bootstrap := container.GetRouterBootstraper()
+    mux, err := bootstrap.Bootstrap()
+    if err != nil {
+        panic(err)
+    }
 
     http.ListenAndServe(":8080", mux)
 }

@@ -8,3 +8,4 @@ tmp
 test-service
 demo/generated/templates/registry.go
 prompts
+*.test

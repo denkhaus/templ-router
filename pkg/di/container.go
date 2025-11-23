@@ -90,8 +90,8 @@ func (c *Container) RegisterRouterServices(ctx context.Context, configPraefix st
 	// Register clean router (refactored with separation of concerns)
 	do.Provide(c.injector, router.NewRouterCore)
 
-	// Register router bootstrap for streamlined setup
-	do.Provide(c.injector, router.NewRouterBootstrap)
+	// Register router bootstraper for streamlined setup
+	do.Provide(c.injector, router.NewRouterBootstraper)
 
 	return c.injector
 }
@@ -102,8 +102,8 @@ func (c *Container) GetRouter() interfaces.RouterCore {
 }
 
 // GetRouterBootstrap returns the router bootstrap service from the container
-func (c *Container) GetRouterBootstrap() *router.RouterBootstrap {
-	return do.MustInvoke[*router.RouterBootstrap](c.injector)
+func (c *Container) GetRouterBootstraper() interfaces.RouterBootstraper {
+	return do.MustInvoke[interfaces.RouterBootstraper](c.injector)
 }
 
 // GetLogger returns the logger from the container

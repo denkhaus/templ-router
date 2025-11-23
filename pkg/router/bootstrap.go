@@ -12,8 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
-// RouterBootstrap provides a streamlined way to bootstrap a router with all middleware and routes
-type RouterBootstrap struct {
+// routerBootstrap provides a streamlined way to bootstrap a router with all middleware and routes
+type routerBootstrap struct {
 	injector                 do.Injector
 	config                   interfaces.ConfigService
 	logger                   *zap.Logger
@@ -24,7 +24,6 @@ type RouterBootstrap struct {
 
 // BootstrapConfig holds configuration for router bootstrap
 type BootstrapConfig struct {
-
 	// Route configuration (auth routes controlled by env vars: TR_ROUTER_ENABLE_AUTH_ROUTES, TR_ROUTER_AUTH_ROUTE_PREFIX)
 	enableHealthCheck bool
 	healthCheckPath   string
@@ -34,8 +33,8 @@ type BootstrapConfig struct {
 	errorHandlers map[string]interface{}
 }
 
-// NewRouterBootstrap creates a new router bootstrap service
-func NewRouterBootstrap(injector do.Injector) (*RouterBootstrap, error) {
+// NewRouterBootstraper creates a new router bootstrap service
+func NewRouterBootstraper(injector do.Injector) (interfaces.RouterBootstraper, error) {
 	config := do.MustInvoke[interfaces.ConfigService](injector)
 	logger := do.MustInvoke[*zap.Logger](injector)
 	routerCore := do.MustInvoke[interfaces.RouterCore](injector)
@@ -47,7 +46,7 @@ func NewRouterBootstrap(injector do.Injector) (*RouterBootstrap, error) {
 		healthCheckPath:   "/api/health",
 	}
 
-	return &RouterBootstrap{
+	return &routerBootstrap{
 		injector:                 injector,
 		config:                   config,
 		logger:                   logger,
@@ -58,7 +57,7 @@ func NewRouterBootstrap(injector do.Injector) (*RouterBootstrap, error) {
 }
 
 // Bootstrap initializes and configures the router with all middleware and routes
-func (rb *RouterBootstrap) Bootstrap() (*chi.Mux, error) {
+func (rb *routerBootstrap) Bootstrap() (*chi.Mux, error) {
 	// Initialize router core first
 	if err := rb.routerCore.Initialize(); err != nil {
 		return nil, fmt.Errorf("failed to initialize router core: %w", err)
@@ -97,8 +96,6 @@ func (rb *RouterBootstrap) Bootstrap() (*chi.Mux, error) {
 		return nil, fmt.Errorf("failed to register routes: %w", err)
 	}
 
-	// Auth routes are now registered by client applications
-
 	// Configure error handlers
 	rb.configureErrorHandlers(mux)
 
@@ -106,22 +103,17 @@ func (rb *RouterBootstrap) Bootstrap() (*chi.Mux, error) {
 }
 
 // configureMiddleware configures all middleware in the correct order
-func (rb *RouterBootstrap) configureMiddleware(mux *chi.Mux) error {
+func (rb *routerBootstrap) configureMiddleware(mux *chi.Mux) error {
 	// Always configure router middleware (controlled by env vars: TR_ROUTER_ENABLE_*)
 	if err := rb.setupRouterMiddleware(mux); err != nil {
 		return fmt.Errorf("failed to setup router middleware: %w", err)
 	}
 
-	// Auth middleware is now handled by the new hook-based AuthValidator interface
-
-	// Note: i18n and template middleware are handled internally by the router core
-	// based on environment variables: TR_I18N_ENABLE_*, TR_TEMPLATE_ENABLE_*
-
 	return nil
 }
 
 // setupRouterMiddleware sets up router-level middleware
-func (rb *RouterBootstrap) setupRouterMiddleware(mux *chi.Mux) error {
+func (rb *routerBootstrap) setupRouterMiddleware(mux *chi.Mux) error {
 	// Get the middleware setup interface
 	middlewareSetup := rb.routerCore.GetMiddlewareSetup()
 
@@ -154,10 +146,8 @@ func (rb *RouterBootstrap) setupRouterMiddleware(mux *chi.Mux) error {
 	return nil
 }
 
-// Auth middleware is now handled by the new hook-based AuthValidator interface
-
 // registerCustomRoutes registers all custom routes
-func (rb *RouterBootstrap) registerCustomRoutes(mux *chi.Mux) error {
+func (rb *routerBootstrap) registerCustomRoutes(mux *chi.Mux) error {
 	// Try to load custom routes from DI container
 	customRoutes, err := do.Invoke[[]interfaces.CustomRouteDefinition](rb.injector)
 	if err != nil {
@@ -206,7 +196,7 @@ func (rb *RouterBootstrap) registerCustomRoutes(mux *chi.Mux) error {
 }
 
 // registerHealthCheck registers the health check endpoint
-func (rb *RouterBootstrap) registerHealthCheck(mux *chi.Mux) {
+func (rb *routerBootstrap) registerHealthCheck(mux *chi.Mux) {
 	mux.HandleFunc(rb.options.healthCheckPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.Write([]byte(`{
@@ -217,7 +207,7 @@ func (rb *RouterBootstrap) registerHealthCheck(mux *chi.Mux) {
 }
 
 // applyCustomMiddleware loads and applies custom middleware from DI container in definition order
-func (rb *RouterBootstrap) applyCustomMiddleware(mux *chi.Mux) error {
+func (rb *routerBootstrap) applyCustomMiddleware(mux *chi.Mux) error {
 	// Try to load custom middleware definitions from DI container
 	middlewareDefs, err := do.Invoke[[]interfaces.CustomMiddlewareDefinition](rb.injector)
 	if err != nil {
@@ -248,7 +238,7 @@ func (rb *RouterBootstrap) applyCustomMiddleware(mux *chi.Mux) error {
 }
 
 // configureErrorHandlers configures custom error handlers if provided
-func (rb *RouterBootstrap) configureErrorHandlers(mux *chi.Mux) {
+func (rb *routerBootstrap) configureErrorHandlers(mux *chi.Mux) {
 	if rb.options.errorHandlers != nil {
 		if notFoundHandler, ok := rb.options.errorHandlers["not_found"].(http.Handler); ok {
 			mux.NotFound(notFoundHandler.ServeHTTP)
@@ -260,13 +250,12 @@ func (rb *RouterBootstrap) configureErrorHandlers(mux *chi.Mux) {
 }
 
 // GetRouterCore returns the underlying router core for advanced usage
-func (rb *RouterBootstrap) GetRouterCore() interfaces.RouterCore {
+func (rb *routerBootstrap) GetRouterCore() interfaces.RouterCore {
 	return rb.routerCore
 }
 
 // validateYAMLConfiguration validates all YAML files during router bootstrap
-func (rb *RouterBootstrap) validateYAMLConfiguration() error {
-
+func (rb *routerBootstrap) validateYAMLConfiguration() error {
 	// Validate all component YAML files
 	if err := rb.componentMetadataService.ValidateAllComponentYAML(); err != nil {
 		rb.logger.Error("YAML validation failed during router bootstrap", zap.Error(err))
@@ -278,6 +267,6 @@ func (rb *RouterBootstrap) validateYAMLConfiguration() error {
 }
 
 // GetLogger returns the logger for debugging
-func (rb *RouterBootstrap) GetLogger() *zap.Logger {
+func (rb *routerBootstrap) GetLogger() *zap.Logger {
 	return rb.logger
 }

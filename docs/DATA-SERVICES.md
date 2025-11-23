@@ -235,7 +235,9 @@ func main() {
 
     // Register application services
     container.RegisterApplicationServices(
-        di.WithTemplateRegistry(templateRegistry),
+        di.WithTemplateRegistryFactory(func(injector interface{}) (interface{}, error) {
+            return templateRegistry, nil
+        }),
     )
 }
 ```

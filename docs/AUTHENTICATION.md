@@ -7,6 +7,7 @@
 Templ Router provides a **hook-based authentication system** where the router handles route protection and access control, while client applications implement their own authentication logic through interfaces. This approach ensures the library remains generic and works with any authentication system (OAuth, JWT, LDAP, custom session stores, etc.).
 
 **Key Features:**
+
 - Hook-based authentication via `AuthValidator` interface
 - Three authentication types: `Public`, `UserRequired`, `AdminRequired`
 - Route protection middleware that calls client-provided authentication hooks
@@ -18,12 +19,14 @@ Templ Router provides a **hook-based authentication system** where the router ha
 ## Hook-Based Authentication Architecture
 
 ### Router Responsibilities
+
 - **Route Protection**: Middleware that checks authentication based on template metadata
 - **Access Control**: Validates user roles against route requirements
 - **Failure Handling**: Redirects unauthenticated users to login routes
 - **Configuration**: Manages redirect URLs for authentication failures
 
 ### Client Application Responsibilities
+
 - **Authentication Logic**: Implement `AuthValidator` interface with your auth system
 - **Session Management**: Handle cookies, tokens, or other session mechanisms
 - **User Stores**: Implement user lookup and validation (database, LDAP, OAuth, etc.)
@@ -226,6 +229,7 @@ POST /api/auth/signin
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -257,6 +261,7 @@ GET /api/auth/me
 ```
 
 **Response:**
+
 ```json
 {
   "user": {
@@ -414,9 +419,7 @@ func main() {
     // Register your custom authentication components
     container.RegisterApplicationServices(
         // Your custom AuthValidator implementation - REQUIRED
-        di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
-            return NewMyAuthValidator(i) // Your implementation
-        }),
+        di.WithAuthValidatorFactory(NewMyAuthValidator),
     )
 
     // Register your client-side authentication services (optional, depends on your needs)
@@ -431,8 +434,8 @@ func main() {
     }
 
     // Bootstrap router - auth middleware automatically uses your AuthValidator
-    routerBootstrap := container.GetRouterBootstrap()
-    mux, err := routerBootstrap.Bootstrap()
+    routerBootstraper := container.GetRouterBootstraper()
+    mux, err := routerBootstraper.Bootstrap()
     if err != nil {
         panic(err)
     }
@@ -598,6 +601,7 @@ func TestAuthenticatedRoute(t *testing.T) {
 ### Common Issues
 
 **Authentication not working:**
+
 ```bash
 env | grep TR_AUTH
 # Verify middleware registration
@@ -605,6 +609,7 @@ env | grep TR_AUTH
 ```
 
 **Redirect loops:**
+
 ```bash
 # Ensure public pages don't require authentication
 # Check redirect_url configuration
@@ -612,12 +617,14 @@ env | grep TR_AUTH
 ```
 
 **Session issues:**
+
 ```bash
 # Check session cookie configuration
 # Verify session store setup
 ```
 
 **Permission denied:**
+
 ```bash
 # Check user roles
 # Verify role configuration
@@ -626,6 +633,7 @@ env | grep TR_AUTH
 ## Best Practices
 
 ### Security
+
 - Use HTTPS in production
 - Set appropriate session expiry
 - Implement rate limiting
@@ -633,12 +641,14 @@ env | grep TR_AUTH
 - Validate user input
 
 ### User Experience
+
 - Clear error messages
 - Password strength requirements
 - Account recovery functionality
 - Consider multi-factor authentication
 
 ### Performance
+
 - Session caching
 - Database optimization
 - Small session cookies

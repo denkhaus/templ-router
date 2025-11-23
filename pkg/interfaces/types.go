@@ -261,6 +261,12 @@ type HandlerBuilder interface {
 	BuildStaticHandler(path string) http.Handler
 	BuildErrorHandler(statusCode int, message string) http.HandlerFunc
 }
+type RouterBootstraper interface {
+	Bootstrap() (*chi.Mux, error)
+	GetRouterCore() RouterCore
+	GetLogger() *zap.Logger
+}
+
 type RouterCore interface {
 	Initialize() error
 	RegisterRoutes(chiRouter *chi.Mux) error
@@ -279,7 +285,7 @@ type ApplicationOption func(c Container)
 type Container interface {
 	GetInjector() do.Injector
 	GetRouter() RouterCore
-	GetRouterBootstrap() interface{}
+	GetRouterBootstraper() RouterBootstraper
 	GetLogger() *zap.Logger
 	GetConfigService() ConfigService
 	RegisterApplicationServices(options ...ApplicationOption)

@@ -48,7 +48,7 @@ mkdir -p generated/templates
 
 Your project should now look like this:
 
-```
+```ini
 your-project/
 ├── go.mod                      # Your module
 ├── main.go                     # Your application entry point
@@ -150,12 +150,6 @@ func main() {
     container := di.NewContainer()
     defer container.Shutdown()
 
-    // Create your template registry
-    templateRegistry, err := templates.NewRegistry(container.GetInjector())
-    if err != nil {
-        panic(err)
-    }
-
     // Register router services with custom middleware and templates
     container.RegisterRouterServicesWithOptions("TR", []di.RouterOption{
         // Add custom middleware if needed (executes before built-in middleware)
@@ -166,8 +160,8 @@ func main() {
             })
         }),
 
-        // Register your template registry
-        di.WithTemplateRegistry(templateRegistry),
+        // Register your template registry using factory pattern
+        di.WithTemplateRegistryFactory(templates.NewRegistry),
     })
 
     // Get clean router and initialize
@@ -258,7 +252,7 @@ type UserData struct {
     Email string
 }
 
-type UserDataService interface {    
+type UserDataService interface {
     GetUserData(routerCtx interfaces.RouterContext) (*UserData, error)
 }
 
@@ -380,12 +374,14 @@ trgen --scan-path=app --module-name=github.com/youruser/yourproject --watch
 ### Common Issues
 
 **Issue**: `trgen: command not found`
+
 ```bash
 # Install trgen manually
 go install github.com/denkhaus/templ-router/cmd/trgen@latest
 ```
 
 **Issue**: Template registry not found
+
 ```bash
 # Ensure you're running trgen from your project directory
 cd your-project  # where go.mod is located
@@ -393,6 +389,7 @@ trgen --scan-path=app --module-name=github.com/youruser/yourproject
 ```
 
 **Issue**: Routes not working after adding templates
+
 ```bash
 # Regenerate template registry after adding/removing templates
 trgen --scan-path=app --module-name=github.com/youruser/yourproject

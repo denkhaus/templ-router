@@ -11,10 +11,10 @@ import (
 // ApplicationOption defines an option for configuring application services
 type ApplicationOption func(c *Container)
 
-// WithTemplateRegistry sets the template registry
-func WithTemplateRegistry(registry interfaces.TemplateRegistry) ApplicationOption {
+// WithAssetsServiceFactory sets the assets service using a factory function
+func WithTemplateRegistryFactory(factory func(do.Injector) (interfaces.TemplateRegistry, error)) ApplicationOption {
 	return func(c *Container) {
-		do.OverrideValue(c.injector, registry)
+		do.Override(c.injector, factory)
 	}
 }
 

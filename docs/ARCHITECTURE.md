@@ -200,7 +200,11 @@ container := di.NewContainer()
 container.RegisterRouterServices("TR")
 
 // Register application services
-container.RegisterApplicationServices(di.WithTemplateRegistry(registry))
+container.RegisterApplicationServices(
+    di.WithTemplateRegistryFactory(func(injector interface{}) (interface{}, error) {
+        return registry, nil
+    }),
+)
 
 // Get router instance
 router := container.GetRouter()

@@ -18,9 +18,9 @@ import (
 	"go.uber.org/zap"
 )
 
-// main demonstrates the NEW streamlined bootstrap process
+// main demonstrates the bootstrap process
 func main() {
-	if err := startupStreamlined(context.Background()); err != nil {
+	if err := startup(context.Background()); err != nil {
 		// Handle startup errors gracefully with structured error handling
 		var appErr *shared.AppError
 		if errors.As(err, &appErr) {
@@ -40,7 +40,7 @@ func main() {
 	}
 }
 
-func startupStreamlined(ctx context.Context) error {
+func startup(ctx context.Context) error {
 	// 1. Create DI container - this is all the setup needed!
 	container := di.NewContainer()
 	defer container.Shutdown()
@@ -48,24 +48,14 @@ func startupStreamlined(ctx context.Context) error {
 	// 2. Register router services with configuration prefix
 	injector := container.RegisterRouterServices(ctx, "TR")
 
-	// 3. Create application services
-	templateRegistry, err := templates.NewRegistry(injector)
-	if err != nil {
-		return shared.NewServiceError("Failed to create template registry").
-			WithCause(err).
-			WithContext("component", "template_registry")
-	}
-
-	// 4. Register ALL application services using the streamlined options pattern
+	// 3. Register ALL application services using the streamlined options pattern
 	// This replaces ALL the complex setup from the old version!
 	container.RegisterApplicationServices(
-		di.WithTemplateRegistry(templateRegistry),
+		di.WithTemplateRegistryFactory(templates.NewRegistry),
 
 		// Assets Service Factory - demonstrates pluggable asset management
 		// This creates the assets service using the DI injector for dependencies
-		di.WithAssetsServiceFactory(func(i do.Injector) (interfaces.AssetsService, error) {
-			return assets.NewService(i)
-		}),
+		di.WithAssetsServiceFactory(assets.NewService),
 
 		di.WithHealthCheck(true, "/api/health"),
 
@@ -113,7 +103,6 @@ func startupStreamlined(ctx context.Context) error {
 		di.WithAuthValidatorFactory(func(i do.Injector) (interfaces.AuthValidator, error) {
 			return demoservices.NewDemoAuthValidator(i)
 		}),
-
 	)
 
 	// 5. Register Demo Authentication Services as client-side dependencies
@@ -129,7 +118,7 @@ func startupStreamlined(ctx context.Context) error {
 			WithContext("component", "auth_handlers")
 	}
 
-	// 6. Register DataServices as named dependencies (unchanged)
+	// 6. Register DataServices as named dependencies
 	do.ProvideNamed(injector, "UserDataService", dataservices.NewUserDataService)
 	do.ProvideNamed(injector, "ProductDataService", dataservices.NewProductDataService)
 	do.ProvideNamed(injector, "OrderDataService", dataservices.NewOrderDataService)
@@ -143,8 +132,8 @@ func startupStreamlined(ctx context.Context) error {
 
 	logger.Info("Starting application with streamlined bootstrap process")
 
-	routerBootstrap := container.GetRouterBootstrap()
-	mux, err := routerBootstrap.Bootstrap()
+	boot := container.GetRouterBootstraper()
+	mux, err := boot.Bootstrap()
 	if err != nil {
 		return shared.NewServiceError("Failed to bootstrap router").
 			WithCause(err).
@@ -173,7 +162,7 @@ func startupStreamlined(ctx context.Context) error {
 	})
 
 	// 9. Log route information
-	logRouteInformation(routerBootstrap.GetRouterCore(), logger)
+	logRouteInformation(boot.GetRouterCore(), logger)
 
 	// 10. Start server - everything is already configured!
 	logger.Info("Starting Streamlined Bootstrap Demo Server on 0.0.0.0:8084")

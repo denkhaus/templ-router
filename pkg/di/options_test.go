@@ -10,16 +10,18 @@ import (
 func TestWithTemplateRegistry(t *testing.T) {
 	container := NewContainer()
 	mockRegistry := &mockTemplateRegistry{}
-	
-	option := WithTemplateRegistry(mockRegistry)
-	
+
+	option := WithTemplateRegistryFactory(func(i do.Injector) (interfaces.TemplateRegistry, error) {
+		return mockRegistry, nil
+	})
+
 	// Apply option
 	option(container)
-	
+
 	// Verify registry is registered
 	retrievedRegistry := do.MustInvoke[interfaces.TemplateRegistry](container.injector)
 	if retrievedRegistry == nil {
-		t.Error("WithTemplateRegistry option did not register template registry correctly")
+		t.Error("WithTemplateRegistryFactory option did not register template registry correctly")
 	}
 }
 
@@ -46,7 +48,9 @@ func TestMultipleOptions(t *testing.T) {
 	
 	// Apply multiple options
 	container.RegisterApplicationServices(
-		WithTemplateRegistry(mockRegistry),
+		WithTemplateRegistryFactory(func(do.Injector) (interfaces.TemplateRegistry, error) {
+			return mockRegistry, nil
+		}),
 		WithAssetsServiceFactory(func(do.Injector) (interfaces.AssetsService, error) {
 			return &mockAssetsService{}, nil
 		}),
