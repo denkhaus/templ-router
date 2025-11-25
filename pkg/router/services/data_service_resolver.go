@@ -32,23 +32,50 @@ func (r *dataServiceResolver) ResolveDataService(interfaceType string) (any, err
 	dataServiceInfo := r.findDataServiceInfo(interfaceType)
 	if dataServiceInfo == nil {
 		return nil, shared.NewServiceError("data service not found").
-			WithDetails("No DataService registered for the specified interface type").
+			WithDetails("No DataService registered for the specified interface type in template registry").
 			WithContext("interface_type", interfaceType)
 	}
 
 	// Resolve the service from DI using the named dependency
 	service, err := r.resolveNamedDataService(dataServiceInfo.InterfaceType)
 	if err != nil {
-		return nil, err
+		// Add specific error context for DI resolution failure
+		return nil, shared.NewDependencyInjectionError("data service not registered in DI container").
+			WithDetails(fmt.Sprintf("Service '%s' found in template registry but not registered in DI container", dataServiceInfo.InterfaceType)).
+			WithCause(err).
+			WithContext("interface_type", dataServiceInfo.InterfaceType).
+			WithContext("service_name", dataServiceInfo.InterfaceType)
 	}
 
 	// Detect specific method - this must exist
 	specificMethodName := r.detectSpecificMethod(service)
 	if specificMethodName == "" {
-		return nil, shared.NewServiceError("data service does not implement a supported method").
-			WithDetails("Service must implement a specific Get<StructName>() method").
-			WithContext("interface_type", interfaceType).
-			WithContext("service_type", fmt.Sprintf("%T", service))
+		// Provide detailed information about what methods are expected
+		var expectedMethod string
+		if dataServiceInfo.MethodName != "" {
+			expectedMethod = dataServiceInfo.MethodName
+		} else {
+			// Derive expected method name from interface type
+			if strings.HasSuffix(dataServiceInfo.InterfaceType, "Service") {
+				serviceName := dataServiceInfo.InterfaceType[:len(dataServiceInfo.InterfaceType)-7] // Remove "Service"
+				expectedMethod = "Get" + serviceName
+			} else {
+				expectedMethod = "GetData" // Fallback
+			}
+		}
+
+		// Clean up parameter type (remove double pointers if present)
+	parameterType := dataServiceInfo.ParameterType
+		if strings.HasPrefix(parameterType, "**") {
+			parameterType = "*" + parameterType[2:] // Convert **Type to *Type
+		}
+
+		return nil, shared.NewDataServiceMethodError(dataServiceInfo.InterfaceType, expectedMethod).
+			WithDetails(fmt.Sprintf("Service must implement a method with signature: func(%s interfaces.RouterContext) (*%s, error)", expectedMethod, parameterType)).
+			WithContext("interface_type", dataServiceInfo.InterfaceType).
+			WithContext("service_type", fmt.Sprintf("%T", service)).
+			WithContext("expected_method", expectedMethod).
+			WithContext("parameter_type", parameterType)
 	}
 
 	// Return service wrapped for specific method calling

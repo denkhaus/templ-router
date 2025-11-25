@@ -33,8 +33,10 @@ var (
 	ErrParameterInvalid = errors.New("parameter is invalid")
 
 	// Data service errors
-	ErrDataServiceNotFound = errors.New("data service not found")
-	ErrDataServiceFailed   = errors.New("data service operation failed")
+	ErrDataServiceNotFound            = errors.New("data service not found")
+	ErrDataServiceFailed               = errors.New("data service operation failed")
+	ErrDataServiceMethodNotImplemented = errors.New("data service method not implemented")
+	ErrDataServiceNotRegistered        = errors.New("data service not registered in DI container")
 
 	// Authentication errors
 	ErrAuthenticationFailed = errors.New("authentication failed")
@@ -164,6 +166,16 @@ func NewRouteError(message string, details ...string) *AppError {
 // NewDependencyInjectionError creates a dependency injection error
 func NewDependencyInjectionError(message string, details ...string) *AppError {
 	err := NewAppError(ErrorTypeService, "DI_ERROR", message)
+	if len(details) > 0 {
+		err.WithDetails(details[0])
+	}
+	return err
+}
+
+// NewDataServiceMethodError creates an error for missing or invalid data service methods
+func NewDataServiceMethodError(serviceName, methodName string, details ...string) *AppError {
+	err := NewAppError(ErrorTypeService, "DATA_SERVICE_METHOD_ERROR",
+		fmt.Sprintf("data service '%s' does not implement required method '%s'", serviceName, methodName))
 	if len(details) > 0 {
 		err.WithDetails(details[0])
 	}

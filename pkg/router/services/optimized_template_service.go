@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"reflect"
@@ -346,12 +347,49 @@ func (ots *templateService) executeDataServiceTemplate(templateFunc interface{},
 	// Use specific method resolution
 	dataServiceWrapper, err := ots.dataResolver.ResolveDataService(dataServiceInfo.InterfaceType)
 	if err != nil {
-		return nil, shared.NewDependencyInjectionError("failed to resolve data service").
-			WithDetails("DataService not found or does not implement Get<StructName>() method").
-			WithCause(err).
-			WithContext("interface_type", dataServiceInfo.InterfaceType).
-			WithContext("route", routePath).
-			WithContext("template_uuid", templateUUID)
+		// Create a more specific error based on the type of error
+		var appErr *shared.AppError
+		if errors.As(err, &appErr) {
+			switch appErr.Code {
+			case "DATA_SERVICE_METHOD_ERROR":
+				// Service found but method implementation is wrong
+				return nil, shared.NewServiceError("data service method implementation error").
+					WithDetails("Service found but method signature is incorrect - service must implement Get<StructName>(interfaces.RouterContext) (*Struct, error)").
+					WithCause(err).
+					WithContext("interface_type", dataServiceInfo.InterfaceType).
+					WithContext("route", routePath).
+					WithContext("template_uuid", templateUUID).
+					WithContext("error_type", "method_not_implemented").
+					WithContext("service_name", dataServiceInfo.InterfaceType)
+			case "DI_ERROR":
+				// Service not found in DI container
+				return nil, shared.NewDependencyInjectionError("data service not registered in DI container").
+					WithDetails("Service found in template registry but not registered in dependency injection container - make sure to register service with: do.ProvideNamed(injector, \""+dataServiceInfo.InterfaceType+"\", New"+dataServiceInfo.InterfaceType+")").
+					WithCause(err).
+					WithContext("interface_type", dataServiceInfo.InterfaceType).
+					WithContext("route", routePath).
+					WithContext("template_uuid", templateUUID).
+					WithContext("error_type", "service_not_registered").
+					WithContext("service_name", dataServiceInfo.InterfaceType)
+			default:
+				// Generic error with better context
+				return nil, shared.NewDependencyInjectionError("failed to resolve data service").
+					WithDetails("Unable to resolve data service - check service registration and method implementation").
+					WithCause(err).
+					WithContext("interface_type", dataServiceInfo.InterfaceType).
+					WithContext("route", routePath).
+					WithContext("template_uuid", templateUUID).
+					WithContext("error_type", "generic_resolution_error")
+			}
+		} else {
+			// Fallback for non-AppError types
+			return nil, shared.NewDependencyInjectionError("failed to resolve data service").
+				WithDetails("Unexpected error type while resolving data service").
+				WithCause(err).
+				WithContext("interface_type", dataServiceInfo.InterfaceType).
+				WithContext("route", routePath).
+				WithContext("template_uuid", templateUUID)
+		}
 	}
 
 	ots.logger.Debug("Using specific Get<StructName>() method pattern",
