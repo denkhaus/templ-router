@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/shared"
 )
 
 // testUserEntity implements UserEntity for testing
@@ -14,8 +15,8 @@ type testUserEntity struct {
 	roles []string
 }
 
-func (u *testUserEntity) GetID() string    { return u.id }
-func (u *testUserEntity) GetEmail() string { return u.email }
+func (u *testUserEntity) GetID() string      { return u.id }
+func (u *testUserEntity) GetEmail() string   { return u.email }
 func (u *testUserEntity) GetRoles() []string { return u.roles }
 
 func TestGetCurrentUser(t *testing.T) {
@@ -31,7 +32,7 @@ func TestGetCurrentUser(t *testing.T) {
 		},
 		{
 			name: "User in context",
-			ctx: context.WithValue(context.Background(), UserContextKey, &testUserEntity{
+			ctx: context.WithValue(context.Background(), shared.UserContextKey, &testUserEntity{
 				id:    "user123",
 				email: "test@example.com",
 				roles: []string{"user"},
@@ -44,7 +45,7 @@ func TestGetCurrentUser(t *testing.T) {
 		},
 		{
 			name:     "Wrong type in context",
-			ctx:      context.WithValue(context.Background(), UserContextKey, "not-a-user"),
+			ctx:      context.WithValue(context.Background(), shared.UserContextKey, "not-a-user"),
 			expected: nil,
 		},
 	}
@@ -52,23 +53,23 @@ func TestGetCurrentUser(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := GetCurrentUser[*testUserEntity](tt.ctx)
-			
+
 			if tt.expected == nil {
 				if result != nil {
 					t.Errorf("getCurrentUser() = %v, want nil", result)
 				}
 				return
 			}
-			
+
 			if result == nil {
 				t.Errorf("getCurrentUser() = nil, want %v", tt.expected)
 				return
 			}
-			
+
 			if result.GetID() != tt.expected.GetID() {
 				t.Errorf("getCurrentUser().GetID() = %v, want %v", result.GetID(), tt.expected.GetID())
 			}
-			
+
 			if result.GetEmail() != tt.expected.GetEmail() {
 				t.Errorf("getCurrentUser().GetEmail() = %v, want %v", result.GetEmail(), tt.expected.GetEmail())
 			}
@@ -82,14 +83,14 @@ func TestSetUserInContext(t *testing.T) {
 		email: "test@example.com",
 		roles: []string{"user"},
 	}
-	
+
 	ctx := SetUserInContext(context.Background(), user)
 	result := GetCurrentUser[*testUserEntity](ctx)
-	
+
 	if result == nil {
 		t.Fatal("setUserInContext() did not set user in context")
 	}
-	
+
 	if result.GetID() != user.GetID() {
 		t.Errorf("setUserInContext() user ID = %v, want %v", result.GetID(), user.GetID())
 	}
@@ -108,7 +109,7 @@ func TestHasUser(t *testing.T) {
 		},
 		{
 			name: "User in context",
-			ctx: context.WithValue(context.Background(), UserContextKey, &testUserEntity{
+			ctx: context.WithValue(context.Background(), shared.UserContextKey, &testUserEntity{
 				id: "user123",
 			}),
 			expected: true,
@@ -138,7 +139,7 @@ func TestGetUserID(t *testing.T) {
 		},
 		{
 			name: "User in context",
-			ctx: context.WithValue(context.Background(), UserContextKey, &testUserEntity{
+			ctx: context.WithValue(context.Background(), shared.UserContextKey, &testUserEntity{
 				id: "user123",
 			}),
 			expected: "user123",
@@ -168,7 +169,7 @@ func TestGetUserEmail(t *testing.T) {
 		},
 		{
 			name: "User in context",
-			ctx: context.WithValue(context.Background(), UserContextKey, &testUserEntity{
+			ctx: context.WithValue(context.Background(), shared.UserContextKey, &testUserEntity{
 				email: "test@example.com",
 			}),
 			expected: "test@example.com",
@@ -198,7 +199,7 @@ func TestGetUserRoles(t *testing.T) {
 		},
 		{
 			name: "User in context",
-			ctx: context.WithValue(context.Background(), UserContextKey, &testUserEntity{
+			ctx: context.WithValue(context.Background(), shared.UserContextKey, &testUserEntity{
 				roles: []string{"user", "admin"},
 			}),
 			expected: []string{"user", "admin"},
@@ -208,19 +209,19 @@ func TestGetUserRoles(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := GetUserRoles[*testUserEntity](tt.ctx)
-			
+
 			if tt.expected == nil {
 				if result != nil {
 					t.Errorf("getUserRoles() = %v, want nil", result)
 				}
 				return
 			}
-			
+
 			if len(result) != len(tt.expected) {
 				t.Errorf("getUserRoles() length = %v, want %v", len(result), len(tt.expected))
 				return
 			}
-			
+
 			for i, role := range result {
 				if role != tt.expected[i] {
 					t.Errorf("getUserRoles()[%d] = %v, want %v", i, role, tt.expected[i])
@@ -245,7 +246,7 @@ func TestHasRole(t *testing.T) {
 		},
 		{
 			name: "User has role",
-			ctx: context.WithValue(context.Background(), UserContextKey, &testUserEntity{
+			ctx: context.WithValue(context.Background(), shared.UserContextKey, &testUserEntity{
 				roles: []string{"user", "admin"},
 			}),
 			role:     "admin",
@@ -253,7 +254,7 @@ func TestHasRole(t *testing.T) {
 		},
 		{
 			name: "User does not have role",
-			ctx: context.WithValue(context.Background(), UserContextKey, &testUserEntity{
+			ctx: context.WithValue(context.Background(), shared.UserContextKey, &testUserEntity{
 				roles: []string{"user"},
 			}),
 			role:     "admin",

@@ -298,14 +298,14 @@ func validateRootKeysWithContext(rawConfig map[string]interface{}, filePath stri
 	}
 
 	// Create detailed error message with examples and suggestions
-	errorMsg := createYAMLValidationError(invalidKeys, filePath, allowedKeys)
+	errorMsg := createYAMLValidationError(invalidKeys, filePath)
 
 	// For runtime scenario, return basic error
 	return fmt.Errorf("%s", errorMsg)
 }
 
 // createYAMLValidationError creates a detailed, actionable error message for YAML validation failures
-func createYAMLValidationError(invalidKeys []string, filePath string, allowedKeys map[string]bool) string {
+func createYAMLValidationError(invalidKeys []string, filePath string) string {
 	var errorMsg strings.Builder
 
 	errorMsg.WriteString(fmt.Sprintf("Found %d invalid root key(s) in YAML configuration %s:\n", len(invalidKeys), filePath))

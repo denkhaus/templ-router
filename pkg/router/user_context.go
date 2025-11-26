@@ -9,13 +9,12 @@ import (
 
 // User context keys - using shared package to avoid import cycles
 // Deprecated: Use shared.UserContextKey instead
-const UserContextKey = shared.UserContextKey
 
 // GetCurrentUser retrieves the current user from context
 // This is a generic utility function that works with any UserEntity implementation
 func GetCurrentUser[T interfaces.UserEntity](ctx context.Context) T {
 	var zero T
-	if user, ok := ctx.Value(UserContextKey).(T); ok {
+	if user, ok := ctx.Value(shared.UserContextKey).(T); ok {
 		return user
 	}
 	return zero
@@ -23,7 +22,7 @@ func GetCurrentUser[T interfaces.UserEntity](ctx context.Context) T {
 
 // HasUser checks if a user is present in the context
 func HasUser(ctx context.Context) bool {
-	return ctx.Value(UserContextKey) != nil
+	return ctx.Value(shared.UserContextKey) != nil
 }
 
 // GetUserID retrieves the current user's ID from context
@@ -67,8 +66,8 @@ func UserHasRole[T interfaces.UserEntity](ctx context.Context, role string) bool
 	return false
 }
 
-// SetUserInContext sets a user in the context (generic version for external use)
-// This allows external applications to store their own User types
+// SetUserInContext sets a user in the context
+// This is set in auth middleware
 func SetUserInContext[T interfaces.UserEntity](ctx context.Context, user T) context.Context {
-	return context.WithValue(ctx, UserContextKey, user)
+	return context.WithValue(ctx, shared.UserContextKey, user)
 }

@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+	"github.com/denkhaus/templ-router/pkg/router"
 	"github.com/denkhaus/templ-router/pkg/router/i18n"
 	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/samber/do/v2"
@@ -63,10 +64,14 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 		if err != nil {
 			am.logger.Error("Failed to get current user",
 				zap.String("path", r.URL.Path),
-				zap.Error(err))
+				zap.Error(err),
+			)
+
 			am.handleAuthFailure(w, r, requirements)
 			return
 		}
+
+		router.SetUserInContext(r.Context(), user)
 
 		// Check role-based permissions
 		if !am.authValidator.HasRole(user, requirements.Roles) {
