@@ -43,7 +43,7 @@ func (dets *dedicatedErrorTemplateServiceImpl) RenderErrorTemplate(errorTemplate
 
 	// Generate template key directly from error template path
 	templateKey := dets.generateErrorTemplateKey(errorTemplate)
-	
+
 	dets.logger.Debug("Looking up error template by key",
 		zap.String("template_key", templateKey))
 

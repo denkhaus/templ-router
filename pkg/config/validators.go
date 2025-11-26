@@ -113,19 +113,19 @@ func (rsv *RequiredStringValidator) ValidateRequiredString(value string) error {
 
 // ConditionalValidator validates a field conditionally
 type ConditionalValidator struct {
-	condition   bool
-	fieldName   string
+	condition  bool
+	fieldName  string
 	validators []Validator
-	errorMsg    string
+	errorMsg   string
 }
 
 // NewConditionalValidator creates a new conditional validator
 func NewConditionalValidator(condition bool, fieldName string, errorMsg string, validators ...Validator) *ConditionalValidator {
 	return &ConditionalValidator{
-		condition:   condition,
-		fieldName:   fieldName,
-		validators:  validators,
-		errorMsg:    errorMsg,
+		condition:  condition,
+		fieldName:  fieldName,
+		validators: validators,
+		errorMsg:   errorMsg,
 	}
 }
 
@@ -154,9 +154,9 @@ type Validator interface {
 
 // PasswordValidator validates password requirements
 type PasswordValidator struct {
-	fieldName        string
-	minLength        int
-	strongRequired   bool
+	fieldName      string
+	minLength      int
+	strongRequired bool
 }
 
 // NewPasswordValidator creates a new password validator

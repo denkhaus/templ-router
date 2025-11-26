@@ -81,7 +81,7 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 			} else {
 				// Set user in context if successfully retrieved
 
-				r.WithContext(router.SetUserInContext(r.Context(), user))
+				r = r.WithContext(router.SetUserInContext(r.Context(), user))
 			}
 		}
 

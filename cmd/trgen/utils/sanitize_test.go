@@ -2,6 +2,7 @@ package utils
 
 import (
 	"testing"
+
 	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
@@ -80,11 +81,11 @@ func TestSanitizePackageName(t *testing.T) {
 
 func TestCreatePackageAlias(t *testing.T) {
 	tests := []struct {
-		name       string
+		name        string
 		packageName string
-		importPath string
-		config     types.Config
-		expected   string
+		importPath  string
+		config      types.Config
+		expected    string
 	}{
 		{
 			name:        "Root package",
@@ -127,7 +128,7 @@ func TestCreatePackageAlias(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			actual := CreatePackageAlias(tt.packageName, tt.importPath, tt.config)
 			if actual != tt.expected {
-				t.Errorf("CreatePackageAlias(%q, %q, %v) = %q, want %q", 
+				t.Errorf("CreatePackageAlias(%q, %q, %v) = %q, want %q",
 					tt.packageName, tt.importPath, tt.config, actual, tt.expected)
 			}
 		})

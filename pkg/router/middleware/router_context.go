@@ -14,7 +14,7 @@ type routerContext struct {
 	ctx        context.Context
 	request    *http.Request
 	chiContext *chi.Context
-	
+
 	// Cached parameter maps for efficiency
 	urlParams   map[string]string
 	queryParams url.Values
@@ -23,12 +23,12 @@ type routerContext struct {
 // NewRouterContext creates a new RouterContext instance
 func NewRouterContext(ctx context.Context, req *http.Request) interfaces.RouterContext {
 	chiCtx := chi.RouteContext(ctx)
-	
+
 	return &routerContext{
-		ctx:        ctx,
-		request:    req,
-		chiContext: chiCtx,
-		urlParams:  extractURLParams(chiCtx),
+		ctx:         ctx,
+		request:     req,
+		chiContext:  chiCtx,
+		urlParams:   extractURLParams(chiCtx),
 		queryParams: req.URL.Query(),
 	}
 }
@@ -104,7 +104,7 @@ func extractURLParams(chiCtx *chi.Context) map[string]string {
 	if chiCtx == nil {
 		return make(map[string]string)
 	}
-	
+
 	params := make(map[string]string)
 	for i, key := range chiCtx.URLParams.Keys {
 		if i < len(chiCtx.URLParams.Values) {

@@ -36,7 +36,7 @@ func sanitizePackageName(name string) string {
 	// Replace hyphens and dots with empty string
 	name = strings.ReplaceAll(name, "-", "")
 	name = strings.ReplaceAll(name, ".", "")
-	
+
 	// Remove any other non-alphanumeric characters except underscores
 	var result strings.Builder
 	for _, r := range name {
@@ -44,19 +44,19 @@ func sanitizePackageName(name string) string {
 			result.WriteRune(r)
 		}
 	}
-	
+
 	sanitized := result.String()
-	
+
 	// Ensure it doesn't start with a number
 	if len(sanitized) > 0 && sanitized[0] >= '0' && sanitized[0] <= '9' {
 		sanitized = "pkg" + sanitized
 	}
-	
+
 	// Ensure it's not empty
 	if sanitized == "" {
 		sanitized = "pkg"
 	}
-	
+
 	return sanitized
 }
 
@@ -80,7 +80,7 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 				break
 			}
 		}
-		
+
 		if scanPathIndex == -1 {
 			// Keep original dir
 		} else if scanPathIndex == len(dirParts)-1 {
@@ -102,7 +102,7 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 					break
 				}
 			}
-			
+
 			if scanPathIndex == -1 {
 				// Keep original dir
 			} else if scanPathIndex == len(dirParts)-1 {
@@ -125,7 +125,7 @@ func CreateRoutePattern(filePath, functionName string, config types.Config) stri
 						break
 					}
 				}
-				
+
 				if scanPathIndex == -1 {
 					// Keep original dir
 				} else if scanPathIndex == len(dirParts)-1 {
@@ -214,19 +214,19 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 	// This ensures we get the correct scan path even if it appears multiple times
 	scanPathPattern := "/" + rootDir
 	lastIndex := strings.LastIndex(dir, scanPathPattern)
-	
+
 	if lastIndex == -1 {
 		// Scan path not found - use base import path
 		return packageName, moduleName + "/" + rootDir
 	}
-	
+
 	// Check if this is the end of the path (file directly in scan path)
 	afterScanPath := dir[lastIndex+len(scanPathPattern):]
 	if afterScanPath == "" {
 		// File is directly in the scan path directory
 		return packageName, moduleName + "/" + rootDir
 	}
-	
+
 	// Check if the next character is a "/" (indicating a subdirectory)
 	if !strings.HasPrefix(afterScanPath, "/") {
 		// This might be a false match (e.g., "app" in "webapp")
@@ -242,22 +242,22 @@ func GetLocalPackageInfo(filePath, moduleName string, config types.Config) (stri
 		// Remove the leading "/"
 		afterScanPath = afterScanPath[1:]
 	}
-	
+
 	if afterScanPath == "" {
 		// File is directly in the scan path directory
 		return packageName, moduleName + "/" + rootDir
 	}
-	
+
 	// File is in a subdirectory - build the full import path
 	importPath := moduleName + "/" + rootDir + "/" + afterScanPath
-	
+
 	// Update package name to be the last directory in the path
 	subParts := strings.Split(afterScanPath, "/")
 	if len(subParts) > 0 {
 		rawPackageName := subParts[len(subParts)-1]
 		packageName = sanitizePackageName(rawPackageName)
 	}
-	
+
 	// Clean up any "./" in the path
 	importPath = strings.ReplaceAll(importPath, "/./", "/")
 

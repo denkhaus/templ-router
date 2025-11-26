@@ -124,7 +124,9 @@ func (im *i18nMiddleware) renderLanguageNotSupportedPage(w http.ResponseWriter, 
 			zap.Error(err),
 			zap.String("locale", locale))
 		// Template execution failed, write simple fallback
-		w.Write([]byte("Language not supported"))
+		if _, err := w.Write([]byte("Language not supported")); err != nil {
+			im.logger.Error("Failed to write fallback response", zap.Error(err))
+		}
 	}
 
 	im.logger.Debug("Rendered language not supported page",

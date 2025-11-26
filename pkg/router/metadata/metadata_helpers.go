@@ -116,6 +116,3 @@ func tryLoadComponentMetadata(ctx context.Context, key string) string {
 	// No fallbacks - if it's not in the pre-loaded cache, it's not available
 	return ""
 }
-
-
-

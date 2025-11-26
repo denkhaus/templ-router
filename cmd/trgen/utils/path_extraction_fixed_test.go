@@ -12,13 +12,13 @@ import (
 // TestGetLocalPackageInfo_CorrectBehavior tests the actual correct behavior
 func TestGetLocalPackageInfo_CorrectBehavior(t *testing.T) {
 	tests := []struct {
-		name                string
-		filePath            string
-		moduleName          string
-		config              types.Config
-		expectedPkg         string
-		expectedImportPath  string
-		description         string
+		name               string
+		filePath           string
+		moduleName         string
+		config             types.Config
+		expectedPkg        string
+		expectedImportPath string
+		description        string
 	}{
 		{
 			name:               "Root level template",
@@ -62,7 +62,7 @@ func TestGetLocalPackageInfo_CorrectBehavior(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create temporary file structure
 			tempDir := t.TempDir()
-			
+
 			// Create the file path structure
 			relPath := filepath.Join(tt.config.ScanPath, tt.expectedPkg)
 			fullDir := filepath.Join(tempDir, relPath)
@@ -70,7 +70,7 @@ func TestGetLocalPackageInfo_CorrectBehavior(t *testing.T) {
 			if err != nil {
 				t.Fatalf("Failed to create directory: %v", err)
 			}
-			
+
 			tempFile := filepath.Join(fullDir, "test_templ.go")
 			goContent := "package " + tt.expectedPkg + "\n\n// Test file\n"
 			err = os.WriteFile(tempFile, []byte(goContent), 0644)
@@ -95,7 +95,7 @@ func TestGetLocalPackageInfo_CorrectBehavior(t *testing.T) {
 			if !strings.Contains(actualPath, tt.moduleName) {
 				t.Errorf("Import path should contain module name %q, got %q", tt.moduleName, actualPath)
 			}
-			
+
 			if !strings.Contains(actualPath, tt.config.ScanPath) {
 				t.Errorf("Import path should contain scan path %q, got %q", tt.config.ScanPath, actualPath)
 			}
@@ -110,11 +110,11 @@ func TestGetLocalPackageInfo_CorrectBehavior(t *testing.T) {
 // TestGetLocalPackageInfo_RealWorldScenarios tests real-world usage patterns
 func TestGetLocalPackageInfo_RealWorldScenarios(t *testing.T) {
 	scenarios := []struct {
-		name        string
-		structure   map[string]string // path -> package content
-		moduleName  string
-		scanPath    string
-		tests       []struct {
+		name       string
+		structure  map[string]string // path -> package content
+		moduleName string
+		scanPath   string
+		tests      []struct {
 			file        string
 			expectedPkg string
 			expectedImp string
@@ -145,9 +145,9 @@ func TestGetLocalPackageInfo_RealWorldScenarios(t *testing.T) {
 		{
 			name: "Component library structure",
 			structure: map[string]string{
-				"components/button_templ.go":     "package components",
+				"components/button_templ.go":      "package components",
 				"components/forms/input_templ.go": "package forms",
-				"components/layout/nav_templ.go": "package layout",
+				"components/layout/nav_templ.go":  "package layout",
 			},
 			moduleName: "github.com/ui/components",
 			scanPath:   "components",
@@ -166,17 +166,17 @@ func TestGetLocalPackageInfo_RealWorldScenarios(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			tempDir := t.TempDir()
-			
+
 			// Create file structure
 			for filePath, content := range scenario.structure {
 				fullPath := filepath.Join(tempDir, filePath)
 				dir := filepath.Dir(fullPath)
-				
+
 				err := os.MkdirAll(dir, 0755)
 				if err != nil {
 					t.Fatalf("Failed to create directory %s: %v", dir, err)
 				}
-				
+
 				err = os.WriteFile(fullPath, []byte(content+"\n\n// Template file"), 0644)
 				if err != nil {
 					t.Fatalf("Failed to create file %s: %v", filePath, err)
@@ -190,23 +190,23 @@ func TestGetLocalPackageInfo_RealWorldScenarios(t *testing.T) {
 			// Test each file
 			for _, test := range scenario.tests {
 				testFile := filepath.Join(tempDir, test.file)
-				
+
 				actualPkg, actualPath := GetLocalPackageInfo(testFile, scenario.moduleName, config)
-				
+
 				if actualPkg != test.expectedPkg {
 					t.Errorf("File %s: package got %q, want %q", test.file, actualPkg, test.expectedPkg)
 				}
-				
+
 				// The function returns absolute paths with temp directories
 				// Let's just verify it contains the expected module name and scan path
 				if !strings.Contains(actualPath, scenario.moduleName) {
 					t.Errorf("File %s: import path should contain module %q, got %q", test.file, scenario.moduleName, actualPath)
 				}
-				
+
 				if !strings.Contains(actualPath, scenario.scanPath) {
 					t.Errorf("File %s: import path should contain scan path %q, got %q", test.file, scenario.scanPath, actualPath)
 				}
-				
+
 				t.Logf("✅ %s: %s -> pkg=%s, import=%s", scenario.name, test.file, actualPkg, actualPath)
 			}
 		})
@@ -225,7 +225,7 @@ func TestGetLocalPackageInfo_EdgeCases(t *testing.T) {
 			name: "File outside scan path",
 			setupFunc: func(t *testing.T) (string, string, types.Config) {
 				tempDir := t.TempDir()
-				
+
 				// Create file outside scan path
 				outsideFile := filepath.Join(tempDir, "outside", "file_templ.go")
 				err := os.MkdirAll(filepath.Dir(outsideFile), 0755)
@@ -236,11 +236,11 @@ func TestGetLocalPackageInfo_EdgeCases(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to create file: %v", err)
 				}
-				
+
 				config := types.Config{
 					ScanPath: filepath.Join(tempDir, "templates"), // Different path
 				}
-				
+
 				return outsideFile, "github.com/test/project", config
 			},
 			expectPanic: false,
@@ -275,7 +275,7 @@ func TestGetLocalPackageInfo_EdgeCases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			filePath, moduleName, config := tt.setupFunc(t)
-			
+
 			defer func() {
 				if r := recover(); r != nil {
 					if !tt.expectPanic {
@@ -287,9 +287,9 @@ func TestGetLocalPackageInfo_EdgeCases(t *testing.T) {
 					t.Error("Expected panic but got none")
 				}
 			}()
-			
+
 			pkg, path := GetLocalPackageInfo(filePath, moduleName, config)
-			
+
 			if !tt.expectPanic {
 				// Should return reasonable defaults even in error cases
 				if pkg == "" {
@@ -298,7 +298,7 @@ func TestGetLocalPackageInfo_EdgeCases(t *testing.T) {
 				if path == "" {
 					t.Logf("Warning: Empty import path returned for %s", tt.description)
 				}
-				
+
 				t.Logf("✅ %s - pkg=%q, path=%q", tt.description, pkg, path)
 			}
 		})

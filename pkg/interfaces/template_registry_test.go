@@ -22,9 +22,9 @@ func NewMockTemplateRegistry() *MockTemplateRegistry {
 			"test-key-3": func(data interface{}) templ.Component { return templ.Raw("test content 3") },
 		},
 		routeMapping: map[string]string{
-			"/":         "test-key-1",
-			"/about":    "test-key-2",
-			"/contact":  "test-key-3",
+			"/":        "test-key-1",
+			"/about":   "test-key-2",
+			"/contact": "test-key-3",
 		},
 		shouldError: false,
 	}
@@ -34,7 +34,7 @@ func (m *MockTemplateRegistry) GetTemplate(key string) (templ.Component, error) 
 	if m.shouldError {
 		return nil, errors.New("mock error")
 	}
-	
+
 	if templateFunc, exists := m.templates[key]; exists {
 		switch fn := templateFunc.(type) {
 		case func() templ.Component:
@@ -80,7 +80,7 @@ func (m *MockTemplateRegistry) GetTemplateByRoute(route string) (templ.Component
 	if m.shouldError {
 		return nil, errors.New("mock error")
 	}
-	
+
 	if templateKey, exists := m.routeMapping[route]; exists {
 		return m.GetTemplate(templateKey)
 	}
@@ -153,9 +153,9 @@ func TestTemplateRegistry_GetTemplate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			registry.SetShouldError(tt.shouldError)
-			
+
 			component, err := registry.GetTemplate(tt.key)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Error("Expected error but got none")
@@ -190,11 +190,11 @@ func TestTemplateRegistry_GetTemplateFunction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			fn, exists := registry.GetTemplateFunction(tt.key)
-			
+
 			if exists != tt.exists {
 				t.Errorf("Expected exists=%v, got %v", tt.exists, exists)
 			}
-			
+
 			if tt.exists {
 				if fn == nil {
 					t.Error("Expected function but got nil")
@@ -215,20 +215,20 @@ func TestTemplateRegistry_GetTemplateFunction(t *testing.T) {
 
 func TestTemplateRegistry_GetAllTemplateKeys(t *testing.T) {
 	registry := NewMockTemplateRegistry()
-	
+
 	keys := registry.GetAllTemplateKeys()
-	
+
 	expectedCount := 3
 	if len(keys) != expectedCount {
 		t.Errorf("Expected %d keys, got %d", expectedCount, len(keys))
 	}
-	
+
 	expectedKeys := map[string]bool{
 		"test-key-1": true,
 		"test-key-2": true,
 		"test-key-3": true,
 	}
-	
+
 	for _, key := range keys {
 		if !expectedKeys[key] {
 			t.Errorf("Unexpected key: %s", key)
@@ -260,14 +260,14 @@ func TestTemplateRegistry_IsAvailable(t *testing.T) {
 
 func TestTemplateRegistry_GetRouteToTemplateMapping(t *testing.T) {
 	registry := NewMockTemplateRegistry()
-	
+
 	mapping := registry.GetRouteToTemplateMapping()
-	
+
 	expectedRoutes := []string{"/", "/about", "/contact"}
 	if len(mapping) != len(expectedRoutes) {
 		t.Errorf("Expected %d routes, got %d", len(expectedRoutes), len(mapping))
 	}
-	
+
 	for _, route := range expectedRoutes {
 		if _, exists := mapping[route]; !exists {
 			t.Errorf("Expected route %s not found in mapping", route)
@@ -293,9 +293,9 @@ func TestTemplateRegistry_GetTemplateByRoute(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			registry.SetShouldError(tt.shouldError)
-			
+
 			component, err := registry.GetTemplateByRoute(tt.route)
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Error("Expected error but got none")

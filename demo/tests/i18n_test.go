@@ -18,7 +18,7 @@ var _ = ginkgo.Describe("Language Switching", func() {
 			url, _ := page.URL()
 			return url
 		}, PageLoadTimeout).Should(gomega.ContainSubstring("/de"))
-		
+
 		// Check that we're on the German page
 		gomega.Eventually(func() string {
 			html, _ := page.HTML()
@@ -38,7 +38,7 @@ var _ = ginkgo.Describe("Language Switching", func() {
 			url, _ := page.URL()
 			return url
 		}, PageLoadTimeout).Should(gomega.ContainSubstring("/en"))
-		
+
 		// Check that we're on the English page
 		gomega.Eventually(func() string {
 			html, _ := page.HTML()
@@ -49,7 +49,7 @@ var _ = ginkgo.Describe("Language Switching", func() {
 	ginkgo.It("should maintain language context across pages", func() {
 		// Start in German
 		gomega.Expect(page.Navigate(baseURL + "/de/dashboard")).To(gomega.Succeed())
-		
+
 		// Check we're in German context
 		gomega.Eventually(func() string {
 			html, _ := page.HTML()

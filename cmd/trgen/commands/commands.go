@@ -33,10 +33,10 @@ func Run(c *cli.Context) error {
 // NEVER add defaults for module names, scan paths, or project-specific values!
 func newConfig(c *cli.Context) types.Config {
 	return types.Config{
-		ModuleName:  c.String("module-name"),  // NO DEFAULT - must be provided
-		ScanPath:    c.String("scan-path"),    // NO DEFAULT - must be provided  
-		OutputDir:   "generated/templates",    // Generic output path - OK
-		PackageName: "templates",              // Generic package name - OK
+		ModuleName:  c.String("module-name"), // NO DEFAULT - must be provided
+		ScanPath:    c.String("scan-path"),   // NO DEFAULT - must be provided
+		OutputDir:   "generated/templates",   // Generic output path - OK
+		PackageName: "templates",             // Generic package name - OK
 	}
 }
 

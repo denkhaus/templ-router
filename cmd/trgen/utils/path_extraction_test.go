@@ -38,7 +38,7 @@ func TestGetLocalPackageInfo_DockerVsLocal(t *testing.T) {
 			expectedPath: "github.com/company/webapp/views", // Base scan path
 			description:  "Local development in workspace",
 		},
-		
+
 		// Docker environment scenarios
 		{
 			name:         "Docker - App directory",
@@ -58,7 +58,7 @@ func TestGetLocalPackageInfo_DockerVsLocal(t *testing.T) {
 			expectedPath: "github.com/team/service/views",
 			description:  "Docker with custom working directory",
 		},
-		
+
 		// Different module structures
 		{
 			name:         "Monorepo - Service subdirectory",
@@ -78,14 +78,14 @@ func TestGetLocalPackageInfo_DockerVsLocal(t *testing.T) {
 			expectedPath: "github.com/org/project/frontend/ui", // Base scan path
 			description:  "Nested module structure",
 		},
-		
+
 		// Edge cases with special characters
 		{
 			name:         "Directory with hyphens",
 			filePath:     "/app/templates/error-pages/not-found/page_templ.go",
 			moduleName:   "github.com/user/webapp",
 			config:       types.Config{ScanPath: "templates"},
-			expectedPkg:  "notfound", // Should be sanitized
+			expectedPkg:  "notfound",                         // Should be sanitized
 			expectedPath: "github.com/user/webapp/templates", // Base scan path
 			description:  "Directory names with hyphens should be sanitized for package names",
 		},
@@ -98,7 +98,7 @@ func TestGetLocalPackageInfo_DockerVsLocal(t *testing.T) {
 			expectedPath: "github.com/api/service/views", // Base scan path
 			description:  "Directory names with dots",
 		},
-		
+
 		// Deep nesting scenarios
 		{
 			name:         "Very deep nesting",
@@ -109,7 +109,7 @@ func TestGetLocalPackageInfo_DockerVsLocal(t *testing.T) {
 			expectedPath: "github.com/enterprise/system/templates", // Base scan path
 			description:  "Very deep directory nesting",
 		},
-		
+
 		// Different scan path names
 		{
 			name:         "Custom scan path - pages",
@@ -136,13 +136,13 @@ func TestGetLocalPackageInfo_DockerVsLocal(t *testing.T) {
 			// Create a temporary file to simulate the Go file
 			tempDir := t.TempDir()
 			tempFile := filepath.Join(tempDir, "test_templ.go")
-			
+
 			// Write a minimal Go file with package declaration
 			packageName := tt.expectedPkg
 			if packageName == "templates" || packageName == "views" || packageName == "pages" || packageName == "src" {
 				packageName = tt.config.ScanPath
 			}
-			
+
 			goContent := "package " + packageName + "\n\n// Test file\n"
 			err := os.WriteFile(tempFile, []byte(goContent), 0644)
 			if err != nil {
@@ -212,7 +212,7 @@ func TestGetLocalPackageInfo_ErrorHandling(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// These should not panic and should return reasonable defaults
 			pkg, path := GetLocalPackageInfo(tt.filePath, tt.moduleName, tt.config)
-			
+
 			// Should return non-empty values even in error cases (except for empty scan path)
 			if pkg == "" && tt.name != "Empty scan path" {
 				t.Errorf("Package name should not be empty, got: %q", pkg)
@@ -220,7 +220,7 @@ func TestGetLocalPackageInfo_ErrorHandling(t *testing.T) {
 			if path == "" {
 				t.Errorf("Import path should not be empty, got: %q", path)
 			}
-			
+
 			t.Logf("✅ %s", tt.description)
 			t.Logf("   Returned Package: %s", pkg)
 			t.Logf("   Returned Path: %s", path)

@@ -27,14 +27,14 @@ func TestWithTemplateRegistry(t *testing.T) {
 
 func TestWithAssetsServiceFactory(t *testing.T) {
 	container := NewContainer()
-	
+
 	option := WithAssetsServiceFactory(func(do.Injector) (interfaces.AssetsService, error) {
 		return &mockAssetsService{}, nil
 	})
-	
+
 	// Apply option
 	option(container)
-	
+
 	// Verify assets service is registered
 	retrievedAssets := do.MustInvoke[interfaces.AssetsService](container.injector)
 	if retrievedAssets == nil {
@@ -45,7 +45,7 @@ func TestWithAssetsServiceFactory(t *testing.T) {
 func TestMultipleOptions(t *testing.T) {
 	container := NewContainer()
 	mockRegistry := &mockTemplateRegistry{}
-	
+
 	// Apply multiple options
 	container.RegisterApplicationServices(
 		WithTemplateRegistryFactory(func(do.Injector) (interfaces.TemplateRegistry, error) {
@@ -55,13 +55,13 @@ func TestMultipleOptions(t *testing.T) {
 			return &mockAssetsService{}, nil
 		}),
 	)
-	
+
 	// Verify both services are registered
 	retrievedRegistry := do.MustInvoke[interfaces.TemplateRegistry](container.injector)
 	if retrievedRegistry == nil {
 		t.Error("Template registry not registered when using multiple options")
 	}
-	
+
 	retrievedAssets := do.MustInvoke[interfaces.AssetsService](container.injector)
 	if retrievedAssets == nil {
 		t.Error("Assets service not registered when using multiple options")
@@ -71,7 +71,7 @@ func TestMultipleOptions(t *testing.T) {
 func TestOptionsPattern(t *testing.T) {
 	// Test that options are functions that modify the container
 	container := NewContainer()
-	
+
 	var optionCalled bool
 	testOption := func(c *Container) {
 		optionCalled = true
@@ -79,9 +79,9 @@ func TestOptionsPattern(t *testing.T) {
 			t.Error("Option function received wrong container")
 		}
 	}
-	
+
 	container.RegisterApplicationServices(testOption)
-	
+
 	if !optionCalled {
 		t.Error("Option function was not called")
 	}

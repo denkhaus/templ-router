@@ -12,14 +12,14 @@ import (
 // TestGenerateRegistry_Basic tests the basic registry generation
 func TestGenerateRegistry_Basic(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	config := types.Config{
 		ModuleName:  "github.com/test/project",
 		ScanPath:    tempDir,
 		OutputDir:   tempDir,
 		PackageName: "templates",
 	}
-	
+
 	// Create some sample template info
 	templates := []types.TemplateInfo{
 		{
@@ -43,27 +43,27 @@ func TestGenerateRegistry_Basic(t *testing.T) {
 			HumanName:    "About Page",
 		},
 	}
-	
+
 	// Generate registry
 	err := GenerateRegistry(config, templates)
 	if err != nil {
 		t.Fatalf("GenerateRegistry failed: %v", err)
 	}
-	
+
 	// Check output file exists
 	outputFile := filepath.Join(config.OutputDir, "registry.go")
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
 		t.Fatalf("Output file was not created: %s", outputFile)
 	}
-	
+
 	// Read and verify content
 	content, err := os.ReadFile(outputFile)
 	if err != nil {
 		t.Fatalf("Failed to read output file: %v", err)
 	}
-	
+
 	contentStr := string(content)
-	
+
 	// Check for expected content
 	expectedContent := []string{
 		"package templates",
@@ -72,13 +72,13 @@ func TestGenerateRegistry_Basic(t *testing.T) {
 		"shared.GenerateTemplateKey",
 		"github.com/test/project/templates",
 	}
-	
+
 	for _, expected := range expectedContent {
 		if !strings.Contains(contentStr, expected) {
 			t.Errorf("Expected content %q not found in generated file", expected)
 		}
 	}
-	
+
 	t.Logf("✅ Basic registry generation working")
 	t.Logf("   Generated file: %s", outputFile)
 	t.Logf("   Templates: %d", len(templates))
@@ -87,39 +87,39 @@ func TestGenerateRegistry_Basic(t *testing.T) {
 // TestGenerateRegistry_EmptyTemplates tests generation with no templates
 func TestGenerateRegistry_EmptyTemplates(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	config := types.Config{
 		ModuleName:  "github.com/test/project",
 		ScanPath:    tempDir,
 		OutputDir:   tempDir,
 		PackageName: "templates",
 	}
-	
+
 	// Generate registry with empty templates
 	err := GenerateRegistry(config, []types.TemplateInfo{})
 	if err != nil {
 		t.Fatalf("GenerateRegistry failed: %v", err)
 	}
-	
+
 	// Check output file exists
 	outputFile := filepath.Join(config.OutputDir, "registry.go")
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
 		t.Fatalf("Output file was not created: %s", outputFile)
 	}
-	
+
 	// Read and verify content
 	content, err := os.ReadFile(outputFile)
 	if err != nil {
 		t.Fatalf("Failed to read output file: %v", err)
 	}
-	
+
 	contentStr := string(content)
-	
+
 	// Should still have package declaration and basic structure
 	if !strings.Contains(contentStr, "package templates") {
 		t.Error("Expected package declaration in generated file")
 	}
-	
+
 	t.Logf("✅ Empty templates generation working")
 	t.Logf("   Generated file: %s", outputFile)
 }
@@ -127,14 +127,14 @@ func TestGenerateRegistry_EmptyTemplates(t *testing.T) {
 // TestGenerateRegistry_NestedPackages tests generation with nested packages
 func TestGenerateRegistry_NestedPackages(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	config := types.Config{
 		ModuleName:  "github.com/company/app",
 		ScanPath:    tempDir,
 		OutputDir:   tempDir,
 		PackageName: "templates",
 	}
-	
+
 	// Create templates from different packages
 	templates := []types.TemplateInfo{
 		{
@@ -168,40 +168,40 @@ func TestGenerateRegistry_NestedPackages(t *testing.T) {
 			HumanName:    "API Documentation",
 		},
 	}
-	
+
 	// Generate registry
 	err := GenerateRegistry(config, templates)
 	if err != nil {
 		t.Fatalf("GenerateRegistry failed: %v", err)
 	}
-	
+
 	// Check output file exists
 	outputFile := filepath.Join(config.OutputDir, "registry.go")
 	content, err := os.ReadFile(outputFile)
 	if err != nil {
 		t.Fatalf("Failed to read output file: %v", err)
 	}
-	
+
 	contentStr := string(content)
-	
+
 	// Check for all packages and functions
 	expectedContent := []string{
 		"package templates",
 		"UsersPage",
-		"HomePage", 
+		"HomePage",
 		"DocsPage",
 		"shared.GenerateTemplateKey",
 		"github.com/company/app/admin",
 		"github.com/company/app/public",
 		"github.com/company/app/api",
 	}
-	
+
 	for _, expected := range expectedContent {
 		if !strings.Contains(contentStr, expected) {
 			t.Errorf("Expected content %q not found in generated file", expected)
 		}
 	}
-	
+
 	t.Logf("✅ Nested packages generation working")
 	t.Logf("   Generated file: %s", outputFile)
 	t.Logf("   Packages: admin, public, api")
@@ -264,7 +264,7 @@ func TestGenerateRegistry_ConfigValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := GenerateRegistry(tt.config, []types.TemplateInfo{})
-			
+
 			if tt.expectError {
 				if err == nil {
 					t.Error("Expected error but got none")

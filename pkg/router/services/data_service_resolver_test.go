@@ -105,10 +105,10 @@ func (m *MockTemplateRegistry) GetTemplateKeyByComponentName(componentName strin
 
 type MockRouterContext struct {
 	mock.Mock
-	urlParams  map[string]string
+	urlParams   map[string]string
 	queryParams url.Values
-	request    *http.Request
-	chiCtx     *chi.Context
+	request     *http.Request
+	chiCtx      *chi.Context
 }
 
 func (m *MockRouterContext) Context() context.Context {
@@ -541,7 +541,7 @@ func TestDataServiceResolver_findDataServiceInfo(t *testing.T) {
 		}, true)
 
 		result := concreteResolver.findDataServiceInfo("TargetService") // Looking for "TargetService"
-		assert.Nil(t, result) // Should return nil because no service has interfaceType "TargetService"
+		assert.Nil(t, result)                                           // Should return nil because no service has interfaceType "TargetService"
 
 		mockRegistry.AssertExpectations(t)
 	})

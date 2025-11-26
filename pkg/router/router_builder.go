@@ -47,8 +47,8 @@ type RouterOptions struct {
 type middlewareConfig struct {
 	name       string
 	middleware func(http.Handler) http.Handler
-	order      int       // Future: Priority order for middleware execution
-	priority   int       // Future: Priority for middleware registration
+	order      int // Future: Priority order for middleware execution
+	priority   int // Future: Priority for middleware registration
 }
 
 // customRoute represents a custom route to register
@@ -82,10 +82,6 @@ func NewRouterBuilder(container interfaces.Container) (*RouterBuilder, error) {
 	}, nil
 }
 
-
-
-
-
 // WithTemplateRegistry overrides the default template registry
 func (rb *RouterBuilder) WithTemplateRegistry(registry interfaces.TemplateRegistry) *RouterBuilder {
 	rb.options.templateRegistryOverride = registry
@@ -106,7 +102,6 @@ func (rb *RouterBuilder) WithHealthCheck(enabled bool, path ...string) *RouterBu
 	}
 	return rb
 }
-
 
 // WithCustomRoute adds a custom route to the router
 func (rb *RouterBuilder) WithCustomRoute(method, path string, handler http.HandlerFunc) *RouterBuilder {
@@ -144,9 +139,7 @@ func (rb *RouterBuilder) Build() (*chi.Mux, error) {
 	}
 
 	// Apply service overrides
-	if err := rb.applyServiceOverrides(); err != nil {
-		return nil, fmt.Errorf("failed to apply service overrides: %w", err)
-	}
+	rb.applyServiceOverrides()
 
 	// Create Chi router
 	mux := chi.NewRouter()
@@ -174,9 +167,7 @@ func (rb *RouterBuilder) Build() (*chi.Mux, error) {
 	// Auth routes are now registered by client applications
 
 	// Apply custom middleware from DI container in definition order
-	if err := rb.applyCustomMiddleware(mux); err != nil {
-		return nil, fmt.Errorf("failed to apply custom middleware: %w", err)
-	}
+	rb.applyCustomMiddleware(mux)
 
 	// Configure error handlers
 	rb.configureErrorHandlers(mux)
@@ -185,14 +176,13 @@ func (rb *RouterBuilder) Build() (*chi.Mux, error) {
 }
 
 // applyServiceOverrides applies any service overrides to the DI container
-func (rb *RouterBuilder) applyServiceOverrides() error {
+func (rb *RouterBuilder) applyServiceOverrides() {
 	if rb.options.templateRegistryOverride != nil {
 		do.OverrideValue(rb.injector, rb.options.templateRegistryOverride)
 	}
 	if rb.options.assetsServiceOverride != nil {
 		do.OverrideValue(rb.injector, rb.options.assetsServiceOverride)
 	}
-	return nil
 }
 
 // configureMiddleware configures all middleware in the correct order
@@ -313,18 +303,18 @@ func (rb *RouterBuilder) registerHealthCheck(mux *chi.Mux) {
 // Auth routes are now registered by client applications using AuthHandlers interface
 
 // applyCustomMiddleware loads and applies custom middleware from DI container in definition order
-func (rb *RouterBuilder) applyCustomMiddleware(mux *chi.Mux) error {
+func (rb *RouterBuilder) applyCustomMiddleware(mux *chi.Mux) {
 	// Try to load custom middleware definitions from DI container
 	middlewareDefs, err := do.Invoke[[]interfaces.CustomMiddlewareDefinition](rb.injector)
 	if err != nil {
 		// No custom middleware found, which is fine
 		rb.logger.Info("No custom middleware found in DI container")
-		return nil
+		return
 	}
 
 	if len(middlewareDefs) == 0 {
 		rb.logger.Info("No custom middleware to apply")
-		return nil
+		return
 	}
 
 	// Sort middleware by definition order to ensure correct execution sequence
@@ -339,8 +329,6 @@ func (rb *RouterBuilder) applyCustomMiddleware(mux *chi.Mux) error {
 			zap.String("name", middlewareDef.Name),
 			zap.Int("order", middlewareDef.Order))
 	}
-
-	return nil
 }
 
 // configureErrorHandlers configures custom error handlers if provided

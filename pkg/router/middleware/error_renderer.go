@@ -12,7 +12,7 @@ var errorTemplates embed.FS
 
 // ErrorRenderer handles HTML rendering for error pages
 // SEPARATED FROM: error_service.go (Separation of Concerns)
-type ErrorRenderer struct{
+type ErrorRenderer struct {
 	template *template.Template
 }
 
@@ -44,7 +44,7 @@ func (sec *SimpleErrorComponent) Render(ctx context.Context, w io.Writer) error 
 		_, err := w.Write([]byte("Error: Template not available"))
 		return err
 	}
-	
+
 	// Execute the embedded template with error data
 	return sec.renderer.template.Execute(w, sec)
 }
@@ -57,7 +57,7 @@ func (er *ErrorRenderer) RenderErrorHTML(statusCode int, message, templatePath, 
 		TemplatePath: templatePath,
 		RequestPath:  requestPath,
 	}
-	
+
 	// Set the renderer reference for template execution
 	component.renderer = er
 	return component

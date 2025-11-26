@@ -178,7 +178,7 @@ func IsLocalizedRoute(path string, routeMapping map[string]string) bool {
 				}
 			}
 		}
-			if PathMatchesPattern(path, pattern) {
+		if PathMatchesPattern(path, pattern) {
 			return true
 		}
 	}
@@ -273,4 +273,3 @@ func getCurrentRouteWithoutLocaleFallback(ctx context.Context, fullPath string) 
 	// No locale segment found, return full path
 	return fullPath
 }
-

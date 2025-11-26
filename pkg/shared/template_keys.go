@@ -21,7 +21,7 @@ func (tkg *TemplateKeyGenerator) GenerateTemplateKey(templatePath string) string
 	// Normalize the path to ensure consistency
 	normalizedPath := filepath.Clean(templatePath)
 	normalizedPath = strings.ReplaceAll(normalizedPath, "\\", "/")
-	
+
 	// Generate a deterministic hash from the normalized path
 	hash := md5.Sum([]byte(normalizedPath))
 	return fmt.Sprintf("%x", hash)[:32] // Use first 32 characters for shorter keys
@@ -34,7 +34,7 @@ func (tkg *TemplateKeyGenerator) GenerateRouteKey(routePattern string) string {
 	if !strings.HasPrefix(normalizedRoute, "/") {
 		normalizedRoute = "/" + normalizedRoute
 	}
-	
+
 	// Generate a deterministic hash
 	hash := md5.Sum([]byte(normalizedRoute))
 	return fmt.Sprintf("route_%x", hash)[:32]
@@ -45,14 +45,14 @@ func (tkg *TemplateKeyGenerator) GenerateRouteKey(routePattern string) string {
 func (tkg *TemplateKeyGenerator) ExtractRouteFromTemplatePath(templatePath string) string {
 	// Remove file extension
 	pathWithoutExt := strings.TrimSuffix(templatePath, ".templ")
-	
+
 	// Remove base path and page.templ
 	pathWithoutExt = strings.TrimSuffix(pathWithoutExt, "/page")
-	
+
 	// Extract the route part
 	parts := strings.Split(pathWithoutExt, "/")
 	var routeParts []string
-	
+
 	// Skip until we find "app" directory
 	appFound := false
 	for _, part := range parts {
@@ -63,7 +63,7 @@ func (tkg *TemplateKeyGenerator) ExtractRouteFromTemplatePath(templatePath strin
 		if !appFound {
 			continue
 		}
-		
+
 		// Convert special directory names to route parameters
 		if strings.HasSuffix(part, "_") {
 			// locale_ -> {locale}
@@ -73,11 +73,11 @@ func (tkg *TemplateKeyGenerator) ExtractRouteFromTemplatePath(templatePath strin
 			routeParts = append(routeParts, part)
 		}
 	}
-	
+
 	if len(routeParts) == 0 {
 		return "/"
 	}
-	
+
 	return "/" + strings.Join(routeParts, "/")
 }
 

@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-
 // cleanI18nService provides internationalization without router dependencies
 type cleanI18nService struct {
 	configService            interfaces.ConfigService

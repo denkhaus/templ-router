@@ -65,7 +65,7 @@ func (r *dataServiceResolver) ResolveDataService(interfaceType string) (any, err
 		}
 
 		// Clean up parameter type (remove double pointers if present)
-	parameterType := dataServiceInfo.ParameterType
+		parameterType := dataServiceInfo.ParameterType
 		if strings.HasPrefix(parameterType, "**") {
 			parameterType = "*" + parameterType[2:] // Convert **Type to *Type
 		}

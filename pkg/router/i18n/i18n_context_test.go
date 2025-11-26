@@ -148,7 +148,7 @@ func TestIsLocalizedRoute(t *testing.T) {
 			path: "/en/dashboard",
 			routeMapping: map[string]string{
 				"/{locale}/dashboard": "template1",
-				"/login":             "template2",
+				"/login":              "template2",
 			},
 			expected: true,
 		},
@@ -157,7 +157,7 @@ func TestIsLocalizedRoute(t *testing.T) {
 			path: "/login",
 			routeMapping: map[string]string{
 				"/{locale}/dashboard": "template1",
-				"/login":             "template2",
+				"/login":              "template2",
 			},
 			expected: false,
 		},
@@ -180,8 +180,8 @@ func TestIsLocalizedRoute(t *testing.T) {
 			expected: false,
 		},
 		{
-			name: "Empty route mapping",
-			path: "/en/dashboard",
+			name:         "Empty route mapping",
+			path:         "/en/dashboard",
 			routeMapping: map[string]string{},
 			expected:     false,
 		},
@@ -190,7 +190,7 @@ func TestIsLocalizedRoute(t *testing.T) {
 			path: "/fr",
 			routeMapping: map[string]string{
 				"/{locale}": "template1",
-				"/login":   "template2",
+				"/login":    "template2",
 			},
 			expected: true,
 		},
@@ -219,7 +219,7 @@ func TestGetCurrentRouteWithoutLocale(t *testing.T) {
 				ctx = context.WithValue(ctx, shared.RequestPathKey, "/en/dashboard")
 				ctx = context.WithValue(ctx, shared.RouteMappingKey, map[string]string{
 					"/{locale}/dashboard": "template1",
-					"/login":             "template2",
+					"/login":              "template2",
 				})
 				return ctx
 			},
@@ -232,7 +232,7 @@ func TestGetCurrentRouteWithoutLocale(t *testing.T) {
 				ctx = context.WithValue(ctx, shared.RequestPathKey, "/login")
 				ctx = context.WithValue(ctx, shared.RouteMappingKey, map[string]string{
 					"/{locale}/dashboard": "template1",
-					"/login":             "template2",
+					"/login":              "template2",
 				})
 				return ctx
 			},
@@ -271,7 +271,7 @@ func TestGetCurrentRouteWithoutLocale(t *testing.T) {
 				ctx = context.WithValue(ctx, shared.RequestPathKey, "/fr")
 				ctx = context.WithValue(ctx, shared.RouteMappingKey, map[string]string{
 					"/{locale}": "template1",
-					"/login":   "template2",
+					"/login":    "template2",
 				})
 				return ctx
 			},

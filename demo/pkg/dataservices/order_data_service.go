@@ -7,12 +7,12 @@ import (
 
 // OrderData represents order information
 type OrderData struct {
-	ID       string
-	UserID   string
-	Items    []string
-	Total    float64
-	Status   string
-	Date     string
+	ID     string
+	UserID string
+	Items  []string
+	Total  float64
+	Status string
+	Date   string
 }
 
 // OrderDataService provides order data - has BOTH GetData and GetOrderData methods

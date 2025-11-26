@@ -11,9 +11,9 @@ import (
 // SEPARATED FROM: error_service.go (Separation of Concerns)
 // This focuses purely on error service coordination without HTML rendering or template resolution
 type ErrorServiceCore struct {
-	templateResolver       ErrorTemplateResolver // Interface (proper DI)
+	templateResolver      ErrorTemplateResolver // Interface (proper DI)
 	renderer              *ErrorRenderer
-	templateService       interfaces.TemplateService // Integration with OptimizedTemplateService
+	templateService       interfaces.TemplateService    // Integration with OptimizedTemplateService
 	dedicatedErrorService DedicatedErrorTemplateService // NEW: Dedicated error template service
 	logger                *zap.Logger
 }
@@ -33,7 +33,7 @@ func NewErrorServiceCore(i do.Injector) (interfaces.ErrorService, error) {
 	dedicatedErrorService := do.MustInvoke[DedicatedErrorTemplateService](i)
 
 	return &ErrorServiceCore{
-		templateResolver:       templateResolver,
+		templateResolver:      templateResolver,
 		renderer:              renderer,
 		templateService:       templateService,
 		dedicatedErrorService: dedicatedErrorService,

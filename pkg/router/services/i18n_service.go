@@ -19,10 +19,10 @@ func NewI18nService(i do.Injector) (interfaces.I18nService, error) {
 	logger := do.MustInvoke[*zap.Logger](i)
 
 	return &cleanI18nService{
-		configService:           configService,
-		translationStore:        translationStore,
+		configService:            configService,
+		translationStore:         translationStore,
 		componentMetadataService: componentMetadataService,
-		logger:                  logger,
+		logger:                   logger,
 	}, nil
 }
 

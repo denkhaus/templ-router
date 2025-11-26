@@ -15,7 +15,6 @@ var discoveryTemplates embed.FS
 // DiscoveryComponent handles creation of discovery-related template components
 type DiscoveryComponent struct{}
 
-
 // TemplateNotFoundData holds data for the template not found page
 type TemplateNotFoundData struct {
 	TemplateKey   string
@@ -26,7 +25,6 @@ type TemplateNotFoundData struct {
 func NewDiscoveryComponent() *DiscoveryComponent {
 	return &DiscoveryComponent{}
 }
-
 
 // CreateNotFoundComponent creates a component for when a template is not found
 func (dc *DiscoveryComponent) CreateNotFoundComponent(templateKey string, availableKeys []string) templ.Component {

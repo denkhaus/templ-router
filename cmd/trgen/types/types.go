@@ -26,11 +26,11 @@ type TemplateInfo struct {
 	ComponentName string // Component name extracted from filename (e.g., "footer" from "footer.templ")
 
 	// YAML Metadata Analysis (determined during scanning)
-	YAMLExists    bool   // Whether YAML file exists
-	YAMLFile      string // Full path to YAML file if it exists
-	YAMLHasI18n   bool   // Whether YAML contains i18n data
-	YAMLHasMetadata bool  // Whether YAML contains metadata
-	YAMLHasAuth   bool   // Whether YAML contains auth settings
+	YAMLExists      bool   // Whether YAML file exists
+	YAMLFile        string // Full path to YAML file if it exists
+	YAMLHasI18n     bool   // Whether YAML contains i18n data
+	YAMLHasMetadata bool   // Whether YAML contains metadata
+	YAMLHasAuth     bool   // Whether YAML contains auth settings
 
 	// Data Service Integration
 	RequiresDataService  bool   // true if template has data parameter

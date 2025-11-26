@@ -77,9 +77,7 @@ func (rb *routerBootstrap) Bootstrap() (*chi.Mux, error) {
 	}
 
 	// Apply custom middleware from DI container in definition order (BEFORE routes)
-	if err := rb.applyCustomMiddleware(mux); err != nil {
-		return nil, fmt.Errorf("failed to apply custom middleware: %w", err)
-	}
+	rb.applyCustomMiddleware(mux)
 
 	// Register custom routes first (highest priority)
 	if err := rb.registerCustomRoutes(mux); err != nil {
@@ -207,18 +205,18 @@ func (rb *routerBootstrap) registerHealthCheck(mux *chi.Mux) {
 }
 
 // applyCustomMiddleware loads and applies custom middleware from DI container in definition order
-func (rb *routerBootstrap) applyCustomMiddleware(mux *chi.Mux) error {
+func (rb *routerBootstrap) applyCustomMiddleware(mux *chi.Mux) {
 	// Try to load custom middleware definitions from DI container
 	middlewareDefs, err := do.Invoke[[]interfaces.CustomMiddlewareDefinition](rb.injector)
 	if err != nil {
 		// No custom middleware found, which is fine
 		rb.logger.Info("No custom middleware found in DI container")
-		return nil
+		return
 	}
 
 	if len(middlewareDefs) == 0 {
 		rb.logger.Info("No custom middleware to apply")
-		return nil
+		return
 	}
 
 	// Sort middleware by definition order to ensure correct execution sequence
@@ -233,8 +231,6 @@ func (rb *routerBootstrap) applyCustomMiddleware(mux *chi.Mux) error {
 			zap.String("name", middlewareDef.Name),
 			zap.Int("order", middlewareDef.Order))
 	}
-
-	return nil
 }
 
 // configureErrorHandlers configures custom error handlers if provided

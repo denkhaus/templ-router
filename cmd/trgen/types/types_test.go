@@ -7,14 +7,14 @@ import (
 func TestTemplateInfo(t *testing.T) {
 	// Test TemplateInfo struct creation and field access
 	template := TemplateInfo{
-		FunctionName:  "Page",
-		PackageName:   "app",
-		ImportPath:    "github.com/user/project/app",
-		PackageAlias:  "app",
-		RoutePattern:  "/",
-		TemplateKey:   "test-key",
-		FilePath:      "/path/to/file.go",
-		HumanName:     "Page",
+		FunctionName: "Page",
+		PackageName:  "app",
+		ImportPath:   "github.com/user/project/app",
+		PackageAlias: "app",
+		RoutePattern: "/",
+		TemplateKey:  "test-key",
+		FilePath:     "/path/to/file.go",
+		HumanName:    "Page",
 	}
 
 	if template.FunctionName != "Page" {

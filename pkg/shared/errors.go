@@ -18,22 +18,22 @@ var (
 	ErrConfigValidation = errors.New("configuration validation failed")
 
 	// Service errors
-	ErrServiceNotFound      = errors.New("service not found")
-	ErrServiceInitFailed    = errors.New("service initialization failed")
-	ErrServiceUnavailable   = errors.New("service is unavailable")
-	ErrDependencyInjection  = errors.New("dependency injection failed")
+	ErrServiceNotFound     = errors.New("service not found")
+	ErrServiceInitFailed   = errors.New("service initialization failed")
+	ErrServiceUnavailable  = errors.New("service is unavailable")
+	ErrDependencyInjection = errors.New("dependency injection failed")
 
 	// Route errors
-	ErrRouteNotFound    = errors.New("route not found")
-	ErrRouteInvalid     = errors.New("route is invalid")
-	ErrRouteConflict    = errors.New("route conflict detected")
+	ErrRouteNotFound = errors.New("route not found")
+	ErrRouteInvalid  = errors.New("route is invalid")
+	ErrRouteConflict = errors.New("route conflict detected")
 
 	// Parameter errors
 	ErrParameterMissing = errors.New("required parameter is missing")
 	ErrParameterInvalid = errors.New("parameter is invalid")
 
 	// Data service errors
-	ErrDataServiceNotFound            = errors.New("data service not found")
+	ErrDataServiceNotFound             = errors.New("data service not found")
 	ErrDataServiceFailed               = errors.New("data service operation failed")
 	ErrDataServiceMethodNotImplemented = errors.New("data service method not implemented")
 	ErrDataServiceNotRegistered        = errors.New("data service not registered in DI container")
@@ -52,24 +52,24 @@ var (
 type ErrorType string
 
 const (
-	ErrorTypeValidation     ErrorType = "validation"
+	ErrorTypeValidation    ErrorType = "validation"
 	ErrorTypeConfiguration ErrorType = "configuration"
-	ErrorTypeService        ErrorType = "service"
-	ErrorTypeTemplate       ErrorType = "template"
-	ErrorTypeRoute          ErrorType = "route"
-	ErrorTypeAuth           ErrorType = "auth"
-	ErrorTypeI18n           ErrorType = "i18n"
-	ErrorTypeInternal       ErrorType = "internal"
+	ErrorTypeService       ErrorType = "service"
+	ErrorTypeTemplate      ErrorType = "template"
+	ErrorTypeRoute         ErrorType = "route"
+	ErrorTypeAuth          ErrorType = "auth"
+	ErrorTypeI18n          ErrorType = "i18n"
+	ErrorTypeInternal      ErrorType = "internal"
 )
 
 // AppError represents a structured application error with context
 type AppError struct {
-	Type        ErrorType `json:"type"`
-	Code        string    `json:"code"`
-	Message     string    `json:"message"`
-	Details     string    `json:"details,omitempty"`
-	Cause       error     `json:"-"`
-	Context     map[string]interface{} `json:"context,omitempty"`
+	Type    ErrorType              `json:"type"`
+	Code    string                 `json:"code"`
+	Message string                 `json:"message"`
+	Details string                 `json:"details,omitempty"`
+	Cause   error                  `json:"-"`
+	Context map[string]interface{} `json:"context,omitempty"`
 }
 
 // Error implements the error interface
