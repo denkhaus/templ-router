@@ -63,8 +63,8 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 			return
 		}
 
-	// Get current user (only if authentication check passed or for Public routes)
-	var user interfaces.UserEntity
+		// Get current user (only if authentication check passed or for Public routes)
+		var user interfaces.UserEntity
 		if authenticated || !isRestricted {
 			user, err = am.authValidator.GetCurrentUser(r)
 			if err != nil {
@@ -80,7 +80,8 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 				// For Public routes, continue without user context
 			} else {
 				// Set user in context if successfully retrieved
-				router.SetUserInContext(r.Context(), user)
+
+				r.WithContext(router.SetUserInContext(r.Context(), user))
 			}
 		}
 
