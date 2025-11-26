@@ -9,6 +9,11 @@ import (
 	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
+// Test constants for project testing
+const (
+	TestProjectName = "github.com/test/project"
+)
+
 // TestGetLocalPackageInfo_CorrectBehavior tests the actual correct behavior
 func TestGetLocalPackageInfo_CorrectBehavior(t *testing.T) {
 	tests := []struct {
@@ -241,7 +246,7 @@ func TestGetLocalPackageInfo_EdgeCases(t *testing.T) {
 					ScanPath: filepath.Join(tempDir, "templates"), // Different path
 				}
 
-				return outsideFile, "github.com/test/project", config
+				return outsideFile, TestProjectName, config
 			},
 			expectPanic: false,
 			description: "Should handle files outside scan path gracefully",

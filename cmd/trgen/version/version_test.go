@@ -5,6 +5,11 @@ import (
 	"testing"
 )
 
+// Test constants
+const (
+	UnknownVersion = "unknown"
+)
+
 func TestGetVersion(t *testing.T) {
 	version := GetVersion()
 
@@ -72,7 +77,7 @@ func TestVersionVariables(t *testing.T) {
 
 func TestVersionFormat(t *testing.T) {
 	// Test that version follows expected format when set
-	if Version != "" && Version != "unknown" {
+	if Version != "" && Version != UnknownVersion {
 		// Version should not contain spaces or invalid characters
 		if strings.Contains(Version, " ") {
 			t.Errorf("Version should not contain spaces: %s", Version)

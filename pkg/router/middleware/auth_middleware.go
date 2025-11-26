@@ -1,3 +1,6 @@
+// Package middleware provides HTTP middleware components for the templ-router system.
+// It includes authentication, authorization, internationalization, template rendering,
+// and routing middleware for building secure and maintainable web applications.
 package middleware
 
 import (
@@ -12,6 +15,7 @@ import (
 )
 
 const (
+	// DefaultSigninRoute is the default path for user sign in functionality
 	DefaultSigninRoute = "/login"
 )
 

@@ -42,9 +42,7 @@ func TestGetCurrentRoute(t *testing.T) {
 		},
 		{
 			name: "No request path in context",
-			setupCtx: func() context.Context {
-				return context.Background()
-			},
+			setupCtx: func() context.Context { return context.Background() },
 			expected: "",
 		},
 		{

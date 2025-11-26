@@ -1,3 +1,6 @@
+// Package services provides data service resolution and management for the templ-router system.
+// It includes functionality for resolving data services with specific method detection,
+// dependency injection integration, and router context handling.
 package services
 
 import (

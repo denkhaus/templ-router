@@ -18,6 +18,14 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// Template type constants
+const (
+	TemplateTypeLayout    = "layout"
+	TemplateTypePage      = "page"
+	TemplateTypeError     = "error"
+	TemplateTypeComponent = "component"
+)
+
 // isDataServiceType checks if a given type implements the DataService interface
 func isDataServiceType(paramType gotypes.Type, pkg *packages.Package) (bool, string, string) {
 	// Get the underlying type, handling pointers
@@ -250,9 +258,6 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		// Create template key using UUID
 		packageName, importPath := utils.GetPackageInfo(filePath, config.ModuleName, config)
 
-		// Debug: Log the paths being generated
-		fmt.Printf("      -> File: %s\n", filePath)
-		fmt.Printf("      -> Package: %s, Import: %s\n", packageName, importPath)
 		templateKey := uuid.New().String()
 		humanName := utils.CreateHumanName(filePath, functionName)
 
@@ -271,13 +276,13 @@ func ExtractTemplatesFromFile(file *ast.File, filePath string, pkg *packages.Pac
 		// Derive component name based on template type and route pattern
 		var componentName string
 		switch templateType {
-		case "layout":
-			componentName = "layout"
-		case "page":
-			componentName = "page"
-		case "error":
-			componentName = "error"
-		case "component":
+		case TemplateTypeLayout:
+			componentName = TemplateTypeLayout
+		case TemplateTypePage:
+			componentName = TemplateTypePage
+		case TemplateTypeError:
+			componentName = TemplateTypeError
+		case TemplateTypeComponent:
 			// Extract component name from route pattern generically
 			// "/components/footer" -> "footer"
 			// "/ui/navbar" -> "navbar"
@@ -456,11 +461,11 @@ func determineTemplateType(templatePath string) string {
 
 	// Check for specific template types based on naming conventions
 	switch filename {
-	case "layout":
+	case TemplateTypeLayout:
 		return "layout"
-	case "page":
+	case TemplateTypePage:
 		return "page"
-	case "error":
+	case TemplateTypeError:
 		return "error"
 	default:
 		// This is a component

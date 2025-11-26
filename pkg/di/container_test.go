@@ -264,7 +264,11 @@ func (u *mockUser) GetRoles() []string { return u.Roles }
 func TestCustomMiddlewareDefinitionOrder(t *testing.T) {
 	// Create DI container
 	container := NewContainer()
-	defer container.Shutdown()
+	defer func() {
+		if err := container.Shutdown(); err != nil {
+			t.Logf("Warning: failed to shutdown container: %v", err)
+		}
+	}()
 
 	// Register router services
 	injector := container.RegisterRouterServices(context.Background(), "TR")
@@ -311,7 +315,9 @@ func TestCustomMiddlewareDefinitionOrder(t *testing.T) {
 	// Test actual middleware execution
 	testHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
+		if _, err := w.Write([]byte("OK")); err != nil {
+			t.Logf("Warning: failed to write response: %v", err)
+		}
 	})
 
 	// Apply middleware in order (as router would do)

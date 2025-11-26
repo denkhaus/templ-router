@@ -88,7 +88,11 @@ func TestLogSummaryWithPrintSummaryEnabled(t *testing.T) {
 	os.Stdout = w
 
 	injector := do.New()
-	defer injector.Shutdown()
+	defer func() {
+		if err := injector.Shutdown(); err != nil {
+			t.Logf("Warning: failed to shutdown injector: %v", err)
+		}
+	}()
 
 	configFactory := NewConfigService("TR")
 	service, err := configFactory(injector)
@@ -124,7 +128,11 @@ func TestLogSummaryWithPrintSummaryDisabled(t *testing.T) {
 	os.Stdout = w
 
 	injector := do.New()
-	defer injector.Shutdown()
+	defer func() {
+		if err := injector.Shutdown(); err != nil {
+			t.Logf("Warning: failed to shutdown injector: %v", err)
+		}
+	}()
 
 	configFactory := NewConfigService("TR")
 	service, err := configFactory(injector)

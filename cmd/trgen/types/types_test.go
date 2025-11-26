@@ -4,11 +4,17 @@ import (
 	"testing"
 )
 
+// Test constants for template validation
+const (
+	TestFunctionNamePage = "Page"
+	TestPackageNameApp  = "app"
+)
+
 func TestTemplateInfo(t *testing.T) {
 	// Test TemplateInfo struct creation and field access
 	template := TemplateInfo{
-		FunctionName: "Page",
-		PackageName:  "app",
+		FunctionName: TestFunctionNamePage,
+		PackageName:  TestPackageNameApp,
 		ImportPath:   "github.com/user/project/app",
 		PackageAlias: "app",
 		RoutePattern: "/",
@@ -17,11 +23,11 @@ func TestTemplateInfo(t *testing.T) {
 		HumanName:    "Page",
 	}
 
-	if template.FunctionName != "Page" {
+	if template.FunctionName != TestFunctionNamePage {
 		t.Errorf("Expected FunctionName to be 'Page', got %s", template.FunctionName)
 	}
 
-	if template.PackageName != "app" {
+	if template.PackageName != TestPackageNameApp {
 		t.Errorf("Expected PackageName to be 'app', got %s", template.PackageName)
 	}
 

@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/denkhaus/templ-router/pkg/shared"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -55,11 +56,17 @@ auth:
 
 	tmpFile, err := os.CreateTemp("", "test_extended_nested_*.yaml")
 	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
+	defer func() {
+		if err := os.Remove(tmpFile.Name()); err != nil {
+			t.Logf("Warning: failed to remove temp file %s: %v", tmpFile.Name(), err)
+		}
+	}()
 
 	_, err = tmpFile.WriteString(yamlContent)
 	require.NoError(t, err)
-	tmpFile.Close()
+	if err := tmpFile.Close(); err != nil {
+		t.Logf("Warning: failed to close temp file: %v", err)
+	}
 
 	// Parse the YAML using ParseYAMLMetadataExtended
 	logger := zap.NewNop()
@@ -99,7 +106,7 @@ auth:
 	// Verify auth settings are parsed correctly
 	assert.NotNil(t, config.GetAuthSettings())
 	authSettings := config.GetAuthSettings().(map[string]interface{})
-	assert.Equal(t, "UserRequired", authSettings["type"])
+	assert.Equal(t, shared.AuthType("UserRequired"), authSettings["type"])
 	assert.Equal(t, "/login", authSettings["redirect_url"])
 }
 

@@ -71,7 +71,9 @@ func TestConfigServiceAccessors(t *testing.T) {
 	}
 
 	for key, value := range testEnvVars {
-		os.Setenv(key, value)
+		if err := os.Setenv(key, value); err != nil {
+			t.Fatalf("Failed to set environment variable %s: %v", key, err)
+		}
 	}
 
 	// Create config service
@@ -262,6 +264,8 @@ func clearTestEnv(t *testing.T) {
 	}
 
 	for _, envVar := range envVars {
-		os.Unsetenv(envVar)
+		if err := os.Unsetenv(envVar); err != nil {
+			t.Logf("Warning: failed to unset environment variable %s: %v", envVar, err)
+		}
 	}
 }

@@ -9,6 +9,11 @@ import (
 	"github.com/denkhaus/templ-router/cmd/trgen/types"
 )
 
+// Reserved function names
+const (
+	ReservedPageFunction = "Page"
+)
+
 // ValidateTemplatePath validates that the template file is in the correct location
 func ValidateTemplatePath(filePath string, config types.Config) error {
 	rootDir := config.ScanPath
@@ -43,7 +48,7 @@ func ValidateFunctionNaming(functionName, filePath string) error {
 
 	// Rule 1: Reserved function names must be in correctly named files
 	switch functionName {
-	case "Page":
+	case ReservedPageFunction:
 		// Page functions must be in page.templ files
 		if templateName != "page" {
 			return fmt.Errorf("function 'Page' found in '%s.templ' but should only be in 'page.templ'", templateName)

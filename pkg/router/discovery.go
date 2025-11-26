@@ -1,3 +1,5 @@
+// Package router provides file discovery and template management functionality
+// for the templ-router system, including template scanning and file extension handling.
 package router
 
 import (
@@ -6,6 +8,13 @@ import (
 	"strings"
 
 	"github.com/denkhaus/templ-router/pkg/interfaces"
+)
+
+// File extension constants
+const (
+	TemplExtension = ".templ"
+	YAMLExtension  = ".yaml"
+	YMLExtension   = ".yml"
 )
 
 // DiscoverFiles scans the app directory for *.templ and *.yaml files using FileSystemChecker
@@ -28,9 +37,9 @@ func DiscoverFiles(scanPath string, fileSystem interfaces.FileSystemChecker) ([]
 
 		ext := filepath.Ext(path)
 		switch ext {
-		case ".templ":
+		case TemplExtension:
 			templFiles = append(templFiles, path)
-		case ".yaml", ".yml":
+		case YAMLExtension, YMLExtension:
 			// For YAML files named like *.templ.yaml, check if the corresponding *.templ file exists
 			// E.g., test.templ.yaml corresponds to test.templ
 			if strings.HasSuffix(path, ".templ.yaml") || strings.HasSuffix(path, ".templ.yml") {

@@ -1,3 +1,6 @@
+// Package auth provides authentication and authorization services for the templ-router system.
+// It includes default implementations, user validation, role-based access control,
+// and session management for secure web applications.
 package auth
 
 import (
@@ -26,21 +29,21 @@ func NewDefaultAuthValidator(i do.Injector) (interfaces.AuthValidator, error) {
 }
 
 // IsAuthenticated always returns false - applications must provide their own implementation
-func (av *defaultAuthValidatorImpl) IsAuthenticated(req *http.Request) (bool, error) {
+func (av *defaultAuthValidatorImpl) IsAuthenticated(_ *http.Request) (bool, error) {
 	av.logger.Warn("Default AuthValidator used - authentication will always fail. " +
 		"Please provide your own AuthValidator implementation using WithAuthValidatorFactory.")
 	return false, nil
 }
 
 // GetCurrentUser always returns an error - applications must provide their own implementation
-func (av *defaultAuthValidatorImpl) GetCurrentUser(req *http.Request) (interfaces.UserEntity, error) {
+func (av *defaultAuthValidatorImpl) GetCurrentUser(_ *http.Request) (interfaces.UserEntity, error) {
 	av.logger.Warn("Default AuthValidator used - cannot get current user. " +
 		"Please provide your own AuthValidator implementation using WithAuthValidatorFactory.")
 	return nil, fmt.Errorf("no custom AuthValidator provided")
 }
 
 // HasRole always returns false - applications must provide their own implementation
-func (av *defaultAuthValidatorImpl) HasRole(user interfaces.UserEntity, requiredRoles []string) bool {
+func (av *defaultAuthValidatorImpl) HasRole(_ interfaces.UserEntity, _ []string) bool {
 	av.logger.Warn("Default AuthValidator used - role checking will always fail. " +
 		"Please provide your own AuthValidator implementation using WithAuthValidatorFactory.")
 	return false
