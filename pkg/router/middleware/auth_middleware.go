@@ -38,7 +38,6 @@ func NewAuthMiddleware(i do.Injector) (interfaces.AuthMiddlewareInterface, error
 // Handle processes authentication for a request
 func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
 		if requirements == nil {
 			next.ServeHTTP(w, r)
 			return
@@ -50,9 +49,13 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 		if err != nil {
 			am.logger.Error("Failed to get authentication status",
 				zap.String("path", r.URL.Path),
-				zap.Error(err))
-			am.handleAuthFailure(w, r, requirements)
-			return
+				zap.Error(err),
+			)
+
+			if isRestricted {
+				am.handleAuthFailure(w, r, requirements)
+				return
+			}
 		}
 
 		if isRestricted && !authenticated {
@@ -60,19 +63,26 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 			return
 		}
 
-		// Get current user
-		user, err := am.authValidator.GetCurrentUser(r)
-		if err != nil {
-			am.logger.Error("Failed to get current user",
-				zap.String("path", r.URL.Path),
-				zap.Error(err),
-			)
+	// Get current user (only if authentication check passed or for Public routes)
+	var user interfaces.UserEntity
+		if authenticated || !isRestricted {
+			user, err = am.authValidator.GetCurrentUser(r)
+			if err != nil {
+				am.logger.Error("Failed to get current user",
+					zap.String("path", r.URL.Path),
+					zap.Error(err),
+				)
 
-			am.handleAuthFailure(w, r, requirements)
-			return
+				if isRestricted {
+					am.handleAuthFailure(w, r, requirements)
+					return
+				}
+				// For Public routes, continue without user context
+			} else {
+				// Set user in context if successfully retrieved
+				router.SetUserInContext(r.Context(), user)
+			}
 		}
-
-		router.SetUserInContext(r.Context(), user)
 
 		// Check role-based permissions
 		if isRestricted && !am.authValidator.HasRole(user, requirements.Roles) {
