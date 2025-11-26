@@ -69,29 +69,6 @@ type ErrorTemplate struct {
 	ErrorMessages map[int]string
 }
 
-// AuthType represents different authentication types
-type AuthType int
-
-const (
-	AuthTypePublic AuthType = iota
-	AuthTypeUser
-	AuthTypeAdmin
-)
-
-// String returns the string representation of AuthType
-func (at AuthType) String() string {
-	switch at {
-	case AuthTypePublic:
-		return "public"
-	case AuthTypeUser:
-		return "user"
-	case AuthTypeAdmin:
-		return "admin"
-	default:
-		return "unknown"
-	}
-}
-
 // AuthResult contains authentication result (generic)
 type AuthResult struct {
 	IsAuthenticated bool       `json:"is_authenticated"`

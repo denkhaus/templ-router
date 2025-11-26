@@ -43,7 +43,7 @@ func TestAuthSettings_Validation(t *testing.T) {
 		{
 			name: "Valid admin auth settings",
 			settings: shared.AuthConfig{
-				Type:        "AdminRequired",
+				Type:        shared.AuthTypeAdmin,
 				RedirectURL: "/admin/login",
 				Roles:       []string{"admin", "super_admin"},
 			},

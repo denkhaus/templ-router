@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -183,7 +184,15 @@ func (tm *templateMiddleware) loadTemplateMetadataAndI18n(ctx context.Context, t
 
 	// Load hierarchical metadata and i18n: Layout -> Page -> Component
 	// Components have highest priority and override parent settings
-	mergedConfig, mergedTranslations, componentsConfigs := tm.loadHierarchicalMetadataAndI18n(ctx, metadata)
+	mergedConfig, mergedTranslations, componentsConfigs, err := tm.loadHierarchicalMetadataAndI18n(ctx, metadata)
+	if err != nil {
+		tm.logger.Error("Failed loading metadata and i18n config for template",
+			zap.String("template_key", templateKey),
+			zap.String("route_path", routePath),
+			zap.Error(err),
+		)
+		return ctx
+	}
 
 	// Add merged template config to context for metadata.M() access
 	ctx = context.WithValue(ctx, shared.TemplateConfigKey, mergedConfig)
@@ -234,7 +243,7 @@ func (tm *templateMiddleware) buildCorrectYAMLPath(registryYAMLPath string) stri
 
 // loadHierarchicalMetadataAndI18n loads and merges metadata and i18n data in hierarchical order
 // Layout -> Page -> Component (higher priority overrides lower priority)
-func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Context, currentMetadata *interfaces.TemplateMetadata) (*shared.ConfigFile, map[string]string, map[string]*shared.ConfigFile) {
+func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Context, currentMetadata *interfaces.TemplateMetadata) (*shared.ConfigFile, map[string]string, map[string]*shared.ConfigFile, error) {
 	// Step 1: Load layout metadata (lowest priority)
 	layoutConfig := tm.loadLayoutMetadata()
 
@@ -245,7 +254,10 @@ func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Contex
 	componentsConfigs := tm.loadEmbeddedComponentsMetadata()
 
 	// Step 4: Merge hierarchically: Layout + Current + Components
-	mergedConfig := tm.mergeConfigsHierarchically(layoutConfig, currentConfig, componentsConfigs)
+	mergedConfig, err := tm.mergeConfigsHierarchically(layoutConfig, currentConfig, componentsConfigs)
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
 	// Get current locale from context
 	locale, _ := ctx.Value(shared.LocaleKey).(string)
@@ -266,7 +278,7 @@ func (tm *templateMiddleware) loadHierarchicalMetadataAndI18n(ctx context.Contex
 		zap.Int("merged_metadata_count", len(tm.getRouteMetadata(mergedConfig))),
 		zap.Int("merged_translation_count", len(mergedTranslations)))
 
-	return mergedConfig, mergedTranslations, componentsConfigs
+	return mergedConfig, mergedTranslations, componentsConfigs, nil
 }
 
 // loadLayoutMetadata loads layout metadata if available
@@ -402,19 +414,25 @@ func (tm *templateMiddleware) createEmptyConfig() *shared.ConfigFile {
 
 // mergeConfigsHierarchically merges configs in hierarchical order: Layout + Current + Components
 // Components (highest priority) override Current, which overrides Layout (lowest priority)
-func (tm *templateMiddleware) mergeConfigsHierarchically(layoutConfig, currentConfig *shared.ConfigFile, componentsConfigs map[string]*shared.ConfigFile) *shared.ConfigFile {
+func (tm *templateMiddleware) mergeConfigsHierarchically(layoutConfig, currentConfig *shared.ConfigFile, componentsConfigs map[string]*shared.ConfigFile) (*shared.ConfigFile, error) {
 	// Start with layout as base
 	merged := tm.cloneConfig(layoutConfig)
 
 	// Merge current template (overrides layout)
-	merged = tm.mergeTwoConfigs(merged, currentConfig, "current_template")
+	merged, err := tm.mergeTwoConfigs(merged, currentConfig, "current_template")
+	if err != nil {
+		return nil, fmt.Errorf("failed to merge config [layout]: %w", err)
+	}
 
 	// Merge all components (overrides current + layout)
 	for componentName, componentConfig := range componentsConfigs {
-		merged = tm.mergeTwoConfigs(merged, componentConfig, componentName)
+		merged, err = tm.mergeTwoConfigs(merged, componentConfig, componentName)
+		if err != nil {
+			return nil, fmt.Errorf("failed to merge config [component]: %w", err)
+		}
 	}
 
-	return merged
+	return merged, nil
 }
 
 // mergeTranslationsHierarchically merges i18n translations hierarchically: Layout + Current + Components
@@ -452,7 +470,7 @@ func (tm *templateMiddleware) mergeTranslationsHierarchically(layoutConfig, curr
 }
 
 // mergeTwoConfigs merges two configs with the second overriding the first
-func (tm *templateMiddleware) mergeTwoConfigs(base, override *shared.ConfigFile, sourceName string) *shared.ConfigFile {
+func (tm *templateMiddleware) mergeTwoConfigs(base, override *shared.ConfigFile, sourceName string) (*shared.ConfigFile, error) {
 	merged := tm.cloneConfig(base)
 
 	// Merge route metadata
@@ -504,7 +522,11 @@ func (tm *templateMiddleware) mergeTwoConfigs(base, override *shared.ConfigFile,
 			}
 			// Set auth fields from map
 			if authType, ok := overrideAuthMap["type"].(string); ok {
-				merged.Auth.Type = authType
+				at, err := shared.ParseAuthType(authType)
+				if err != nil {
+					return nil, fmt.Errorf("invalid auth type %s in %s", authType, sourceName)
+				}
+				merged.Auth.Type = at
 			}
 			if redirectURL, ok := overrideAuthMap["redirect_url"].(string); ok {
 				merged.Auth.RedirectURL = redirectURL
@@ -611,7 +633,7 @@ func (tm *templateMiddleware) mergeTwoConfigs(base, override *shared.ConfigFile,
 		zap.Int("override_metadata_count", len(tm.getRouteMetadata(override))),
 		zap.Int("merged_metadata_count", len(tm.getRouteMetadata(merged))))
 
-	return merged
+	return merged, nil
 }
 
 // cloneConfig creates a deep copy of a config

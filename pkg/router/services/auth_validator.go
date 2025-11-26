@@ -48,17 +48,17 @@ func (av *AuthValidator) ValidateAuthSettings(route *interfaces.Route, config *s
 
 	av.logger.Debug("Auth settings validated",
 		zap.String("route", route.Path),
-		zap.String("auth_type", authSettings.Type),
+		zap.String("auth_type", string(authSettings.Type)),
 		zap.Strings("roles", authSettings.Roles))
 }
 
 // validateAuthenticationSettings validates basic authentication requirements
 func (av *AuthValidator) validateAuthenticationSettings(route *interfaces.Route, authSettings *shared.AuthConfig, result *ValidationResult) {
 	// Check auth type validity
-	validAuthTypes := map[string]bool{
-		"Public":        true,
-		"UserRequired":  true,
-		"AdminRequired": true,
+	validAuthTypes := map[shared.AuthType]bool{
+		shared.AuthTypePublic: true,
+		shared.AuthTypeUser:   true,
+		shared.AuthTypeAdmin:  true,
 	}
 
 	if !validAuthTypes[authSettings.Type] {
@@ -82,7 +82,7 @@ func (av *AuthValidator) validateAuthenticationSettings(route *interfaces.Route,
 // validateAuthorizationSettings validates authorization requirements
 func (av *AuthValidator) validateAuthorizationSettings(route *interfaces.Route, authSettings *shared.AuthConfig, result *ValidationResult) {
 	// Check for admin routes without proper protection
-	if authSettings.Type == "AdminRequired" && len(authSettings.Roles) == 0 {
+	if authSettings.Type == shared.AuthTypeAdmin && len(authSettings.Roles) == 0 {
 		result.Warnings = append(result.Warnings, ValidationWarning{
 			Type:      "ADMIN_WITHOUT_ROLES",
 			Message:   "Admin route has no specific roles defined",

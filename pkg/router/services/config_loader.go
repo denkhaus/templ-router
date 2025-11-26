@@ -117,7 +117,7 @@ func (cl *configLoaderImpl) parseAuthSettings(authData interface{}) (*shared.Aut
 	// Parse auth type
 	if typeData, ok := authMap["type"]; ok {
 		if typeStr, ok := typeData.(string); ok {
-			authType, err := cl.parseAuthType(typeStr)
+			authType, err := shared.ParseAuthType(typeStr)
 			if err != nil {
 				return nil, fmt.Errorf("invalid auth type: %w", err)
 			}
@@ -157,18 +157,4 @@ func (cl *configLoaderImpl) parseAuthSettings(authData interface{}) (*shared.Aut
 	}
 
 	return settings, nil
-}
-
-// parseAuthType converts string to AuthType string
-func (cl *configLoaderImpl) parseAuthType(typeStr string) (string, error) {
-	switch strings.ToLower(typeStr) {
-	case "public", "none":
-		return "Public", nil
-	case "user", "authenticated", "login", "userrequired":
-		return "UserRequired", nil
-	case "admin", "administrator", "adminrequired":
-		return "AdminRequired", nil
-	default:
-		return "Public", fmt.Errorf("unknown auth type: %s", typeStr)
-	}
 }

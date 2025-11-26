@@ -38,12 +38,13 @@ func NewAuthMiddleware(i do.Injector) (interfaces.AuthMiddlewareInterface, error
 // Handle processes authentication for a request
 func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthConfig) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Skip auth for public routes
-		if requirements == nil || requirements.Type == "Public" {
+
+		if requirements == nil {
 			next.ServeHTTP(w, r)
 			return
 		}
 
+		isRestricted := requirements.Type != "Public"
 		// Check if user is authenticated
 		authenticated, err := am.authValidator.IsAuthenticated(r)
 		if err != nil {
@@ -54,7 +55,7 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 			return
 		}
 
-		if !authenticated {
+		if isRestricted && !authenticated {
 			am.handleAuthFailure(w, r, requirements)
 			return
 		}
@@ -74,7 +75,7 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 		router.SetUserInContext(r.Context(), user)
 
 		// Check role-based permissions
-		if !am.authValidator.HasRole(user, requirements.Roles) {
+		if isRestricted && !am.authValidator.HasRole(user, requirements.Roles) {
 			am.handlePermissionFailure(w, r, requirements)
 			return
 		}
@@ -88,7 +89,7 @@ func (am *authMiddleware) Handle(next http.Handler, requirements *shared.AuthCon
 func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Request, requirements *shared.AuthConfig) {
 	am.logger.Info("Authentication required but user not authenticated",
 		zap.String("path", r.URL.Path),
-		zap.String("auth_type", requirements.Type))
+		zap.String("auth_type", string(requirements.Type)))
 
 	// Determine redirect URL
 	var redirectURL string
@@ -126,14 +127,14 @@ func (am *authMiddleware) handleAuthFailure(w http.ResponseWriter, r *http.Reque
 func (am *authMiddleware) handlePermissionFailure(w http.ResponseWriter, r *http.Request, requirements *shared.AuthConfig) {
 	am.logger.Warn("User lacks required permissions",
 		zap.String("path", r.URL.Path),
-		zap.String("required_auth_type", requirements.Type))
+		zap.String("required_auth_type", string(requirements.Type)))
 
 	if requirements.RedirectURL != "" {
 		http.Redirect(w, r, requirements.RedirectURL, http.StatusFound)
 	} else {
 		am.logger.Warn("Auth-required page has no redirect_url configured",
 			zap.String("path", r.URL.Path),
-			zap.String("auth_type", requirements.Type))
+			zap.String("auth_type", string(requirements.Type)))
 		http.Error(w, "Forbidden: Insufficient permissions", http.StatusForbidden)
 	}
 }

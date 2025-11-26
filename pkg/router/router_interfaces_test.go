@@ -227,7 +227,7 @@ func TestConfigLoader_InterfaceCompliance(t *testing.T) {
 			},
 		},
 		authSettings: &shared.AuthConfig{
-			Type:        interfaces.AuthTypeUser.String(),
+			Type:        shared.AuthTypeUser,
 			RedirectURL: "/login",
 			Roles:       []string{"user"},
 		},
@@ -262,7 +262,7 @@ func TestConfigLoader_InterfaceCompliance(t *testing.T) {
 	if authSettings == nil {
 		t.Error("LoadAuthSettings() returned nil auth settings")
 	}
-	if authSettings.Type != interfaces.AuthTypeUser.String() {
+	if authSettings.Type != shared.AuthTypeUser {
 		t.Errorf("Expected auth type User, got %v", authSettings.Type)
 	}
 	if authSettings.RedirectURL != "/login" {
