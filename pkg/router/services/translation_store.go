@@ -12,16 +12,16 @@ import (
 )
 
 type simpleTranslationStore struct {
-	configService      interfaces.ConfigService
-	templateRegistry   interfaces.TemplateRegistry
-	logger             *zap.Logger
-	fallbackLocale     string
-	layoutPath         string // Precomputed layout path
-	supportedLocales   []string // Preloaded supported locales
-	templateExtension  string // Preloaded template extension
-	translations       map[string]map[string]map[string]string // [templatePath][locale][key] = value
-	loadedPaths        map[string]bool                         // Track which template paths have been loaded
-	mu                 sync.RWMutex
+	configService     interfaces.ConfigService
+	templateRegistry  interfaces.TemplateRegistry
+	logger            *zap.Logger
+	fallbackLocale    string
+	layoutPath        string                                  // Precomputed layout path
+	supportedLocales  []string                                // Preloaded supported locales
+	templateExtension string                                  // Preloaded template extension
+	translations      map[string]map[string]map[string]string // [templatePath][locale][key] = value
+	loadedPaths       map[string]bool                         // Track which template paths have been loaded
+	mu                sync.RWMutex
 }
 
 // NewInMemoryTranslationStore creates a new translation store for DI
@@ -29,14 +29,14 @@ func NewInMemoryTranslationStore(i do.Injector) (TranslationStore, error) {
 	configService := do.MustInvoke[interfaces.ConfigService](i)
 	templateRegistry := do.MustInvoke[interfaces.TemplateRegistry](i)
 	logger := do.MustInvoke[*zap.Logger](i)
-	
+
 	// Preload frequently used config values for better performance
 	templateExtension := configService.GetTemplateExtension()
 	layoutPath := filepath.Join(
-		configService.GetLayoutRootDirectory(), 
+		configService.GetLayoutRootDirectory(),
 		configService.GetLayoutFileName()+templateExtension,
 	)
-	
+
 	return &simpleTranslationStore{
 		configService:     configService,
 		templateRegistry:  templateRegistry,
@@ -56,11 +56,11 @@ func (s *simpleTranslationStore) GetTranslation(locale, key string) (string, boo
 
 	// HIERARCHICAL TRANSLATION RESOLUTION
 	// Order: Components > Pages > Layout (higher precedence wins)
-	
+
 	var foundTranslation string
 	var foundInTemplate string
 	foundAny := false
-	
+
 	// 1. First pass: Layout translations (lowest precedence)
 	if locales, exists := s.translations[s.layoutPath]; exists {
 		if localeTranslations, exists := locales[locale]; exists {
@@ -76,13 +76,13 @@ func (s *simpleTranslationStore) GetTranslation(locale, key string) (string, boo
 			}
 		}
 	}
-	
+
 	// 2. Second pass: Page translations (medium precedence) - override layout
 	for templatePath, locales := range s.translations {
 		if templatePath == s.layoutPath || s.isComponentTemplate(templatePath) {
 			continue // Skip layout and components in this pass
 		}
-		
+
 		if localeTranslations, exists := locales[locale]; exists {
 			if translation, found := localeTranslations[key]; found {
 				foundTranslation = translation
@@ -97,13 +97,13 @@ func (s *simpleTranslationStore) GetTranslation(locale, key string) (string, boo
 			}
 		}
 	}
-	
+
 	// 3. Third pass: Component translations (highest precedence) - override everything
 	for templatePath, locales := range s.translations {
 		if !s.isComponentTemplate(templatePath) {
 			continue // Only process components
 		}
-		
+
 		if localeTranslations, exists := locales[locale]; exists {
 			if translation, found := localeTranslations[key]; found {
 				foundTranslation = translation
@@ -119,7 +119,7 @@ func (s *simpleTranslationStore) GetTranslation(locale, key string) (string, boo
 			}
 		}
 	}
-	
+
 	// Return the best translation found (Page > Layout > nothing)
 	if foundAny {
 		s.logger.Debug("Translation resolved with hierarchy",
@@ -147,7 +147,7 @@ func (s *simpleTranslationStore) getTranslationWithHierarchy(locale, key string)
 	var foundTranslation string
 	var foundInTemplate string
 	foundAny := false
-	
+
 	// 1. Layout translations (lowest precedence)
 	if locales, exists := s.translations[s.layoutPath]; exists {
 		if localeTranslations, exists := locales[locale]; exists {
@@ -158,13 +158,13 @@ func (s *simpleTranslationStore) getTranslationWithHierarchy(locale, key string)
 			}
 		}
 	}
-	
+
 	// 2. Page translations (medium precedence) - override layout
 	for templatePath, locales := range s.translations {
 		if templatePath == s.layoutPath || s.isComponentTemplate(templatePath) {
 			continue // Skip layout and components
 		}
-		
+
 		if localeTranslations, exists := locales[locale]; exists {
 			if translation, found := localeTranslations[key]; found {
 				foundTranslation = translation
@@ -173,13 +173,13 @@ func (s *simpleTranslationStore) getTranslationWithHierarchy(locale, key string)
 			}
 		}
 	}
-	
+
 	// 3. Component translations (highest precedence) - override everything
 	for templatePath, locales := range s.translations {
 		if !s.isComponentTemplate(templatePath) {
 			continue // Only components
 		}
-		
+
 		if localeTranslations, exists := locales[locale]; exists {
 			if translation, found := localeTranslations[key]; found {
 				foundTranslation = translation
@@ -196,7 +196,7 @@ func (s *simpleTranslationStore) getTranslationWithHierarchy(locale, key string)
 			}
 		}
 	}
-	
+
 	if foundAny {
 		s.logger.Debug("Translation found in fallback hierarchy",
 			zap.String("requested_locale", "de"),
@@ -206,7 +206,7 @@ func (s *simpleTranslationStore) getTranslationWithHierarchy(locale, key string)
 			zap.String("translation", foundTranslation))
 		return foundTranslation, true
 	}
-	
+
 	return "", false
 }
 
@@ -263,7 +263,7 @@ func (s *simpleTranslationStore) loadTranslationsForPath(templatePath string) er
 		return nil // No YAML file exists, not an error
 	}
 
-	s.logger.Debug("Using YAML path from registry", 
+	s.logger.Debug("Using YAML path from registry",
 		zap.String("template_path", templatePath),
 		zap.String("yaml_path", yamlPath))
 
@@ -332,7 +332,7 @@ func (s *simpleTranslationStore) loadTranslationsForPath(templatePath string) er
 		}
 	}
 
-	s.logger.Info("Successfully loaded translations",
+	s.logger.Debug("Successfully loaded translations",
 		zap.String("template_path", templatePath),
 		zap.String("yaml_path", yamlPath))
 
@@ -344,7 +344,7 @@ func (s *simpleTranslationStore) resolveYamlPath(templatePath string) string {
 	// First, try to get the template key from the route-to-template mapping
 	routeMapping := s.templateRegistry.GetRouteToTemplateMapping()
 	var templateKey string
-	
+
 	// Look for the template key by matching the path
 	for _, key := range routeMapping {
 		if key == templatePath {
@@ -352,19 +352,19 @@ func (s *simpleTranslationStore) resolveYamlPath(templatePath string) string {
 			break
 		}
 	}
-	
+
 	// If not found in mapping, try using the path directly as key
 	if templateKey == "" {
 		templateKey = templatePath
 	}
-	
+
 	// Get metadata from registry
 	metadata, err := s.templateRegistry.GetTemplateMetadata(templateKey)
 	if err != nil {
-		s.logger.Debug("Template not found in registry, checking alternative keys", 
+		s.logger.Debug("Template not found in registry, checking alternative keys",
 			zap.String("template_path", templatePath),
 			zap.String("attempted_key", templateKey))
-		
+
 		// Try alternative key formats
 		allMetadata := s.templateRegistry.GetAllTemplateMetadata()
 		for _, meta := range allMetadata {
@@ -373,22 +373,22 @@ func (s *simpleTranslationStore) resolveYamlPath(templatePath string) string {
 				break
 			}
 		}
-		
+
 		if metadata == nil {
 			s.logger.Debug("Template metadata not found in registry", zap.String("template_path", templatePath))
 			return "" // No YAML file
 		}
 	}
-	
+
 	// Check if YAML exists and return the path
 	if metadata.YAMLExists && metadata.YAMLFile != "" {
-		s.logger.Debug("Found YAML file in registry", 
+		s.logger.Debug("Found YAML file in registry",
 			zap.String("template_path", templatePath),
 			zap.String("yaml_file", metadata.YAMLFile))
 		return metadata.YAMLFile
 	}
-	
-	s.logger.Debug("No YAML file for template according to registry", 
+
+	s.logger.Debug("No YAML file for template according to registry",
 		zap.String("template_path", templatePath))
 	return "" // No YAML file exists
 }
@@ -419,7 +419,7 @@ func (s *simpleTranslationStore) LoadAllTranslations(templatePaths []string) err
 		s.logger.Warn("Failed to discover component translations", zap.Error(err))
 	} else {
 		s.logger.Info("Discovered component translations", zap.Int("component_count", len(componentPaths)))
-		
+
 		for _, componentPath := range componentPaths {
 			s.mu.RLock()
 			alreadyLoaded := s.loadedPaths[componentPath]
@@ -508,19 +508,19 @@ func (s *simpleTranslationStore) LoadAllTranslations(templatePaths []string) err
 // discoverComponentTranslations finds all component templates with YAML files using the registry
 func (s *simpleTranslationStore) discoverComponentTranslations() ([]string, error) {
 	var componentPaths []string
-	
+
 	// Use registry to find component templates with YAML files
 	allMetadata := s.templateRegistry.GetAllTemplateMetadata()
 	for _, metadata := range allMetadata {
 		// Check if it's a component with a YAML file
 		if metadata.Type == interfaces.TemplateTypeComponent && metadata.YAMLExists {
 			componentPaths = append(componentPaths, metadata.TemplatePath)
-			s.logger.Debug("Discovered component with YAML", 
+			s.logger.Debug("Discovered component with YAML",
 				zap.String("template_path", metadata.TemplatePath),
 				zap.String("yaml_file", metadata.YAMLFile))
 		}
 	}
-	
+
 	s.logger.Debug("Component discovery completed", zap.Int("found", len(componentPaths)))
 	return componentPaths, nil
 }

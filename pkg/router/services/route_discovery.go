@@ -68,7 +68,7 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Rout
 		}
 
 		// Debug logging for DataService detection
-		rd.logger.Info("Route discovery DataService check",
+		rd.logger.Debug("Route discovery DataService check",
 			zap.String("route", routePattern),
 			zap.String("template_key", templateKey),
 			zap.Bool("requires_data_service", requiresDataService),
@@ -92,11 +92,6 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Rout
 			extractedFile := rd.extractTemplateFileFromRegistryKey(templateKey, routePattern)
 			if extractedFile != "" {
 				templateFile = extractedFile
-				rd.logger.Info("Template path extraction successful - using extracted path",
-					zap.String("route_pattern", routePattern),
-					zap.String("template_key", templateKey),
-					zap.String("original_generated", templateFile),
-					zap.String("final_extracted", extractedFile))
 			} else {
 				rd.logger.Error("Both generated and extracted template files don't exist",
 					zap.String("route_pattern", routePattern),
@@ -122,7 +117,7 @@ func (rd *routeDiscoveryImpl) DiscoverRoutes(scanPath string) ([]interfaces.Rout
 
 		routes = append(routes, route)
 
-		rd.logger.Info("Route discovered from template registry",
+		rd.logger.Debug("Route discovered from template registry",
 			zap.String("pattern", routePattern),
 			zap.String("template", templateKey),
 			zap.String("file", route.TemplateFile),
