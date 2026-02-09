@@ -7,7 +7,7 @@ require github.com/a-h/templ v0.3.960
 require (
 	github.com/denkhaus/templ-router/demo v0.0.0-20251126220505-80e74c42cfec
 	github.com/fsnotify/fsnotify v1.9.0
-	github.com/go-chi/chi/v5 v5.2.3
+	github.com/go-chi/chi/v5 v5.2.5
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/magefile/mage v1.15.0
