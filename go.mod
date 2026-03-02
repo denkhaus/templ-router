@@ -2,7 +2,7 @@ module github.com/denkhaus/templ-router
 
 go 1.25.0
 
-require github.com/a-h/templ v0.3.960
+require github.com/a-h/templ v0.3.1001
 
 require (
 	github.com/denkhaus/templ-router/demo v0.0.0-20251126220505-80e74c42cfec
